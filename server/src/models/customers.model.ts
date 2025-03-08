@@ -1,0 +1,47 @@
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Model,
+	Sequelize,
+	DataTypes,
+} from 'sequelize';
+export class Customers extends Model<
+	InferAttributes<Customers>,
+	InferCreationAttributes<Customers>
+> {
+	declare id: CreationOptional<number>;
+	declare fullName: string;
+	declare email: CreationOptional<string>;
+	declare phone: CreationOptional<string>;
+	declare passwordHash: CreationOptional<string>;
+	declare address: CreationOptional<string>;
+	declare createdAt: CreationOptional<Date>;
+	declare updatedAt: CreationOptional<Date>;
+	static initClass = (sequelize: Sequelize) => {
+		Customers.init(
+			{
+				id: {
+					type: DataTypes.INTEGER,
+					primaryKey: true,
+					autoIncrement: true,
+				},
+				fullName: { type: DataTypes.STRING(100), allowNull: false },
+				email: { type: DataTypes.STRING(100), unique: true },
+				phone: { type: DataTypes.STRING(20), unique: true },
+				passwordHash: DataTypes.STRING(255),
+				address: DataTypes.TEXT,
+				createdAt: DataTypes.DATE,
+				updatedAt: DataTypes.DATE,
+			},
+			{
+				sequelize,
+				tableName: 'Customers',
+				timestamps: true,
+				createdAt: 'createdAt',
+				updatedAt: 'updatedAt',
+				name: { singular: 'customer', plural: 'customers' },
+			},
+		);
+	};
+}
