@@ -52,7 +52,3 @@ export default tseslint.config({
   },
 })
 ```
-
-# Run
-- npm install || yarn add ( cài yarn bằng cách npm install -g yarn)
-- npm run dev || yarn dev 
