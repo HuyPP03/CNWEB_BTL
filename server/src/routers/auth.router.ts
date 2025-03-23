@@ -3,7 +3,11 @@ import { Router } from 'express';
 import * as auth from '../controllers/auth.controller';
 import { validateBody } from '../middleware/validation.middleware';
 import { loginSchema } from '../validators';
-import { forgotPasswordSchema, registerSchema, verifySchema } from '../validators/auth.validator';
+import {
+	forgotPasswordSchema,
+	registerSchema,
+	verifySchema,
+} from '../validators/auth.validator';
 
 const router = Router();
 
