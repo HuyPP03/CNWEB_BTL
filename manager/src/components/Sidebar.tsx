@@ -11,25 +11,25 @@ const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
       <nav>
         <ul className="space-y-3">
           <li>
-            <SidebarItem to="/qlinhanvien" icon={FaUsers} label="Quản lý nhân viên" />
+            <SidebarItem to="/qlnhanvien" icon={FaUsers} label="Quản lý nhân viên" />
           </li>
           <li>
-            <SidebarItem to="/qlikhachhang" icon={FaUsersCog} label="Quản lý khách hàng" />
+            <SidebarItem to="/qlkhachhang" icon={FaUsersCog} label="Quản lý khách hàng" />
           </li>
           <li>
-            <SidebarItem to="/qlisanpham" icon={FaBox} label="Quản lý sản phẩm" />
+            <SidebarItem to="/qlsanpham" icon={FaBox} label="Quản lý sản phẩm" />
           </li>
           <li>
-            <SidebarItem to="/qlinhacungcap" icon={FaBuilding} label="Quản lý nhà cung cấp" />
+            <SidebarItem to="/qlnhacungcap" icon={FaBuilding} label="Quản lý nhà cung cấp" />
           </li>
           <li>
-            <SidebarItem to="/qlidanhmuc" icon={FaListAlt} label="Quản lí danh mục sản phẩm" />
+            <SidebarItem to="/qldanhmuc" icon={FaListAlt} label="Quản lí danh mục sản phẩm" />
           </li>
           <li>
-            <SidebarItem to="/qlidonhang" icon={FaClipboard} label="Quản lí đơn hàng" />
+            <SidebarItem to="/qldonhang" icon={FaClipboard} label="Quản lí đơn hàng" />
           </li>
           <li>
-            <SidebarItem to="/qlilichsu" icon={FaClock} label="Quản lí truy cập" />
+            <SidebarItem to="/qllichsu" icon={FaClock} label="Quản lí truy cập" />
           </li>
         </ul>
       </nav>

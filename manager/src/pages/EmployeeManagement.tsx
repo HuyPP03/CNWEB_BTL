@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { FaUserPlus, FaEdit, FaTrash } from "react-icons/fa";
+import { FaUserPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
+import ManagementTable from "../components/ManagementTable";
 
 const EmployeeManagement = () => {
   const [employees] = useState([
@@ -14,6 +15,7 @@ const EmployeeManagement = () => {
     { id: 7, name: "Ngô Văn G", position: "Nhân viên" },
     { id: 8, name: "Bùi Thị H", position: "Nhân viên" },
   ]);
+  const headers = ["ID", "Tên Nhân viên", "Chức vụ", "Hành động"];
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,12 +23,12 @@ const EmployeeManagement = () => {
 
   const handleAdd = () => {
     console.log("Thêm nhân viên");
-    navigate("/qlinhanvien/add");
+    navigate("/qlnhanvien/add");
   };
 
   const handleEdit = (id: number) => {
     console.log("Sửa nhân viên", id);
-    navigate(`/qlinhanvien/edit/${id}`);
+    navigate(`/qlnhanvien/edit/${id}`);
   };
 
   const handleDelete = (id: number) => {
@@ -40,50 +42,37 @@ const EmployeeManagement = () => {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
-    <div className="p-4">
+    <div className="p-2">
       <h1 className="text-xl font-bold mb-4">Quản lý nhân viên</h1>
-      {/* <button 
-        className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 mb-4 cursor-pointer" 
-        onClick={handleAdd}
-      >
-        <FaUserPlus /> Thêm nhân viên
-      </button> */}
       <AddButton onClick={handleAdd} label="Thêm nhân viên" icon={FaUserPlus} />
-      <table className="w-full border-collapse border border-gray-300">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border p-2">ID</th>
-            <th className="border p-2">Tên</th>
-            <th className="border p-2">Chức vụ</th>
-            <th className="border p-2">Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {currentEmployees.map((employee) => (
-            <tr key={employee.id} className="text-center">
-              <td className="border p-2">{employee.id}</td>
-              <td className="border p-2">{employee.name}</td>
-              <td className="border p-2">{employee.position}</td>
-              <td className="border p-2">
-                <div className="flex justify-center gap-2">
-                <button 
-                    className="bg-yellow-500 text-white px-2 py-1 rounded flex items-center gap-1 cursor-pointer" 
-                    onClick={() => handleEdit(employee.id)}
-                >
-                    <FaEdit /> Sửa
-                </button>
-                <button 
-                    className="bg-red-500 text-white px-2 py-1 rounded flex items-center gap-1 cursor-pointer" 
-                    onClick={() => handleDelete(employee.id)}
-                >
-                    <FaTrash /> Xóa
-                </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="flex gap-2 mt-4">
+        <input
+          type="text"
+          placeholder="Tìm theo ID..."
+          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
+          className="p-2 border rounded w-1/3"
+        />
+        <input
+          type="text"
+          placeholder="Tìm theo tên..."
+          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
+          className="p-2 border rounded w-1/3"
+        />
+        <input
+          type="text"
+          placeholder="Tìm theo chức vụ..."
+          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
+          className="p-2 border rounded w-1/3"
+        />
+      </div>
+      <div className="p-4">
+        <ManagementTable
+          headers={headers}
+          data={currentEmployees}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </div>
       <div className="flex justify-center mt-4">
         {Array.from({ length: Math.ceil(employees.length / employeesPerPage) }, (_, index) => (
           <button
