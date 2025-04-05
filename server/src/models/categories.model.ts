@@ -13,7 +13,7 @@ export class Categories extends Model<
 	declare id: CreationOptional<number>;
 	declare name: string;
 	declare description: CreationOptional<string>;
-	declare parentId: CreationOptional<number>;
+	declare parentId: CreationOptional<number> | null;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 	static initClass = (sequelize: Sequelize) => {

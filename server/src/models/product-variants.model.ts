@@ -12,6 +12,7 @@ export class ProductVariants extends Model<
 > {
 	declare id: CreationOptional<number>;
 	declare productId: number;
+	declare slug: string;
 	declare sku: string;
 	declare price: number;
 	declare discountPrice: CreationOptional<number>;
@@ -27,6 +28,11 @@ export class ProductVariants extends Model<
 					autoIncrement: true,
 				},
 				productId: { type: DataTypes.INTEGER, allowNull: false },
+				slug: {
+					type: DataTypes.STRING(255),
+					allowNull: false,
+					unique: true,
+				},
 				sku: {
 					type: DataTypes.STRING(50),
 					allowNull: false,

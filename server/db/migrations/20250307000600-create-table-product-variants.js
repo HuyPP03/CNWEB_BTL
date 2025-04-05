@@ -13,6 +13,12 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				references: { model: 'Products', key: 'id' },
 				onDelete: 'CASCADE',
+				onUpdate: 'CASCADE',
+			},
+			slug: {
+				allowNull: false,
+				type: Sequelize.STRING(255),
+				unique: true,
 			},
 			sku: { allowNull: false, type: Sequelize.STRING(50), unique: true },
 			price: { allowNull: false, type: Sequelize.DECIMAL(15, 2) },

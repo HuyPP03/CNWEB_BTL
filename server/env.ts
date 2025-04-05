@@ -22,7 +22,8 @@ export default {
 		saltRounds: process.env.SALT_ROUNDS || 10,
 		cors: process.env.CORS?.split(',') || '*',
 		jwtSecret: process.env['JWT_SECRET'] || '123456',
-        jwtExpiredIn: process.env['JWT_EXPIRED_IN'] || '1d',
+		jwtSecretManager: process.env['JWT_SECRET_MANAGER'] || '123456',
+		jwtExpiredIn: process.env['JWT_EXPIRED_IN'] || '1d',
 		debugLog: process.env.DEBUG_LOG === 'true',
 	},
 	database: {

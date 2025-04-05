@@ -12,6 +12,7 @@ export class Reviews extends Model<
 > {
 	declare id: CreationOptional<number>;
 	declare productId: number;
+	declare variantId: CreationOptional<number>;
 	declare customerId: number;
 	declare rating: CreationOptional<number>;
 	declare comment: CreationOptional<string>;
@@ -27,6 +28,7 @@ export class Reviews extends Model<
 					autoIncrement: true,
 				},
 				productId: { type: DataTypes.INTEGER, allowNull: false },
+				variantId: DataTypes.INTEGER,
 				customerId: { type: DataTypes.INTEGER, allowNull: false },
 				rating: DataTypes.INTEGER,
 				comment: DataTypes.TEXT,

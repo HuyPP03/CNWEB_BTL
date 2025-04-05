@@ -11,9 +11,10 @@ import {
 
 const router = Router();
 
-router.post('/login', validateBody(loginSchema), auth.login);
-router.post('/register', validateBody(registerSchema), auth.register);
-router.post('/forgot', validateBody(forgotPasswordSchema), auth.login);
-router.post('/verify', validateBody(verifySchema), auth.verify);
+router.post('/customers/login', validateBody(loginSchema), auth.login);
+router.post('/managers/login', validateBody(loginSchema), auth.loginManager);
+// router.post('/register', validateBody(registerSchema), auth.register);
+// router.post('/forgot', validateBody(forgotPasswordSchema), auth.login);
+// router.post('/verify', validateBody(verifySchema), auth.verify);
 
 export default router;

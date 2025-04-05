@@ -13,12 +13,21 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				references: { model: 'Customers', key: 'id' },
 				onDelete: 'CASCADE',
+				onUpdate: 'CASCADE',
 			},
 			productId: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.INTEGER,
 				references: { model: 'Products', key: 'id' },
-				onDelete: 'CASCADE',
+				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
+			},
+			variantId: {
+				allowNull: true,
+				type: Sequelize.INTEGER,
+				references: { model: 'ProductVariants', key: 'id' },
+				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
 			},
 			createdAt: {
 				allowNull: false,
@@ -30,11 +39,6 @@ module.exports = {
 				type: Sequelize.DATE,
 				defaultValue: Sequelize.fn('CURRENT_TIMESTAMP'),
 			},
-		});
-		await queryInterface.addConstraint('Wishlists', {
-			fields: ['customerId', 'productId'],
-			type: 'unique',
-			name: 'wishlists_customer_product_unique',
 		});
 	},
 	async down(queryInterface) {

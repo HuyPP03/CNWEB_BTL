@@ -7,12 +7,16 @@ import { AppError } from '../utility/appError.util';
 import { EncUtil } from '../utility/encryption';
 import { sendMail } from '../utility/mail.util';
 import { buildHtmlRegisterUser } from '../utility/string.util';
+import { Admins } from '../models/admins.model';
 
 export async function authenticate(
 	email: string,
 	password: string,
-): Promise<Customers> {
-	const user = await db.customers.findOne({ where: { email: email } });
+	isAdmin: boolean = false,
+): Promise<Customers | Admins> {
+	const user = isAdmin
+		? await db.admins.findOne({ where: { email: email } })
+		: await db.customers.findOne({ where: { email: email } });
 	if (user == null) {
 		throw new AppError(PERMISSION_ERROR, 'email or password mismatch');
 	}
@@ -25,13 +29,17 @@ export async function authenticate(
 	return user;
 }
 
-export function getToken(user: Customers, expiresIn: any): string {
+export function getToken(
+	user: Customers | Admins,
+	expiresIn: any,
+	isAmin = false,
+): string {
 	return jwt.sign(
 		{
 			id: user.id,
 			email: user.email,
 		},
-		env.app.jwtSecret as any,
+		isAmin ? env.app.jwtSecretManager : (env.app.jwtSecret as any),
 		{
 			expiresIn,
 		},
