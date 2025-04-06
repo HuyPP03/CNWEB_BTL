@@ -3,6 +3,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import { PERMISSION_ERROR } from '../constants/constants';
 import { AppError } from '../utility/appError.util';
 import env from '../../env';
+import { db } from '../loaders/database.loader';
 
 export const isManager = async (
 	req: Request,
@@ -31,7 +32,19 @@ export const verifyToken = async (
 		const jwtSecret: string = isAdmin
 			? env.app.jwtSecretManager
 			: env.app.jwtSecret;
-		const user: JwtPayload | string = jwt.verify(token, jwtSecret);
+		const payload: any = jwt.verify(token, jwtSecret);
+		const user = isAdmin
+			? await db.admins.findOne({
+					where: { id: payload.id, email: payload.email },
+					attributes: { exclude: ['passwordHash'] },
+			  })
+			: await db.customers.findOne({
+					where: { id: payload.id, email: payload.email },
+					attributes: { exclude: ['passwordHash'] },
+			  });
+		if (!user || !user.isActive) {
+			throw new AppError(PERMISSION_ERROR, 'Unauthenticated!');
+		}
 		req.user = user;
 		next();
 	} catch (error) {

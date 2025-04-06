@@ -16,6 +16,7 @@ export class Customers extends Model<
 	declare phone: CreationOptional<string>;
 	declare passwordHash: CreationOptional<string>;
 	declare address: CreationOptional<string>;
+	declare isActive: CreationOptional<boolean>;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 	static initClass = (sequelize: Sequelize) => {
@@ -26,11 +27,12 @@ export class Customers extends Model<
 					primaryKey: true,
 					autoIncrement: true,
 				},
-				fullName: { type: DataTypes.STRING(100), allowNull: false },
+				fullName: { type: DataTypes.STRING(100), allowNull: true },
 				email: { type: DataTypes.STRING(100), unique: true },
-				phone: { type: DataTypes.STRING(20), unique: true },
+				phone: { type: DataTypes.STRING(20) },
 				passwordHash: DataTypes.STRING(255),
 				address: DataTypes.TEXT,
+				isActive: { type: DataTypes.BOOLEAN, defaultValue: false },
 				createdAt: DataTypes.DATE,
 				updatedAt: DataTypes.DATE,
 			},

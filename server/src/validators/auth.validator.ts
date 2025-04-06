@@ -7,11 +7,14 @@ interface loginInterface {
 
 interface registerInterface {
 	email: string;
+	fullName: string;
+	password: string;
+	phone: string;
 }
 
 interface verifyInterface {
 	token: string;
-	password: string;
+	email: string;
 }
 
 interface forgotPasswordInterface {
@@ -33,8 +36,11 @@ export const registerSchema: JSONSchemaType<registerInterface> = {
 	type: 'object',
 	properties: {
 		email: { type: 'string', nullable: false, format: 'email' },
+		fullName: { type: 'string', nullable: false },
+		password: { type: 'string', nullable: false },
+		phone: { type: 'string', nullable: false },
 	},
-	required: ['email'],
+	required: ['email', 'fullName', 'password', 'phone'],
 	additionalProperties: false,
 };
 
@@ -42,9 +48,9 @@ export const verifySchema: JSONSchemaType<verifyInterface> = {
 	type: 'object',
 	properties: {
 		token: { type: 'string', nullable: false },
-		password: { type: 'string', nullable: false },
+		email: { type: 'string', nullable: false },
 	},
-	required: ['token', 'password'],
+	required: ['token', 'email'],
 	additionalProperties: false,
 };
 
@@ -57,4 +63,3 @@ export const forgotPasswordSchema: JSONSchemaType<forgotPasswordInterface> = {
 	required: ['token', 'password'],
 	additionalProperties: false,
 };
-

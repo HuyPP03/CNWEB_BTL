@@ -20,6 +20,9 @@ export async function authenticate(
 	if (user == null) {
 		throw new AppError(PERMISSION_ERROR, 'email or password mismatch');
 	}
+	if (!user.isActive) {
+		throw new AppError(PERMISSION_ERROR, 'User is not active');
+	}
 	const isMatch = await EncUtil.comparePassword(password, user.passwordHash);
 
 	if (!isMatch) {
@@ -32,14 +35,14 @@ export async function authenticate(
 export function getToken(
 	user: Customers | Admins,
 	expiresIn: any,
-	isAmin = false,
+	isAdmin = false,
 ): string {
 	return jwt.sign(
 		{
 			id: user.id,
 			email: user.email,
 		},
-		isAmin ? env.app.jwtSecretManager : (env.app.jwtSecret as any),
+		isAdmin ? env.app.jwtSecretManager : (env.app.jwtSecret as any),
 		{
 			expiresIn,
 		},
@@ -48,24 +51,31 @@ export function getToken(
 
 export async function register(data: any): Promise<Customers> {
 	const user = await db.customers.findOne({ where: { email: data.email } });
-
-	const newUser = user || (await db.customers.create(data));
+	if (user) {
+		throw new AppError(PERMISSION_ERROR, 'User already exists');
+	}
+	const passwordHash = await EncUtil.createHash(data.password);
+	data.passwordHash = passwordHash;
+	const newUser = await db.customers.create(data);
 	const verityToken = getToken(newUser, env.app.jwtExpiredIn);
-	const html = buildHtmlRegisterUser(verityToken);
+	const html = buildHtmlRegisterUser(verityToken, newUser.email);
 	console.log('html', verityToken, html);
-	await sendMail(newUser.email, 'email verification', undefined, html);
+	// await sendMail(newUser.email, 'email verification', undefined, html);
 
 	return newUser;
 }
 
-export async function verify(
-	token: string,
-	password: string,
-): Promise<Customers> {
+export async function verify(token: string, email: string): Promise<Customers> {
 	const user = jwt.verify(token, env.app.jwtSecret) as Customers;
-	const userDb = await db.customers.findOne({ where: { id: user.id } });
+	const userDb = await db.customers.findOne({
+		where: { id: user.id, email: user.email },
+	});
 	if (userDb == null) {
 		throw new AppError(PERMISSION_ERROR, 'User not found');
 	}
+	if (userDb.email !== email) {
+		throw new AppError(PERMISSION_ERROR, 'User not found');
+	}
+	userDb.isActive = true;
 	return await userDb.save();
 }

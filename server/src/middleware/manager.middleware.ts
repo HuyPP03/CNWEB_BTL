@@ -3,47 +3,31 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import { PERMISSION_ERROR } from '../constants/constants';
 import { AppError } from '../utility/appError.util';
 
-export const isAdmin = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-) => {
-	try {
-		const { role } = req.user as JwtPayload;
-		if (role !== 'super_admin')
-			throw new AppError(PERMISSION_ERROR, 'Unauthenticated!');
-		next();
-	} catch (error) {
-		next(error);
-	}
-};
+enum RoleManager {
+	super_admin = 'super_admin',
+	manager = 'manager',
+	staff = 'staff',
+}
 
-export const isManager = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-) => {
-	try {
-		const { role } = req.user as JwtPayload;
-		if (role !== 'manager')
-			throw new AppError(PERMISSION_ERROR, 'Unauthenticated!');
-		next();
-	} catch (error) {
-		next(error);
-	}
-};
+export const authorization = (roles: string[]) => {
+	return async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const user = req.user as any;
+			if (!user) {
+				throw new AppError(PERMISSION_ERROR, 'user_not_found');
+			}
+			if (user.role === RoleManager.super_admin) {
+				return next();
+			}
 
-export const isStaff = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-) => {
-	try {
-		const { role } = req.user as JwtPayload;
-		if (role !== 'staff')
-			throw new AppError(PERMISSION_ERROR, 'Unauthenticated!');
-		next();
-	} catch (error) {
-		next(error);
-	}
+			if (!roles.includes(user.role)) {
+				throw new AppError(PERMISSION_ERROR, 'Unauthority');
+			}
+			next();
+
+			throw new AppError(PERMISSION_ERROR, 'Unauthority');
+		} catch (error) {
+			next(error);
+		}
+	};
 };
