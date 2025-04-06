@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { PERMISSION_ERROR } from '../constants/constants';
 import { AppError } from '../utility/appError.util';
 import env from '../../env';
@@ -11,7 +11,7 @@ export const isManager = async (
 	next: NextFunction,
 ) => {
 	try {
-		req.isAdmin = true;
+		(req as any).isAdmin = true;
 		next();
 	} catch (error) {
 		next(error);
@@ -24,7 +24,7 @@ export const verifyToken = async (
 	next: NextFunction,
 ) => {
 	try {
-		const isAdmin = req.isAdmin;
+		const isAdmin = (req as any).isAdmin;
 		const token = req.header('Authorization')?.replace('Bearer ', '');
 		if (!token) {
 			throw new AppError(PERMISSION_ERROR, 'Unauthenticated!');
@@ -45,7 +45,7 @@ export const verifyToken = async (
 		if (!user || !user.isActive) {
 			throw new AppError(PERMISSION_ERROR, 'Unauthenticated!');
 		}
-		req.user = user;
+		(req as any).user = user;
 		next();
 	} catch (error) {
 		next(error);

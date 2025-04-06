@@ -30,10 +30,11 @@ module.exports = {
 				onUpdate: 'CASCADE',
 			},
 			attributeValueId: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.INTEGER,
 				references: { model: 'AttributeValues', key: 'id' },
-				onDelete: 'CASCADE',
+				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
 			},
 			name: {
 				allowNull: true,

@@ -7,7 +7,6 @@ import { handleError } from '../exceptions/error.exeption';
 import { router as apiRoute } from '../routers';
 
 export default (app: express.Application) => {
-
 	app.use((req, res, next) => {
 		const origin = req.headers.origin || '';
 
@@ -60,6 +59,10 @@ export default (app: express.Application) => {
 		helmet(),
 		express.json({ limit: '5mb' }),
 		express.urlencoded({ extended: true }),
+		// express.static(path.join(process.cwd(), 'uploads'), staticOptions),
+	);
+	app.use(
+		'/uploads',
 		express.static(path.join(process.cwd(), 'uploads'), staticOptions),
 	);
 

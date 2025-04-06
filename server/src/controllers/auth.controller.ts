@@ -50,7 +50,7 @@ export const loginManager = async (
 			throw new AppError(PERMISSION_ERROR, 'email or password mismatch');
 		}
 
-		const token = authService.getToken(user, env.app.jwtExpiredIn);
+		const token = authService.getToken(user, env.app.jwtExpiredIn, true);
 
 		return res
 			.status(RESPONSE_SUCCESS)

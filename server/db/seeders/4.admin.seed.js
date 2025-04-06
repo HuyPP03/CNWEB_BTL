@@ -2,6 +2,22 @@ const bcrypt = require('bcryptjs');
 
 module.exports = {
 	up: async (queryInterface, Sequelize) => {
+		const existingAdmin = await queryInterface.rawSelect(
+			'Admins',
+			{
+				where: {
+					email: process.env.ADMIN_EMAIL,
+					phone: process.env.ADMIN_PHONE,
+				},
+			},
+			['id'],
+		);
+
+		if (existingAdmin) {
+			console.log('Admin already exists. Skipping seeding.');
+			return;
+		}
+
 		const passwordHash = await bcrypt.hash(
 			process.env.ADMIN_PASSWORD,
 			Number(process.env.SALT_ROUNDS),
