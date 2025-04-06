@@ -89,6 +89,9 @@ Shipping.initClass(sequelize);
 Categories.belongsTo(Categories, { as: 'parent', foreignKey: 'parentId' });
 Categories.hasMany(Categories, { as: 'subCategories', foreignKey: 'parentId' });
 
+AttributeValues.belongsTo(Categories, { foreignKey: 'categoryId' });
+Categories.hasMany(AttributeValues, { foreignKey: 'categoryId' });
+
 // 2. Products - Categories (mỗi sản phẩm thuộc một danh mục)
 Products.belongsTo(Categories, { foreignKey: 'categoryId' });
 Categories.hasMany(Products, { foreignKey: 'categoryId' });
@@ -102,6 +105,14 @@ ProductVariants.belongsTo(Products, { foreignKey: 'productId' });
 Products.hasMany(ProductVariants, { foreignKey: 'productId' });
 
 // 5. AttributeValues - AttributeTypes (mỗi giá trị thuộc tính thuộc một loại thuộc tính)
+AttributeTypes.belongsTo(AttributeTypes, {
+	as: 'parent',
+	foreignKey: 'parentId',
+});
+AttributeTypes.hasMany(AttributeTypes, {
+	as: 'subAttributes',
+	foreignKey: 'parentId',
+});
 AttributeValues.belongsTo(AttributeTypes, { foreignKey: 'attributeTypeId' });
 AttributeTypes.hasMany(AttributeValues, { foreignKey: 'attributeTypeId' });
 
@@ -113,9 +124,20 @@ VariantAttributes.belongsTo(AttributeValues, {
 ProductVariants.hasMany(VariantAttributes, { foreignKey: 'variantId' });
 AttributeValues.hasMany(VariantAttributes, { foreignKey: 'attributeValueId' });
 
+VariantAttributes.belongsTo(AttributeTypes, { foreignKey: 'attributeTypeId' });
+VariantAttributes.belongsTo(AttributeValues, {
+	foreignKey: 'attributeValueId',
+});
+
+AttributeTypes.hasMany(VariantAttributes, { foreignKey: 'attributeTypeId' });
+AttributeValues.hasMany(VariantAttributes, { foreignKey: 'attributeValueId' });
+
 // 7. ProductImages - Products (mỗi ảnh thuộc một sản phẩm)
 ProductImages.belongsTo(Products, { foreignKey: 'productId' });
 Products.hasMany(ProductImages, { foreignKey: 'productId' });
+
+ProductImages.belongsTo(ProductVariants, { foreignKey: 'variantId' });
+ProductVariants.hasMany(ProductImages, { foreignKey: 'variantId' });
 
 // 8. Carts - Customers (mỗi giỏ hàng có thể thuộc một khách hàng)
 Carts.belongsTo(Customers, { foreignKey: 'customerId' });

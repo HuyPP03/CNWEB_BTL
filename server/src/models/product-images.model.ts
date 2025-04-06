@@ -26,7 +26,7 @@ export class ProductImages extends Model<
 					autoIncrement: true,
 				},
 				variantId: DataTypes.INTEGER,
-				productId: { type: DataTypes.INTEGER, allowNull: false },
+				productId: { type: DataTypes.INTEGER },
 				imageUrl: { type: DataTypes.STRING(255), allowNull: false },
 				isPrimary: { type: DataTypes.BOOLEAN, defaultValue: false },
 				createdAt: DataTypes.DATE,
