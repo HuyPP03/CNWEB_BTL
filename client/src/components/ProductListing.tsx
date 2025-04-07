@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import ProductCard from './ProductCard';
-import { useParams } from 'react-router-dom';
 import { products } from '../data/products';
 
 // Brand filter button component
@@ -42,9 +41,6 @@ const SortOption: React.FC<{ label: string; isActive: boolean; onClick: () => vo
 
 
 const ProductListing: React.FC = () => {
-    const { category } = useParams<{ category: string }>();
-    console.log(category);
-
     // Brand filtering state
     const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
