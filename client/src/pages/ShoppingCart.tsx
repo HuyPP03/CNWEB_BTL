@@ -39,7 +39,7 @@ const ShoppingCart: React.FC = () => {
         {
             id: 1,
             name: 'Điện thoại iPhone 16 Pro Max 256GB',
-            image: '/api/placeholder/120/120',
+            image: 'https://cdn.tgdd.vn/Products/Images/42/329959/TimerThumb/vivo-v40-lite-8gb-256gb-(20).jpg',
             price: 31090000,
             quantity: 1,
             options: [
@@ -55,7 +55,7 @@ const ShoppingCart: React.FC = () => {
         {
             id: 2,
             name: 'Laptop Acer Aspire 7 A715 76 53PJ i5 12450H/16GB/512GB/Win11 (NH.QGESV.007)',
-            image: '/api/placeholder/120/120',
+            image: 'https://cdn.tgdd.vn/Products/Images/42/329959/TimerThumb/vivo-v40-lite-8gb-256gb-(20).jpg',
             price: 13790000,
             originalPrice: 15990000,
             quantity: 1,

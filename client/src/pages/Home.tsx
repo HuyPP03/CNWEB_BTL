@@ -1,8 +1,7 @@
 function Home() {
   return (
     <div>
-      <h2>Welcome to Home Page</h2>
-      <p>This is the home page of our Vite + React application.</p>
+      <h2 className="text-2xl font-bold text-center mt-4">Trang chủ</h2>
     </div>
   );
 }
