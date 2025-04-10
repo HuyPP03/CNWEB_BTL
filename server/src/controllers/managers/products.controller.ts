@@ -34,14 +34,14 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
     try {
         const newProduct = await productService.createProduct(req.body, transaction);
 
-        await adminLogService.CreateAdminLog(
-            (req.user as Admins).id,
-            'Create',
-            newProduct.id,
-            'Product',
-            req.body,
-            transaction
-        );
+        // await adminLogService.CreateAdminLog(
+        //     (req.user as Admins).id,
+        //     'Create',
+        //     newProduct.id,
+        //     'Product',
+        //     req.body,
+        //     transaction
+        // );
 
         await transaction.commit();
         return res.status(201).json(new ResOk().formatResponse(newProduct));
@@ -61,14 +61,14 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        await adminLogService.CreateAdminLog(
-            (req.user as Admins).id,
-            'Update',
-            updatedProduct.id,
-            'Product',
-            req.body,
-            transaction
-        );
+        // await adminLogService.CreateAdminLog(
+        //     (req.user as Admins).id,
+        //     'Update',
+        //     updatedProduct.id,
+        //     'Product',
+        //     req.body,
+        //     transaction
+        // );
 
         await transaction.commit();
         return res.status(200).json(new ResOk().formatResponse(updatedProduct));
@@ -88,14 +88,14 @@ export const deleteProduct = async (req: Request, res: Response, next: NextFunct
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        await adminLogService.CreateAdminLog(
-            (req.user as Admins).id,
-            'Delete',
-            parseInt(req.params.id),
-            'Product',
-            { deleted: true },
-            transaction
-        );
+        // await adminLogService.CreateAdminLog(
+        //     (req.user as Admins).id,
+        //     'Delete',
+        //     parseInt(req.params.id),
+        //     'Product',
+        //     { deleted: true },
+        //     transaction
+        // );
 
         await transaction.commit();
         return res.status(200).json(new ResOk().formatResponse({ message: 'Deleted successfully' }));
