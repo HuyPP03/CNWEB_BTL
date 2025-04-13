@@ -1,29 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../../loaders/database.loader';
 import { ResOk } from '../../utility/response.util';
+import * as productService from '../../services/customers/products.service';
 
 // Lấy tất cả sản phẩm
-export const getAllProducts = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
+export const getAllProducts = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const products = await db.products.findAll();
+		const products = await productService.getAllProducts();
 		return res.status(200).json(new ResOk().formatResponse(products));
 	} catch (error) {
 		next(error);
 	}
 };
 
-// Lấy sản phẩm theo id
-export const getProductById = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
+// Lấy sản phẩm theo ID
+export const getProductById = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const product = await db.products.findByPk(req.params.id);
+		const product = await productService.getProductById(req.params.id);
 		if (!product) {
 			return res.status(404).json({ message: 'Product not found' });
 		}
@@ -33,54 +25,58 @@ export const getProductById = async (
 	}
 };
 
-// Tạo sản phẩm mới
-export const createProduct = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
+// Tìm sản phẩm theo tên
+export const getProductsByName = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const newProduct = await db.products.create(req.body);
-		return res.status(201).json(new ResOk().formatResponse(newProduct));
+		const { name } = req.query;
+		const products = await productService.getProductsByName(name as string);
+		return res.status(200).json(new ResOk().formatResponse(products));
 	} catch (error) {
 		next(error);
 	}
 };
 
-// Cập nhật sản phẩm
-export const updateProduct = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
+// Tìm sản phẩm theo brand
+export const getProductsByBrand = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const product = await db.products.findByPk(req.params.id);
-		if (!product) {
-			return res.status(404).json({ message: 'Product not found' });
-		}
-		await product.update(req.body);
-		return res.status(200).json(new ResOk().formatResponse(product));
+		const { brandId } = req.params;
+		const products = await productService.getProductsByBrand(brandId);
+		return res.status(200).json(new ResOk().formatResponse(products));
 	} catch (error) {
 		next(error);
 	}
 };
 
-// Xoá sản phẩm
-export const deleteProduct = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
+// Tìm sản phẩm theo category
+export const getProductsByCategory = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const deleted = await db.products.destroy({
-			where: { id: req.params.id },
-		});
-		if (!deleted) {
-			return res.status(404).json({ message: 'Product not found' });
-		}
-		return res
-			.status(200)
-			.json(new ResOk().formatResponse({ message: 'Deleted successfully' }));
+		const { categoryId } = req.params;
+		const products = await productService.getProductsByCategory(categoryId);
+		return res.status(200).json(new ResOk().formatResponse(products));
+	} catch (error) {
+		next(error);
+	}
+};
+
+// Tìm sản phẩm theo khoảng giá
+export const getProductsByPriceRange = async (req: Request, res: Response, next: NextFunction) => {
+	try {
+		const { min, max } = req.query;
+		const products = await productService.getProductsByPriceRange(
+			parseFloat(min as string),
+			parseFloat(max as string)
+		);
+		return res.status(200).json(new ResOk().formatResponse(products));
+	} catch (error) {
+		next(error);
+	}
+};
+
+// Tìm sản phẩm nâng cao (nhiều điều kiện)
+export const filterProducts = async (req: Request, res: Response, next: NextFunction) => {
+	try {
+		const products = await productService.filterProducts(req.query);
+		return res.status(200).json(new ResOk().formatResponse(products));
 	} catch (error) {
 		next(error);
 	}
