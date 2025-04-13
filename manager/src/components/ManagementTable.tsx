@@ -39,7 +39,7 @@ const ManagementTable: React.FC<ManagementTableProps> = ({ headers, data, onEdit
       </thead>
       <tbody>
         {data.map((item) => (
-          <tr key={item.id} className="text-center">
+          <tr key={item.id} className="text-center hover:bg-gray-100 transition-colors">
             {Object.keys(item).map((key, index) => (
               <td key={index} className="border-b border-gray-200 p-2">{item[key]}</td>
             ))}
