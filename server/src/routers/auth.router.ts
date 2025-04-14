@@ -14,7 +14,7 @@ const router = Router();
 router.post('/customers/login', validateBody(loginSchema), auth.login);
 router.post('/managers/login', validateBody(loginSchema), auth.loginManager);
 router.post('/register', validateBody(registerSchema), auth.register);
-router.post('/verify', validateBody(verifySchema), auth.verify);
+router.get('/verify', auth.verify);
 // router.post('/forgot', validateBody(forgotPasswordSchema), auth.login);
 
 export default router;

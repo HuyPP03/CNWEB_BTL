@@ -20,7 +20,7 @@ export default {
 		description,
 		port: Number(process.env.PORT) || 3000,
 		saltRounds: Number(process.env.SALT_ROUNDS) || 10,
-		cors: process.env.CORS?.split(',') || '*',
+		cors: '*',
 		jwtSecret: process.env['JWT_SECRET'] || '123456',
 		jwtSecretManager: process.env['JWT_SECRET_MANAGER'] || '123456',
 		jwtExpiredIn: process.env['JWT_EXPIRED_IN'] || '1d',

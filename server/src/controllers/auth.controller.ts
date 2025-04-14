@@ -93,18 +93,105 @@ export const verify = async (
 	next: NextFunction,
 ) => {
 	try {
-		const { token, email } = req.body as any;
-		await authService.verify(token, email);
-		return res
-			.status(RESPONSE_SUCCESS)
-			.json(
-				new ResOk().formatResponse(
-					null,
-					'User verified successfully',
-					RESPONSE_SUCCESS,
-				),
-			);
+		const { token, email } = req.query as any;
+
+		if (!token || !email) {
+			return res.send(`
+                <html>
+                <head>
+                    <title>Xác minh thất bại</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+                        .container { max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                        .error { color: red; font-size: 24px; margin-bottom: 20px; }
+                        .message { margin-bottom: 20px; }
+                        .btn { background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="error">❌ Xác minh thất bại!</div>
+                        <div class="message">Thiếu thông tin cần thiết để xác minh tài khoản.</div>
+                        <a href="/" class="btn">Quay lại trang chủ</a>
+                    </div>
+                </body>
+                </html>
+            `);
+		}
+
+		// Gọi service để xác minh
+		const user = await authService.verify(token, email);
+
+		if (user) {
+			// Nếu xác minh thành công
+			return res.send(`
+                <html>
+                <head>
+                    <title>Xác minh thành công</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+                        .container { max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                        .success { color: green; font-size: 24px; margin-bottom: 20px; }
+                        .message { margin-bottom: 20px; }
+                        .btn { background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="success">✅ Xác minh thành công!</div>
+                        <div class="message">Tài khoản của bạn đã được xác minh thành công.</div>
+                        <a href="/login" class="btn">Đăng nhập ngay</a>
+                    </div>
+                </body>
+                </html>
+            `);
+		} else {
+			// Nếu xác minh thất bại
+			return res.send(`
+                <html>
+                <head>
+                    <title>Xác minh thất bại</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+                        .container { max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                        .error { color: red; font-size: 24px; margin-bottom: 20px; }
+                        .message { margin-bottom: 20px; }
+                        .btn { background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="error">❌ Xác minh thất bại!</div>
+                        <div class="message">Liên kết xác minh không hợp lệ hoặc đã hết hạn.</div>
+                        <a href="/resend-verification" class="btn">Gửi lại email xác minh</a>
+                    </div>
+                </body>
+                </html>
+            `);
+		}
 	} catch (e) {
+		// Nếu có lỗi trong quá trình xác minh
+		res.send(`
+            <html>
+            <head>
+                <title>Xác minh thất bại</title>
+                <style>
+                    body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+                    .container { max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                    .error { color: red; font-size: 24px; margin-bottom: 20px; }
+                    .message { margin-bottom: 20px; }
+                    .btn { background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="error">❌ Xác minh thất bại!</div>
+                    <div class="message">Đã xảy ra lỗi trong quá trình xác minh tài khoản.</div>
+                    <a href="/" class="btn">Quay lại trang chủ</a>
+                </div>
+            </body>
+            </html>
+        `);
 		next(e);
 	}
 };
