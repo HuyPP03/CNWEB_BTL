@@ -17,7 +17,7 @@
 		"tslint": "tslint -c tslint.json -p tsconfig.json",
 		"format": "prettier --write 'src/*.ts' 'src/**/*.ts'",
 		"dev": "nodemon",
-		"start": "node dist/index.js"
+		"start": "tsc && node dist/index.js"
 	},
 	"author": "",
 	"license": "ISC",
