@@ -59,7 +59,6 @@ export async function register(data: any): Promise<Customers> {
 	const newUser = await db.customers.create(data);
 	const verityToken = getToken(newUser, env.app.jwtExpiredIn);
 	const html = buildHtmlRegisterUser(verityToken, newUser.email);
-	console.log('html', verityToken, html);
 	await sendMail(newUser.email, 'email verification', undefined, html);
 
 	return newUser;

@@ -112,7 +112,7 @@ export const verify = async (
                     <div class="container">
                         <div class="error">❌ Xác minh thất bại!</div>
                         <div class="message">Thiếu thông tin cần thiết để xác minh tài khoản.</div>
-                        <a href="/" class="btn">Quay lại trang chủ</a>
+                        <a href="${env.app.client_url}" class="btn">Quay lại trang chủ</a>
                     </div>
                 </body>
                 </html>
@@ -140,7 +140,7 @@ export const verify = async (
                     <div class="container">
                         <div class="success">✅ Xác minh thành công!</div>
                         <div class="message">Tài khoản của bạn đã được xác minh thành công.</div>
-                        <a href="/login" class="btn">Đăng nhập ngay</a>
+                        <a href="${env.app.client_url}/login" class="btn">Đăng nhập ngay</a>
                     </div>
                 </body>
                 </html>
@@ -163,7 +163,7 @@ export const verify = async (
                     <div class="container">
                         <div class="error">❌ Xác minh thất bại!</div>
                         <div class="message">Liên kết xác minh không hợp lệ hoặc đã hết hạn.</div>
-                        <a href="/resend-verification" class="btn">Gửi lại email xác minh</a>
+                        <a href="${env.app.client_url}/resend-verification" class="btn">Gửi lại email xác minh</a>
                     </div>
                 </body>
                 </html>
@@ -187,7 +187,7 @@ export const verify = async (
                 <div class="container">
                     <div class="error">❌ Xác minh thất bại!</div>
                     <div class="message">Đã xảy ra lỗi trong quá trình xác minh tài khoản.</div>
-                    <a href="/" class="btn">Quay lại trang chủ</a>
+                    <a href="${env.app.client_url}" class="btn">Quay lại trang chủ</a>
                 </div>
             </body>
             </html>

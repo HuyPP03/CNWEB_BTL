@@ -12,6 +12,7 @@ dotenv.config({
 
 export default {
 	app: {
+		client_url: process.env.CLIENT_URL || 'http://localhost:3000',
 		base_url: process.env.BASE_URL || 'http://localhost:3000',
 		isProduction: process.env.NODE_ENV === 'production',
 		root_path: path.join(process.cwd()),
