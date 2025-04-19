@@ -1,94 +1,66 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../../loaders/database.loader';
 import { ResOk } from '../../utility/response.util';
+import * as cartService from '../../services/customers/carts.service';
+import * as cartItemService from '../../services/customers/cart-items.service';
 
-// Thêm sản phẩm vào giỏ hàng - POST /api/cart
-export const addToCart = async (req: Request, res: Response, next: NextFunction) => {
+
+// Lấy giỏ hàng và item theo customerId
+export const getCartWithItems = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const { customerId, sessionId, variantId, quantity } = req.body;
-
-		let cart = await db.carts.findOne({ where: { customerId, sessionId } });
-
-		if (!cart) {
-			cart = await db.carts.create({ customerId, sessionId });
-		}
-
-		let cartItem = await db.cartItems.findOne({ where: { cartId: cart.id, variantId } });
-
-		if (cartItem) {
-			cartItem.quantity += quantity;
-			await cartItem.save();
-		} else {
-			cartItem = await db.cartItems.create({ cartId: cart.id, variantId, quantity });
-		}
-
-		return res.status(200).json(new ResOk().formatResponse(cartItem));
+		const customerId = parseInt(req.params.customerId);
+		const cart = await cartService.getOrCreateCart(customerId);
+		const items = await cartItemService.getCartItemsByCartId(cart.id);
+		return res.status(200).json(new ResOk().formatResponse({ cart, items }));
 	} catch (error) {
 		next(error);
 	}
 };
 
-// Lấy giỏ hàng của khách hàng - GET /api/cart/:customerId
-export const getCart = async (req: Request, res: Response, next: NextFunction) => {
+// Thêm sản phẩm vào giỏ hàng 
+export const addItemToCart = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const { customerId } = req.params;
-		const cart = await db.carts.findOne({
-			where: { customerId },
-			include: [
-				{
-					model: db.cartItems,
-					include: [db.products],
-				},
-			],
-		});
-		return res.status(200).json(new ResOk().formatResponse(cart));
+		const cartId = parseInt(req.params.cartId);
+		const { variantId, quantity } = req.body;
+		const item = await cartItemService.addOrUpdateCartItem(cartId, variantId, quantity);
+		return res.status(200).json(new ResOk().formatResponse(item));
 	} catch (error) {
 		next(error);
 	}
 };
 
-// Cập nhật số lượng sản phẩm - PUT /api/cart/item/:cartItemId
-export const updateCartItem = async (req: Request, res: Response, next: NextFunction) => {
+// Cập nhật số lượng sản phẩm
+export const updateCartItemQuantity = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const { cartItemId } = req.params;
+		const cartItemId = parseInt(req.params.itemId);
 		const { quantity } = req.body;
-
-		const cartItem = await db.cartItems.findByPk(cartItemId);
-		if (!cartItem) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm trong giỏ hàng' });
-
-		cartItem.quantity = quantity;
-		await cartItem.save();
-
-		return res.status(200).json(new ResOk().formatResponse(cartItem));
+		const item = await cartItemService.updateCartItemQuantity(cartItemId, quantity);
+		if (!item) return res.status(404).json({ message: 'Item not found' });
+		return res.status(200).json(new ResOk().formatResponse(item));
 	} catch (error) {
 		next(error);
 	}
 };
 
-// Xóa một sản phẩm khỏi giỏ - DELETE /api/cart/item/:cartItemId
-export const removeCartItem = async (req: Request, res: Response, next: NextFunction) => {
+// Xoá sản phẩm khỏi giỏ
+export const removeItemFromCart = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const { cartItemId } = req.params;
-		await db.cartItems.destroy({ where: { id: cartItemId } });
-
-		return res.status(200).json(new ResOk().formatResponse({ message: 'Đã xóa sản phẩm khỏi giỏ hàng' }));
+		const cartItemId = parseInt(req.params.itemId);
+		await cartItemService.removeCartItem(cartItemId);
+		return res.status(200).json(new ResOk().formatResponse({ message: 'Item removed' }));
 	} catch (error) {
 		next(error);
 	}
 };
 
-// Xóa toàn bộ giỏ hàng - DELETE /api/cart/:customerId
+// Xoá toàn bộ sản phẩm khỏi giỏ hàng
 export const clearCart = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const { customerId } = req.params;
-		const cart = await db.carts.findOne({ where: { customerId } });
+		const cartId = parseInt(req.params.cartId);
+		const cart = await cartService.getOrCreateCart(cartId);
+		if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
-		if (cart) {
-			await db.cartItems.destroy({ where: { cartId: cart.id } });
-			await cart.destroy();
-		}
-
-		return res.status(200).json(new ResOk().formatResponse({ message: 'Đã xóa toàn bộ giỏ hàng' }));
+		await cartItemService.clearCartItems(cart.id);
+		return res.status(200).json(new ResOk().formatResponse({ message: 'Cart cleared' }));
 	} catch (error) {
 		next(error);
 	}
