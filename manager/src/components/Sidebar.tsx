@@ -1,4 +1,4 @@
-import { FaUsers, FaBox, FaUsersCog, FaBuilding, FaListAlt, FaClock, FaClipboard } from "react-icons/fa";
+import { FaUsers, FaBox, FaUsersCog, FaBuilding, FaListAlt, FaClock, FaClipboard, FaTags } from "react-icons/fa";
 import SidebarItem from "./SidebarItem";
 
 const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
@@ -27,6 +27,9 @@ const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
           </li>
           <li>
             <SidebarItem to="/qldonhang" icon={FaClipboard} label="Quản lí đơn hàng" />
+          </li>
+          <li>
+            <SidebarItem to="/qlkhuyenmai" icon={FaTags} label="Quản lí chương trình khuyến mại" />
           </li>
           <li>
             <SidebarItem to="/qllichsu" icon={FaClock} label="Quản lí truy cập" />

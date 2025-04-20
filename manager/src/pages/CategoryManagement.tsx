@@ -16,6 +16,11 @@ const CategoryManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const employeesPerPage = 10;
 
+  const handleDetail = (id: number) => {
+    console.log("Chi tiết danh mục", id);
+    navigate(`/qldanhmuc/detail/${id}`);
+  };
+
   const handleAdd = () => {
     console.log("Thêm danh mục");
     navigate("/qldanhmuc/add");
@@ -58,6 +63,7 @@ const CategoryManagement = () => {
         <ManagementTable
           headers={headers}
           data={currentEmployees}
+          onDetail={handleDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />

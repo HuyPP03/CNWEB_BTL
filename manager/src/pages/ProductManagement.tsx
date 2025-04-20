@@ -15,11 +15,16 @@ const ProductManagement = () => {
     { id: 7, name: "Apple watch", category: "Đồng hồ", quantity: 4 },
     { id: 8, name: "Airpod abc", category: "Tai nghe", quantity: 6 },
   ]);
-  const headers = ["ID", "Tên Sản Phẩm", "Loại Sản Phẩm", "Số lượng", "Hành động"];
+  const headers = ["ID", "Tên sản phẩm", "Loại sản phẩm", "Số lượng", "Hành động"];
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const employeesPerPage = 10;
+
+  const handleDetail = (id: number) => {
+    console.log("Chi tiết sản phẩm", id);
+    navigate(`/qlsanpham/detail/${id}`);
+  };
 
   const handleAdd = () => {
     console.log("Thêm sản phẩm");
@@ -69,6 +74,7 @@ const ProductManagement = () => {
         <ManagementTable
           headers={headers}
           data={currentEmployees}
+          onDetail={handleDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />

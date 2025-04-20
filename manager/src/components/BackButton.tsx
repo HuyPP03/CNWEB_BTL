@@ -1,6 +1,6 @@
 import { FaArrowLeft } from "react-icons/fa";
 
-const AddButton = ({ onClick, label = "Thêm", icon: Icon = FaArrowLeft, className = "" }: { onClick: () => void, label?: string, icon?: React.ComponentType, className?: string }) => {
+const BackButton = ({ onClick, label = "Quay lại", icon: Icon = FaArrowLeft, className = "" }: { onClick: () => void, label?: string, icon?: React.ComponentType, className?: string }) => {
     const handleClick = () => {
         setTimeout(() => {
           onClick();
@@ -16,4 +16,4 @@ const AddButton = ({ onClick, label = "Thêm", icon: Icon = FaArrowLeft, classNa
   );
 };
 
-export default AddButton;
+export default BackButton;

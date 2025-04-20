@@ -4,40 +4,36 @@ import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
 import ManagementTable from "../components/ManagementTable";
 
-const EmployeeManagement = () => {
+const PromotionManagement = () => {
   const [employees] = useState([
-    { id: 1, name: "Nguyễn Văn A", position: "Nhân viên" },
-    { id: 2, name: "Trần Thị B", position: "Quản lý" },
-    { id: 3, name: "Lê Văn C", position: "Nhân viên" },
-    { id: 4, name: "Phạm Thị D", position: "Nhân viên" },
-    { id: 5, name: "Hoàng Văn E", position: "Quản lý" },
-    { id: 6, name: "Đặng Thị F", position: "Nhân viên" },
-    { id: 7, name: "Ngô Văn G", position: "Nhân viên" },
-    { id: 8, name: "Bùi Thị H", position: "Nhân viên" },
+    { id: 1, name: "Khuyen mai Black Friday", dateStart: "2023-11-01", dateEnd: "2023-11-30" },
+    { id: 2, name: "Khuyen mai Tet Nguyen Dan", dateStart: "2024-01-01", dateEnd: "2024-01-31" },
+    { id: 3, name: "Khuyen mai mua he", dateStart: "2024-06-01", dateEnd: "2024-08-31" },
+    { id: 4, name: "Khuyen mai Giang Sinh", dateStart: "2023-12-01", dateEnd: "2023-12-31" },
   ]);
-  const headers = ["ID", "Tên nhân viên", "Chức vụ", "Hành động"];
+  const headers = ["ID", "Tên chương trình" , "Ngày bắt đầu", "Ngày kết thúc" , "Hành động"];
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const employeesPerPage = 10;
 
   const handleDetail = (id: number) => {
-    console.log("Chi tiết nhân viên", id);
-    navigate(`/qlnhanvien/${id}`);
+    console.log("Chi tiết chương trình", id);
+    navigate(`/qlkhuyenmai/detail/${id}`);
   };
 
   const handleAdd = () => {
-    console.log("Thêm nhân viên");
-    navigate("/qlnhanvien/add");
+    console.log("Thêm chương trình");
+    navigate("/qlkhuyenmai/add");
   };
 
   const handleEdit = (id: number) => {
-    console.log("Sửa nhân viên", id);
-    navigate(`/qlnhanvien/edit/${id}`);
+    console.log("Sửa chương trình", id);
+    navigate(`/qlkhuyenmai/edit/${id}`);
   };
 
   const handleDelete = (id: number) => {
-    console.log("Xóa nhân viên", id);
+    console.log("Xóa chương trình", id);
   };
 
   const indexOfLastEmployee = currentPage * employeesPerPage;
@@ -48,8 +44,8 @@ const EmployeeManagement = () => {
 
   return (
     <div className="p-2">
-      <h1 className="text-xl font-bold mb-4">Quản lý nhân viên</h1>
-      <AddButton onClick={handleAdd} label="Thêm nhân viên" icon={FaUserPlus} />
+      <h1 className="text-xl font-bold mb-4">Quản lý chương trình khuyến mại</h1>
+      <AddButton onClick={handleAdd} label="Thêm chương trình" icon={FaUserPlus} />
       <div className="flex gap-2 mt-4">
         <input
           type="text"
@@ -60,12 +56,6 @@ const EmployeeManagement = () => {
         <input
           type="text"
           placeholder="Tìm theo tên..."
-          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-          className="p-2 border rounded w-1/3"
-        />
-        <input
-          type="text"
-          placeholder="Tìm theo chức vụ..."
           onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
           className="p-2 border rounded w-1/3"
         />
@@ -94,4 +84,4 @@ const EmployeeManagement = () => {
   );
 };
 
-export default EmployeeManagement;
+export default PromotionManagement;

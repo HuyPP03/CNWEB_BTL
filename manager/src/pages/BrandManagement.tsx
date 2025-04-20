@@ -1,20 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaUserPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
 import ManagementTable from "../components/ManagementTable";
+import axios from "axios";
+
 
 const BrandManagement = () => {
-  const [employees] = useState([
-    { id: 1, name: "Apple" },
-    { id: 2, name: "Samsung" },
-    { id: 3, name: "Xiaomi" },
-  ]);
-  const headers = ["ID", "Tên Nhà Cung Cấp", "Hành động"];
+  const [brands, setBrands] = useState<any[]>([]);
+  const headers = ["ID", "Tên nhà cung cấp", "Hành động"];
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const employeesPerPage = 10;
+  const numberPerPage = 10;
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const res = await axios.get("/api/api/public/brands");
+        setBrands(res.data.data);
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu nhà cung cấp:", error);
+      }
+    };
+
+    fetchBrands();
+  }, []);
+
+  const handleDetail = (id: number) => {
+    console.log("Chi tiết nhà cung cấp", id);
+    navigate(`/qlnhacungcap/detail/${id}`);
+  };
 
   const handleAdd = () => {
     console.log("Thêm nhà cung cấp");
@@ -30,9 +46,9 @@ const BrandManagement = () => {
     console.log("Xóa nhà cung cấp", id);
   };
 
-  const indexOfLastEmployee = currentPage * employeesPerPage;
-  const indexOfFirstEmployee = indexOfLastEmployee - employeesPerPage;
-  const currentEmployees = employees.slice(indexOfFirstEmployee, indexOfLastEmployee);
+  const indexOfLast = currentPage * numberPerPage;
+  const indexOfFirst = indexOfLast - numberPerPage;
+  const current = brands.slice(indexOfFirst, indexOfLast);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
@@ -57,13 +73,17 @@ const BrandManagement = () => {
       <div className="p-4">
         <ManagementTable
           headers={headers}
-          data={currentEmployees}
+          data={current.map((brand: any) => ({
+            id: brand.id,
+            name: brand.name,
+          }))}
+          onDetail={handleDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
       </div>
       <div className="flex justify-center mt-4">
-        {Array.from({ length: Math.ceil(employees.length / employeesPerPage) }, (_, index) => (
+        {Array.from({ length: Math.ceil(brands.length / numberPerPage) }, (_, index) => (
           <button
             key={index + 1}
             className={`mx-1 px-3 py-1 border rounded ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-white text-blue-500"}`}

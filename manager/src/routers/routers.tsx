@@ -9,16 +9,20 @@ import Login from "../pages/Login";
 import ProductManagement from "../pages/ProductManagement";
 import AddProduct from "../pages/AddProduct";
 import AddBrand from "../pages/AddBrand";
+import BrandDetail from "../pages/BrandDetail";
 import BrandManagement from "../pages/BrandManagement";
 import AddCategory from "../pages/AddCategory";
 import CategoryManagement from "../pages/CategoryManagement";
 import OrderManagement from "../pages/OrderManagement";
+import HistoryManagement from "../pages/HistoryManagement";
+import PromotionManagement from "../pages/PromotionManagement";
+import AddPromotion from "../pages/AddPromotion";
 
 export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/qlnhanvien" element={<EmployeeManagement />} />
+      <Route path="/qlnhanvien" element={<EmployeeManagement />} /> 
       <Route path="/qlkhachhang" element={<CustomerManagement />} />
       <Route path="/qlsanpham" element={<ProductManagement />} />
       <Route path="/qlnhanvien/add" element={<AddEmployee />} />
@@ -27,6 +31,7 @@ export default function AppRoutes() {
       <Route path="/qlsanpham/edit/:id" element={<NotFound />} />
       <Route path="/qlnhacungcap" element={<BrandManagement />} />
       <Route path="/qlnhacungcap/add" element={<AddBrand />} />
+      <Route path="/qlnhacungcap/detail/:id" element={<BrandDetail />} />
       <Route path="/qlnhacungcap/edit/:id" element={<NotFound />} />
       <Route path="/qldanhmuc" element={<CategoryManagement />} />
       <Route path="/qldanhmuc/add" element={<AddCategory />} />
@@ -34,6 +39,11 @@ export default function AppRoutes() {
       <Route path="/qldonhang" element={<OrderManagement />} />
       <Route path="/qldonhang/add" element={<NotFound />} />
       <Route path="/qldonhang/edit/:id" element={<NotFound />} />
+      <Route path="/qllichsu" element={<HistoryManagement />} />
+      <Route path="/qllichsu/detail/:id" element={<NotFound />} />
+      <Route path="/qlkhuyenmai" element={<PromotionManagement />} />
+      <Route path="/qlkhuyenmai/add" element={<AddPromotion />} />
+      <Route path="/qlkhuyenmai/edit/:id" element={<NotFound />} />
       <Route path="/login" element={<Login />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

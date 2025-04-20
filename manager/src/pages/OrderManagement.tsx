@@ -15,6 +15,11 @@ const OrderManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const customersPerPage = 10;
 
+    const handleDetail = (id: number) => {
+        console.log("Chi tiết đơn hàng", id);
+        navigate(`/qldonhang/detail/${id}`);
+    };
+
     const handleEdit = (id: number) => {
         console.log("Sửa đơn hàng", id);
         navigate(`/qldonhang/edit/${id}`);
@@ -57,6 +62,7 @@ const OrderManagement = () => {
                 <ManagementTable
                     data={currentCustomers}
                     headers={["ID", "Tên khách hàng", "Ngày tạo", "Hành động"]}
+                    onDetail={handleDetail}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                 />

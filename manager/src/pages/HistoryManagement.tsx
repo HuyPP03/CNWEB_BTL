@@ -2,7 +2,7 @@ import { useState } from "react";
 import ManagementTable from "../components/ManagementTable";
 import { useNavigate } from "react-router-dom";
 
-const OrderManagement = () => {
+const HistoryManagement = () => {
     const [customers] = useState([
         { id: 1, name: "Nguyễn Văn A", createAt: "01 - 02 - 2025", activity:"Đăng nhập" },
         { id: 2, name: "Trần Thị B", createAt: "01 - 02 - 2025", activity:"Đăng nhập" },
@@ -15,13 +15,13 @@ const OrderManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const customersPerPage = 10;
 
-    const handleEdit = (id: number) => {
-        console.log("Sửa đơn hàng", id);
-        navigate(`/qldonhang/edit/${id}`);
+    const handleDetail = (id: number) => {
+        console.log("Chi tiết lịch sử", id);
+        navigate(`/qllichsu/detail/${id}`);
     };
 
     const handleDelete = (id: number) => {
-        console.log("Xóa đơn hàng", id);
+        console.log("Xóa lịch sử", id);
     };
 
     const indexOfLastCustomer = currentPage * customersPerPage;
@@ -32,7 +32,7 @@ const OrderManagement = () => {
 
     return (
         <div className="p-2">
-            <h1 className="text-xl font-bold mb-4">Quản lý đơn hàng</h1>
+            <h1 className="text-xl font-bold mb-4">Quản lý truy cập</h1>
             <div className="flex gap-2">
                 <input
                     type="text"
@@ -56,8 +56,8 @@ const OrderManagement = () => {
             <div className="p-4">
                 <ManagementTable
                     data={currentCustomers}
-                    headers={["ID", "Tên khách hàng", "Ngày tạo", "Hành động"]}
-                    onEdit={handleEdit}
+                    headers={["ID", "Tên nhân viên", "Ngày tạo", "Hoạt động", "Hành động"]}
+                    onDetail={handleDetail}
                     onDelete={handleDelete}
                 />
             </div>
@@ -76,4 +76,4 @@ const OrderManagement = () => {
     );
 };
 
-export default OrderManagement;
+export default HistoryManagement;
