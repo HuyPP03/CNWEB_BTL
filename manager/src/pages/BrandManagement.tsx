@@ -3,7 +3,7 @@ import { FaUserPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
 import ManagementTable from "../components/ManagementTable";
-import axios from "axios";
+import api from "../services/api";
 
 
 const BrandManagement = () => {
@@ -17,7 +17,7 @@ const BrandManagement = () => {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const res = await axios.get("/api/api/public/brands");
+        const res = await api.get("/public/brands");
         setBrands(res.data.data);
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu nhà cung cấp:", error);

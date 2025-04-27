@@ -17,10 +17,13 @@ import OrderManagement from "../pages/OrderManagement";
 import HistoryManagement from "../pages/HistoryManagement";
 import PromotionManagement from "../pages/PromotionManagement";
 import AddPromotion from "../pages/AddPromotion";
+import PrivateRoute from "../components/PrivateRoute";
 
 export default function AppRoutes() {
   return (
     <Routes>
+    <Route path="/login" element={<Login />} />
+    <Route element={<PrivateRoute />}>
       <Route path="/" element={<Home />} />
       <Route path="/qlnhanvien" element={<EmployeeManagement />} /> 
       <Route path="/qlkhachhang" element={<CustomerManagement />} />
@@ -44,8 +47,8 @@ export default function AppRoutes() {
       <Route path="/qlkhuyenmai" element={<PromotionManagement />} />
       <Route path="/qlkhuyenmai/add" element={<AddPromotion />} />
       <Route path="/qlkhuyenmai/edit/:id" element={<NotFound />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="*" element={<NotFound />} />
+    </Route>
+    <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
