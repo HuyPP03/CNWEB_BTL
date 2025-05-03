@@ -12,12 +12,6 @@ router.put('/managers/:id', productsManagers.updateProduct);
 router.delete('/managers/:id', productsManagers.deleteProduct);
 
 // Router cho customers
-router.get('/customers', productsCustomers.getAllProducts);
-router.get('/customers/:id', productsCustomers.getProductById);
-router.get('/customers/search/name/:name', productsCustomers.getProductsByName);
-router.get('/customers/search/brand/:brandId', productsCustomers.getProductsByBrand);
-router.get('/customers/search/category/:categoryId', productsCustomers.getProductsByCategory);
-router.get('/customers/search/price', productsCustomers.getProductsByPriceRange);
 router.get('/customers/filter', productsCustomers.filterProducts);
 
 export default router;

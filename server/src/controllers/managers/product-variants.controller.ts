@@ -3,6 +3,7 @@ import { ResOk } from '../../utility/response.util';
 import * as variantService from '../../services/managers/product-variants.service'; 
 import { db } from '../../loaders/database.loader';
 import * as adminLogService from '../../services/managers/admin-logs.service'; 
+import { Admins } from 'src/models/admins.model';
 
 // Lấy tất cả biến thể của sản phẩm
 export const getAllVariants = async (req: Request, res: Response, next: NextFunction) => {
@@ -33,7 +34,7 @@ export const createVariant = async (req: Request, res: Response, next: NextFunct
     try {
         const newVariant = await variantService.createVariant(req.body, transaction);
 
-        // Optional: Log action của admin
+        //Optional: Log action của admin
         // await adminLogService.CreateAdminLog(
         //     (req.user as Admins).id,
         //     'Create',
