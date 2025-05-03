@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { ResOk } from '../../utility/response.util';
 import * as variantService from '../../services/managers/product-variants.service'; 
+import { variantAttributeService } from '../../services/managers/variant-attributes.service';
+import { attributeValueService } from '../../services/managers/attribute-values.service';
+
 import { db } from '../../loaders/database.loader';
 import * as adminLogService from '../../services/managers/admin-logs.service'; 
 import { Admins } from 'src/models/admins.model';
@@ -108,56 +111,65 @@ export const deleteVariant = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-// Tạo thuộc tính cho một biến thể sản phẩm
-export const addVariantAttributes = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { variantId } = req.params;
-        const attributes = req.body;
-
-        if (!Array.isArray(attributes) || attributes.length === 0) {
-            return res.status(400).json({ message: 'Attributes must be a non-empty array.' });
-        }
-
-        const createdAttributes = await variantService.addVariantAttributes(
-            attributes.map(attr => ({
-                ...attr,
-                variantId: parseInt(variantId),
-            }))
-        );
-
-        return res.status(201).json(new ResOk().formatResponse(createdAttributes));
-    } catch (error) {
-        next(error);
-    }
-};
-
-// Cập nhật thuộc tính của một biến thể sản phẩm
-export const updateVariantAttributes = async (req: Request, res: Response, next: NextFunction) => {
-    const transaction = await db.sequelize.transaction();
-    try {
-        const attributes = req.body;
-
-        if (!Array.isArray(attributes) || attributes.length === 0) {
-            await transaction.rollback();
-            return res.status(400).json({ message: 'Attributes must be a non-empty array.' });
-        }
-
-        const results = [];
-
-        for (const attr of attributes) {
-            if (!attr.id) {
-                await transaction.rollback();
-                return res.status(400).json({ message: 'Each attribute must include an id.' });
-            }
-
-            const updated = await variantService.updateAttribute(attr.id, attr, transaction);
-            results.push(updated);
-        }
-
-        await transaction.commit();
-        return res.status(200).json(new ResOk().formatResponse(results));
-    } catch (error) {
-        await transaction.rollback();
-        next(error);
-    }
-};
+export const attributeController = {
+    // GET: /attributes?variantId=...
+    async getAttributes(req: Request, res: Response) {
+      const { variantId, attributeTypeId } = req.query;
+  
+      try {
+        const [attributes, values] = await Promise.all([
+          variantAttributeService.getAttribute(variantId ? Number(variantId) : undefined),
+          attributeValueService.getValue(attributeTypeId ? Number(attributeTypeId) : undefined),
+        ]);
+        res.json({ attributes, values });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch attributes and values.' });
+      }
+    },
+  
+    // POST: /attributes
+    async createAttributes(req: Request, res: Response) {
+      const { attributes, values } = req.body;
+  
+      try {
+        const [createdAttributes, createdValues] = await Promise.all([
+          variantAttributeService.createAttribute(attributes),
+          attributeValueService.createValue(values),
+        ]);
+        res.status(201).json({ attributes: createdAttributes, values: createdValues });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to create attributes and values.' });
+      }
+    },
+  
+    // PUT: /attributes/:id
+    async updateAttribute(req: Request, res: Response) {
+      const { id } = req.params;
+      const { attributeData, valueData } = req.body;
+  
+      try {
+        const [attrResult, valResult] = await Promise.all([
+          attributeData ? variantAttributeService.updateAttribute(Number(id), attributeData) : Promise.resolve(null),
+          valueData ? attributeValueService.updateValue(Number(id), valueData) : Promise.resolve(null),
+        ]);
+        res.json({ updatedAttribute: attrResult, updatedValue: valResult });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to update attribute or value.' });
+      }
+    },
+  
+    // DELETE: /attributes/:id
+    async deleteAttribute(req: Request, res: Response) {
+      const { id } = req.params;
+  
+      try {
+        const [attrDeleted, valDeleted] = await Promise.all([
+          variantAttributeService.deleteAttribute(Number(id)),
+          attributeValueService.deleteValue(Number(id)),
+        ]);
+        res.json({ attributeDeleted: attrDeleted, valueDeleted: valDeleted });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to delete attribute or value.' });
+      }
+    },
+  };
