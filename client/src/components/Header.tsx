@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronDown, Map, Search, ShoppingCart, User, X, Bell, Menu } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronDown, Map, Search, ShoppingCart, User, X, Bell, Menu, LogOut } from 'lucide-react';
 import AddressSelection from './AddressSelection';
 import { mockProducts } from '../data/products';
+import { useAuth } from '../context/AuthContext';
 
 // Mock suggestions type
 interface SuggestionProduct {
@@ -18,6 +19,8 @@ interface SuggestionProduct {
 }
 
 const Header: React.FC = () => {
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState('Hồ Chí Minh');
@@ -26,8 +29,10 @@ const Header: React.FC = () => {
   const [suggestedProducts, setSuggestedProducts] = useState<SuggestionProduct[]>([]);
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
 
   const mainCategories = [
     { name: 'Điện thoại', path: '/smartphone', icon: 'phone' },
@@ -128,6 +133,20 @@ const Header: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Close user dropdown when clicking outside
+    function handleClickOutsideUserDropdown(event: MouseEvent) {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutsideUserDropdown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideUserDropdown);
+    };
+  }, []);
+
+  useEffect(() => {
     if (searchQuery.length > 0) {
       // Filter products based on search query
       const filtered = mockProducts.filter(product =>
@@ -202,6 +221,12 @@ const Header: React.FC = () => {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setShowUserDropdown(false);
   };
 
   return (
@@ -339,15 +364,64 @@ const Header: React.FC = () => {
             {/* User actions */}
             <div className="flex items-center space-x-6">
               {/* Account */}
-              <Link to="/account" className="hidden md:flex items-center text-white hover:opacity-80 group">
-                <div className="bg-white/20 rounded-full p-2 mr-2 group-hover:bg-white/30 transition-all">
-                  <User size={18} className="text-white" />
+              {isAuthenticated ? (
+                <div className="hidden md:block relative" ref={userDropdownRef}>
+                  <button 
+                    className="flex items-center text-white hover:opacity-80 group"
+                    onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  >
+                    <div className="bg-white/20 rounded-full p-2 mr-2 group-hover:bg-white/30 transition-all">
+                      <User size={18} className="text-white" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-white/80">Tài khoản</span>
+                      <span className="text-sm font-medium">{user?.fullName?.split(' ').pop() || 'Người dùng'}</span>
+                    </div>
+                    <ChevronDown 
+                      size={16} 
+                      className={`ml-1 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  
+                  {/* User dropdown menu */}
+                  {showUserDropdown && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50 animate-fadeDown">
+                      <div className="px-4 py-2 border-b">
+                        <p className="font-medium text-gray-800">{user?.fullName}</p>
+                        <p className="text-xs text-gray-500">{user?.phone}</p>
+                      </div>
+                      <Link to="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setShowUserDropdown(false)}>
+                        Tài khoản của tôi
+                      </Link>
+                      <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setShowUserDropdown(false)}>
+                        Đơn hàng của tôi
+                      </Link>
+                      <Link to="/notifications" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setShowUserDropdown(false)}>
+                        Thông báo
+                      </Link>
+                      <button 
+                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 border-t"
+                        onClick={handleLogout}
+                      >
+                        <div className="flex items-center">
+                          <LogOut size={14} className="mr-2" />
+                          Đăng xuất
+                        </div>
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-white/80">Xin chào</span>
-                  <span className="text-sm font-medium">A.Huy</span>
-                </div>
-              </Link>
+              ) : (
+                <Link to="/auth/login" className="hidden md:flex items-center text-white hover:opacity-80 group">
+                  <div className="bg-white/20 rounded-full p-2 mr-2 group-hover:bg-white/30 transition-all">
+                    <User size={18} className="text-white" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-white/80">Đăng nhập</span>
+                    <span className="text-sm font-medium">Tài khoản</span>
+                  </div>
+                </Link>
+              )}
 
               {/* Notification */}
               <Link to="/notifications" className="hidden md:flex relative hover:opacity-80">
@@ -550,24 +624,45 @@ const Header: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center mt-4">
-                <div className="bg-white rounded-full p-3 mr-3">
-                  <User size={20} className="text-blue-600" />
-                </div>
-                <div className="flex flex-col text-white">
-                  <span className="text-sm font-medium">A.Huy</span>
-                  <span className="text-xs text-white/80">Thành viên từ 2023</span>
-                </div>
-              </div>
+              {isAuthenticated ? (
+                <>
+                  <div className="flex items-center mt-4">
+                    <div className="bg-white rounded-full p-3 mr-3">
+                      <User size={20} className="text-blue-600" />
+                    </div>
+                    <div className="flex flex-col text-white">
+                      <span className="text-sm font-medium">{user?.fullName?.split(' ').pop() || 'Người dùng'}</span>
+                      <span className="text-xs text-white/80">{user?.phone}</span>
+                    </div>
+                  </div>
 
-              <div className="mt-3 flex space-x-4">
-                <Link to="/account" className="flex-1 bg-white/20 rounded py-1.5 text-center text-white text-sm">
-                  Tài khoản
-                </Link>
-                <Link to="/orders" className="flex-1 bg-white/20 rounded py-1.5 text-center text-white text-sm">
-                  Đơn hàng
-                </Link>
-              </div>
+                  <div className="mt-3 flex space-x-4">
+                    <Link to="/account" className="flex-1 bg-white/20 rounded py-1.5 text-center text-white text-sm" onClick={() => setIsMobileMenuOpen(false)}>
+                      Tài khoản
+                    </Link>
+                    <Link to="/orders" className="flex-1 bg-white/20 rounded py-1.5 text-center text-white text-sm" onClick={() => setIsMobileMenuOpen(false)}>
+                      Đơn hàng
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 flex space-x-4">
+                  <Link 
+                    to="/auth/login"
+                    className="flex-1 bg-white rounded py-2 text-center text-blue-600 text-sm font-medium" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link 
+                    to="/auth/register" 
+                    className="flex-1 bg-white/20 rounded py-2 text-center text-white text-sm font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Đăng ký
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Location selector */}
@@ -608,11 +703,21 @@ const Header: React.FC = () => {
 
             {/* Bottom actions */}
             <div className="p-4 border-t">
-              <Link to="/notifications" className="flex items-center p-3 hover:bg-gray-100 rounded-lg">
+              <Link to="/notifications" className="flex items-center p-3 hover:bg-gray-100 rounded-lg" onClick={() => setIsMobileMenuOpen(false)}>
                 <Bell size={18} className="mr-3 text-blue-600" />
                 <span className="text-sm">Thông báo</span>
                 <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">2</span>
               </Link>
+
+              {isAuthenticated && (
+                <button
+                  className="flex items-center w-full p-3 hover:bg-gray-100 rounded-lg text-red-600"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={18} className="mr-3" />
+                  <span className="text-sm">Đăng xuất</span>
+                </button>
+              )}
 
               <button
                 className="w-full mt-3 bg-blue-600 py-2.5 rounded-lg text-white font-medium hover:bg-blue-700 transition-colors"
