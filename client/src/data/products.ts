@@ -1,6 +1,7 @@
-import { Product } from "../components/ProductCard";
+import { Product } from "../types";
 
-export const products: Product[] = [
+export const mockProducts: Product[] = [
+    // Laptop products
     {
         id: 1,
         name: "Asus Vivobook Go 15 E1504FA R5 7520U (NJ776W)",
@@ -250,4 +251,258 @@ export const products: Product[] = [
         image: "https://cdn.tgdd.vn/Products/Images/44/331568/macbook-pro-14-inch-m4-pro-den-600x600.jpg",
         hasComparison: true
     },
+    
+    // Smartphone products
+    {
+        id: 101,
+        name: "iPhone 15 Pro Max 256GB",
+        brand: "Apple",
+        category: "smartphone",
+        specs: {
+            processor: "A17 Pro",
+            ram: "RAM 8 GB",
+            storage: "256 GB",
+        },
+        price: 33990000,
+        originalPrice: 34990000,
+        discountPercentage: 3,
+        rating: 4.9,
+        reviews: 12500,
+        image: "https://cdn.tgdd.vn/Products/Images/42/299033/iphone-15-pro-max-blue-titanium-600x600.jpg",
+        hasComparison: true,
+        isPromotion: true
+    },
+    {
+        id: 102,
+        name: "Samsung Galaxy S24 Ultra 5G 256GB",
+        brand: "Samsung",
+        category: "smartphone",
+        specs: {
+            processor: "Snapdragon 8 Gen 3",
+            ram: "RAM 12 GB",
+            storage: "256 GB",
+        },
+        price: 29990000,
+        originalPrice: 31990000,
+        discountPercentage: 6,
+        rating: 4.8,
+        reviews: 8300,
+        giftValue: 3000000,
+        image: "https://cdn.tgdd.vn/Products/Images/42/326604/samsung-galaxy-s24-ultra-xam-600x600.jpg",
+        hasComparison: true
+    },
+    {
+        id: 103,
+        name: "OPPO Reno10 5G 256GB",
+        brand: "OPPO",
+        category: "smartphone",
+        specs: {
+            processor: "MediaTek 7050",
+            ram: "RAM 8 GB",
+            storage: "256 GB",
+        },
+        price: 9990000,
+        originalPrice: 10990000,
+        discountPercentage: 9,
+        rating: 4.7,
+        reviews: 3200,
+        image: "https://cdn.tgdd.vn/Products/Images/42/306079/oppo-reno10-blue-thumbnew-600x600.jpg",
+        hasComparison: true,
+        isPromotion: true
+    },
+    {
+        id: 104,
+        name: "Xiaomi 14C",
+        brand: "Xiaomi",
+        category: "smartphone",
+        specs: {
+            processor: "Snapdragon 7s Gen 2",
+            ram: "RAM 8 GB",
+            storage: "256 GB",
+        },
+        price: 7690000,
+        originalPrice: 7990000,
+        discountPercentage: 4,
+        rating: 4.5,
+        reviews: 1800,
+        image: "https://cdn.tgdd.vn/Products/Images/42/317981/xiaomi-14c-den-thumb-600x600.jpg",
+        hasComparison: true,
+        isNew: true
+    },
+    {
+        id: 105,
+        name: "vivo Y36",
+        brand: "Vivo",
+        category: "smartphone",
+        specs: {
+            processor: "Snapdragon 680",
+            ram: "RAM 8 GB",
+            storage: "128 GB",
+        },
+        price: 5990000,
+        originalPrice: 6290000,
+        discountPercentage: 5,
+        rating: 4.7,
+        reviews: 2400,
+        image: "https://cdn.tgdd.vn/Products/Images/42/301642/vivo-y36-xanh-thumb-600x600.jpg",
+        hasComparison: true,
+        isPromotion: true
+    },
+    
+    // Smartwatch products
+    {
+        id: 201,
+        name: "Apple Watch Series 9 GPS 41mm",
+        brand: "Apple",
+        category: "smartwatch",
+        specs: {
+            processor: "S9 SiP",
+            ram: "N/A",
+            storage: "32 GB",
+        },
+        price: 9990000,
+        originalPrice: 11990000,
+        discountPercentage: 17,
+        rating: 4.9,
+        reviews: 5600,
+        image: "https://cdn.tgdd.vn/Products/Images/7077/289804/apple-watch-s9-gps-41mm-den-thumb-1-2-600x600.jpg",
+        hasComparison: true,
+        isPromotion: true
+    },
+    {
+        id: 202,
+        name: "Samsung Galaxy Watch6 Classic 43mm",
+        brand: "Samsung",
+        category: "smartwatch",
+        specs: {
+            processor: "Exynos W930",
+            ram: "RAM 2 GB",
+            storage: "16 GB",
+        },
+        price: 8490000,
+        originalPrice: 9490000,
+        discountPercentage: 11,
+        rating: 4.7,
+        reviews: 3200,
+        image: "https://cdn.tgdd.vn/Products/Images/7077/313286/samsung-galaxy-watch6-classic-43mm-den-thumb-600x600.jpg",
+        hasComparison: true
+    },
+    {
+        id: 203,
+        name: "Xiaomi Watch 2",
+        brand: "Xiaomi",
+        category: "smartwatch",
+        specs: {
+            processor: "Snapdragon W5+",
+            ram: "RAM 2 GB",
+            storage: "32 GB",
+        },
+        price: 4990000,
+        originalPrice: 5490000,
+        discountPercentage: 9,
+        rating: 4.6,
+        reviews: 1800,
+        image: "https://cdn.tgdd.vn/Products/Images/7077/315669/xiaomi-watch-2-den-thumb-600x600.jpg",
+        hasComparison: true,
+        isNew: true
+    },
+    
+    // Audio products
+    {
+        id: 301,
+        name: "AirPods Pro 2",
+        brand: "Apple",
+        category: "audio",
+        specs: {
+            processor: "H2",
+            ram: "N/A",
+            storage: "N/A",
+        },
+        price: 6990000,
+        originalPrice: 7490000,
+        discountPercentage: 7,
+        rating: 4.9,
+        reviews: 7800,
+        image: "https://cdn.tgdd.vn/Products/Images/54/289781/tai-nghe-bluetooth-airpods-pro-2-2022-usb-c-trang-280923-043346-600x600.jpg",
+        hasComparison: true,
+        isPromotion: true
+    },
+    {
+        id: 302,
+        name: "Samsung Galaxy Buds3 Pro",
+        brand: "Samsung",
+        category: "audio",
+        specs: {
+            processor: "N/A",
+            ram: "N/A",
+            storage: "N/A",
+        },
+        price: 4990000,
+        originalPrice: 5490000,
+        discountPercentage: 9,
+        rating: 4.7,
+        reviews: 3200,
+        image: "https://cdn.tgdd.vn/Products/Images/54/316005/samsung-galaxy-buds3-pro-silver-thumb-600x600.jpg",
+        hasComparison: true,
+        isNew: true
+    },
+    {
+        id: 303,
+        name: "JBL Tour Pro 2",
+        brand: "JBL",
+        category: "audio",
+        specs: {
+            processor: "N/A",
+            ram: "N/A",
+            storage: "N/A",
+        },
+        price: 6490000,
+        originalPrice: 6990000,
+        discountPercentage: 7,
+        rating: 4.8,
+        reviews: 1200,
+        image: "https://cdn.tgdd.vn/Products/Images/54/310461/jbl-tour-pro-2-den-thumb-1-600x600.jpg",
+        hasComparison: true,
+        isPromotion: true
+    },
+    
+    // Tablet products
+    {
+        id: 401,
+        name: "iPad Pro 13 inch M4 WiFi",
+        brand: "Apple",
+        category: "tablet",
+        specs: {
+            processor: "M4",
+            ram: "RAM 16 GB",
+            storage: "512 GB",
+        },
+        price: 39990000,
+        originalPrice: 42990000,
+        discountPercentage: 7,
+        rating: 4.9,
+        reviews: 3600,
+        image: "https://cdn.tgdd.vn/Products/Images/522/317121/ipad-pro-m4-13-inch-gray-thumb-600x600.jpg",
+        hasComparison: true,
+        isNew: true
+    },
+    {
+        id: 402,
+        name: "Samsung Galaxy Tab S9 Ultra 5G",
+        brand: "Samsung",
+        category: "tablet",
+        specs: {
+            processor: "Snapdragon 8 Gen 2",
+            ram: "RAM 12 GB",
+            storage: "256 GB",
+        },
+        price: 29990000,
+        originalPrice: 31990000,
+        discountPercentage: 6,
+        rating: 4.8,
+        reviews: 2500,
+        image: "https://cdn.tgdd.vn/Products/Images/522/310797/samsung-galaxy-tab-s9-ultra-xam-thumb-600x600.jpg",
+        hasComparison: true,
+        isPromotion: true
+    }
 ];
