@@ -43,7 +43,7 @@ function App() {
         </div>
 
         {/* Main */}
-        <div className="flex-1 p-4 pt-20 overflow-auto min-w-[1024px]">
+        <div className="flex-1 p-4 pt-20 overflow-auto">
           <AppRoutes />
         </div>
 

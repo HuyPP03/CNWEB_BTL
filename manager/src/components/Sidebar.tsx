@@ -1,4 +1,4 @@
-import { FaUsers, FaBox, FaUsersCog, FaBuilding, FaListAlt, FaClock, FaClipboard, FaTags } from "react-icons/fa";
+import { FaUsers, FaBox, FaUsersCog, FaBuilding, FaListAlt, FaClock, FaClipboard, FaTags, FaHome } from "react-icons/fa";
 import SidebarItem from "./SidebarItem";
 
 const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
@@ -10,6 +10,9 @@ const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
     >
       <nav>
         <ul className="space-y-3">
+          <li>
+            <SidebarItem to="/" icon ={FaHome} label="Trang chủ" />
+          </li>
           <li>
             <SidebarItem to="/qlnhanvien" icon={FaUsers} label="Quản lý nhân viên" />
           </li>
