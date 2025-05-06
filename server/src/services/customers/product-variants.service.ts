@@ -1,98 +1,104 @@
-import { Op } from 'sequelize';
+import { Op , Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
 
 // Lấy tất cả biến thể sản phẩm
-export const getAllVariants = () => db.productVariants.findAll();
+export const getVariants = async (filters: any) => {
+    const where: any = {};
+    const include: any[] = [
+        { model: db.productImages },
+    ];
 
-// Lấy biến thể sản phẩm theo ID
-export const getVariantById = (id: string) => db.productVariants.findByPk(id);
-
-// Lấy biến thể sản phẩm theo tên gần đúng (LIKE)
-export const getVariantsByName = (name: string) =>
-    db.products.findAll({
-        where: {
-            name: {
-                [Op.like]: `%${name}%`,
-            },
-        },
-    });
-
-// Lấy biến thể sản phẩm theo productId (sản phẩm mẹ)
-export const getVariantsByProductId = (productId: string) =>
-    db.productVariants.findAll({
-        where: { productId },
-    });
-
-// Lấy biến thể sản phẩm theo brandId
-export const getVariantsByBrand = (brandId: string) =>
-    db.productVariants.findAll({
-        include: [
-            {
-                model: db.products,
-                where: { brandId },
-                required: true,
-            },
-        ],
-    });
-
-// Lấy biến thể sản phẩm theo categoryId
-export const getVariantsByCategory = (categoryId: string) =>
-    db.productVariants.findAll({
-        include: [
-            {
-                model: db.products,
-                where: { categoryId },
-                required: true,
-            },
-        ],
-    });
-
-// Lấy biến thể sản phẩm theo khoảng giá
-export const getVariantsByPriceRange = (min: number, max: number) =>
-    db.productVariants.findAll({
-        where: {
-            price: {
-                [Op.between]: [min, max],
-            },
-        },
-    });
-
-// Tìm kiếm biến thể sản phẩm nâng cao (lọc theo nhiều điều kiện)
-export const filterVariants = async (filters: {
-    name?: string;
-    brandId?: string;
-    categoryId?: string;
-    minPrice?: string;
-    maxPrice?: string;
-    productId?: string;
-}) => {
-    const conditions: any = {};
-
-    if (filters.name) {
-        conditions.name = { [Op.like]: `%${filters.name}%` };
+    // Điều kiện lọc theo id biến thể sản phẩm
+    if (filters.id) {
+        where.id = filters.id;
     }
-
-    if (filters.brandId) {
-        conditions.brandId = filters.brandId;
-    }
-
-    if (filters.categoryId) {
-        conditions.categoryId = filters.categoryId;
-    }
-
+    
+    // Điều kiện lọc theo id sản phẩm
     if (filters.productId) {
-        conditions.productId = filters.productId;
+        where.productId = filters.productId;
     }
 
-    if (filters.minPrice || filters.maxPrice) {
-        conditions.price = {};
-        if (filters.minPrice) {
-            conditions.price[Op.gte] = parseFloat(filters.minPrice);
-        }
-        if (filters.maxPrice) {
-            conditions.price[Op.lte] = parseFloat(filters.maxPrice);
-        }
+    // Điều kiện lọc theo brandId
+    if (filters.brandId) {
+        where.brandId = filters.brandId;
     }
 
-    return db.productVariants.findAll({ where: conditions });
+    // Điều kiện lọc theo categoryId
+    if (filters.categoryId) {
+        where.categoryId = filters.categoryId;
+    }
+
+    // Điều kiện lọc nếu còn hàng
+    if (filters.stock) {
+        where.stock >= filters.stock;
+    }
+
+    // Điều kiện lọc theo khoảng giá
+    if (filters.priceRange.min || filters.priceRange.max) {
+        where.price = {};
+        if (filters.priceRange.min) where.price[Op.gte] = filters.priceRange.min;
+        if (filters.priceRange.max) where.price[Op.lte] = filters.priceRange.max;
+    }
+
+    // Thêm mối quan hệ với bảng brands nếu cần
+    if (filters.include?.includes('brand')) {
+        include.push({ model: db.brands });
+    }
+
+    // Thêm mối quan hệ với bảng categories nếu cần
+    if (filters.include?.includes('category')) {
+        include.push({ model: db.categories });
+    }
+
+    // Lấy dữ liệu từ cơ sở dữ liệu với phân trang
+    const productVariants = await db.productVariants.findAll({
+        where,
+        include,
+        limit: filters.limit,   // Số lượng sản phẩm mỗi trang
+        offset: filters.offset  // Dịch chuyển dữ liệu, tính từ trang hiện tại
+    });
+    
+    return productVariants;
+};
+
+// Tạo biến thể sản phẩm mới
+export const createVariant = (data: any, transaction?: Transaction) => {
+    return db.productVariants.create(data, { transaction });
+};
+
+// Cập nhật biến thể sản phẩm
+export const updateVariant = async (
+    id: string,
+    data: any,
+    transaction?: Transaction
+) => {
+    const variant = await db.productVariants.findByPk(id, { transaction });
+    if (!variant) return null;
+
+    await variant.update(data, { transaction });
+    return variant;
+};
+
+// Xóa biến thể sản phẩm
+export const deleteVariant = async (
+    id: string,
+    transaction?: Transaction
+) => {
+    return db.productVariants.destroy({ where: { id }, transaction });
+};
+
+export const addVariantAttributes = (data: any, transaction?: Transaction) => {
+    return db.variantAttributes.create(data, { transaction });
+}
+
+export const updateAttribute = async (
+    id: number,
+    data: any,
+    transaction?: Transaction
+) => {
+    const attr = await db.variantAttributes.findByPk(id);
+    if (!attr) {
+        throw new Error(`Attribute with id ${id} not found`);
+    }
+    return attr.update(data, { transaction });
 };

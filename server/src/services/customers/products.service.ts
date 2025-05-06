@@ -1,35 +1,56 @@
 import { Op } from 'sequelize';
 import { db } from '../../loaders/database.loader';
 
-export const filterProducts = async (filters: any) => {
+export const getProducts = async (filters: any) => {
 	const where: any = {};
-	const include: any[] = [];
+	const include: any[] = [
+		{ model: db.productVariants, include: [{ model: db.productImages }] },
+	];
 
+	// Điều kiện lọc theo id sản phẩm
+	if (filters.id) {
+		where.id = filters.id;
+	}
+	
+	// Điều kiện lọc theo tên sản phẩm
 	if (filters.name) {
 		where.name = { [Op.like]: `%${filters.name}%` };
 	}
+
+	// Điều kiện lọc theo brandId
 	if (filters.brandId) {
 		where.brandId = filters.brandId;
 	}
+
+	// Điều kiện lọc theo categoryId
 	if (filters.categoryId) {
 		where.categoryId = filters.categoryId;
 	}
+
+	// Điều kiện lọc theo khoảng giá
 	if (filters.priceRange.min || filters.priceRange.max) {
-		where.price = {};
-		if (filters.priceRange.min) where.price[Op.gte] = filters.priceRange.min;
-		if (filters.priceRange.max) where.price[Op.lte] = filters.priceRange.max;
+		where.basePrice = {};
+		if (filters.priceRange.min) where.basePrice[Op.gte] = filters.priceRange.min;
+		if (filters.priceRange.max) where.basePrice[Op.lte] = filters.priceRange.max;
 	}
 
+	// Thêm mối quan hệ với bảng brands nếu cần
 	if (filters.include?.includes('brand')) {
 		include.push({ model: db.brands });
 	}
+
+	// Thêm mối quan hệ với bảng categories nếu cần
 	if (filters.include?.includes('category')) {
 		include.push({ model: db.categories });
 	}
 
+	// Lấy dữ liệu từ cơ sở dữ liệu với phân trang
 	const products = await db.products.findAll({
 		where,
-		include
+		include,
+		limit: filters.limit,   // Số lượng sản phẩm mỗi trang
+		offset: filters.offset  // Dịch chuyển dữ liệu, tính từ trang hiện tại
 	});
+	
 	return products;
 };

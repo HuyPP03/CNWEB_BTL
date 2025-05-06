@@ -1,12 +1,27 @@
 import { Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
 
-export const getAllProducts = () => db.products.findAll();
+export const createProduct = async (data: any, transaction?: Transaction) => {
 
-export const getProductById = (id: string) => db.products.findByPk(id);
+    const newProduct = await db.products.create({
+        ...data,
+        categoryId: parseInt(data.categoryId, 10),
+        brandId: parseInt(data.brandId, 10),
+    }, { transaction });
 
-export const createProduct = (data: any, transaction?: Transaction) => {
-    return db.products.create(data, { transaction });
+    // Tạo biến thể sản phẩm mặc định
+    const variantData = {
+        productId: newProduct.id,  // Liên kết biến thể với sản phẩm mới tạo
+        slug: 'default-' + newProduct.slug,  // Sử dụng slug của sản phẩm làm phần của slug biến thể
+        sku: 'DEFAULT-' + newProduct.id,  // SKU mặc định
+        price: data.basePrice || 0,      // Lấy giá của sản phẩm làm giá của biến thể
+        discountPrice: 0,             // Nếu không có giá giảm, để null
+        stock: 0,
+    };
+
+    const newVariant = await db.productVariants.create(variantData, { transaction });
+
+    return {newProduct , newVariant};
 };
 
 export const updateProduct = async (

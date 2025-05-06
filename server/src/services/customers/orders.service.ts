@@ -12,33 +12,54 @@ export const updateOrderById = (id: string, orderData: any) =>
 export const deleteOrderById = (id: string) => db.orders.destroy({ where: { id } });
 
 // Lấy tất cả đơn hàng
-export const getAllOrders = () => db.orders.findAll();
+export const getOrders = async (filters: any) => {
+    const where: any = {};
+	const include: any[] = [
+		{ model: db.orderItems,
+            include: [{ model: db.productVariants }]  },
+	];
 
-// Lấy đơn hàng theo ID
-export const getOrderById = (id: string) => db.orders.findByPk(id);
+	// Điều kiện lọc theo id sản phẩm
+	if (filters.id) {
+		where.id = filters.id;
+	}
+	
+	// Điều kiện lọc theo id khách hàng
+	if (filters.customerId) {
+		where.customerId = filters.customerId;
+	}
 
-// Lấy đơn hàng theo customerId
-export const getOrdersByCustomerId = (customerId: string) =>
-    db.orders.findAll({
-        where: { customerId },
+    // Điều kiện lọc theo trạng thái đơn hàng
+    if (filters.status) {
+        where.status = filters.status;
+    }
+
+    // Điều kiện lọc theo khoảng thời gian tạo đơn hàng
+    if (filters.startDate && filters.endDate) {
+        where.createdAt = {
+            [Op.between]: [new Date(filters.startDate), new Date(filters.endDate)],
+        };
+    } else if (filters.startDate) {
+        where.createdAt = {
+            [Op.gte]: new Date(filters.startDate),
+        };
+    } else if (filters.endDate) {
+        where.createdAt = {
+            [Op.lte]: new Date(filters.endDate),
+        };
+    }
+
+    // Điều kiện lọc theo phương thức thanh toán
+    if (filters.paymentMethod) {
+        where.paymentMethod = filters.paymentMethod;
+    }
+
+	// Truy vấn đơn hàng
+    const orders = await db.orders.findAll({
+        where,
+        include,
+        order: [['createdAt', 'DESC']],
     });
-
-// Lấy đơn hàng theo trạng thái
-export const getOrdersByStatus = (status: string) =>    
-    db.orders.findAll({
-        where: { status },
-    });
-
-// Lấy các order-items theo orderId
-export const getOrderItemsByOrderId = async (orderId: string) => {
-    return db.orderItems.findAll({
-        where: { orderId },
-        include: [
-            {
-                model: db.productVariants,
-                as: 'productVariant',
-                attributes: ['id', 'sku', 'price'], // thêm các thuộc tính cần thiết
-            },
-        ],
-    });
-};
+	
+	return orders;
+}

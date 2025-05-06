@@ -1,10 +1,11 @@
 import express  from 'express'
 import * as imageController from '../controllers/managers/product-images.controller'
+import { upload } from '../utility/media.util';
 
 const router = express.Router()
 
 // Route để upload ảnh cho sản phẩm
-router.post('/:productId', imageController.uploadProductImageController);
+router.post('/:productId',upload.single('image'), imageController.uploadProductImageController);
 
 // Route để lấy danh sách ảnh của sản phẩm
 router.get('/:productId', imageController.getProductImagesController);

@@ -1,11 +1,5 @@
-import { Transaction } from 'sequelize';
+import { Op , Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
-
-// Lấy tất cả biến thể sản phẩm
-export const getAllVariants = () => db.productVariants.findAll();
-
-// Lấy biến thể sản phẩm theo ID
-export const getVariantById = (id: string) => db.productVariants.findByPk(id);
 
 // Tạo biến thể sản phẩm mới
 export const createVariant = (data: any, transaction?: Transaction) => {
@@ -30,13 +24,25 @@ export const deleteVariant = async (
     id: string,
     transaction?: Transaction
 ) => {
-    return db.productVariants.destroy({ where: { id }, transaction });
+    // Bắt đầu xóa các thuộc tính của biến thể
+    await db.variantAttributes.destroy({
+        where: { variantId: id },
+        transaction
+    });
+
+    // Sau khi xóa thuộc tính, xóa biến thể
+    return db.productVariants.destroy({
+        where: { id },
+        transaction
+    });
 };
 
+// Thêm thuộc tính cho biến thể sản phẩm
 export const addVariantAttributes = (data: any, transaction?: Transaction) => {
-    return db.variantAttributes.create(data, { transaction });
-}
+    return db.variantAttributes.bulkCreate(data, { transaction });
+}   
 
+// Sửa thuộc tính cho biến thể sản phẩm
 export const updateAttribute = async (
     id: number,
     data: any,
@@ -48,3 +54,11 @@ export const updateAttribute = async (
     }
     return attr.update(data, { transaction });
 };
+
+// Xóa thuộc tính cho biến thể sản phẩm
+export const deleteAttribute = async (
+    id: number,
+    transaction?: Transaction
+) => {
+    return db.variantAttributes.destroy({ where: { id }, transaction });
+}

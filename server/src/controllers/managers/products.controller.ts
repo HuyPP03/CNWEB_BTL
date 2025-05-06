@@ -1,39 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { ResOk } from '../../utility/response.util';
 import * as productService from '../../services/managers/products.service';
+import * as productImageService from '../../services/managers/product-images.service';
 import { db } from '../../loaders/database.loader';
 import { Admins } from '../../models/admins.model';
 import * as adminLogService from '../../services/managers/admin-logs.service';
-
-// Lấy tất cả sản phẩm
-export const getAllProducts = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const products = await productService.getAllProducts();
-        return res.status(200).json(new ResOk().formatResponse(products));
-    } catch (error) {
-        next(error);
-    }
-};
-
-// Lấy sản phẩm theo ID
-export const getProductById = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const product = await productService.getProductById(req.params.id);
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
-        return res.status(200).json(new ResOk().formatResponse(product));
-    } catch (error) {
-        next(error);
-    }
-};
 
 // Tạo sản phẩm mới
 export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const newProduct = await productService.createProduct(req.body, transaction);
+        const files = req.files as Express.Multer.File[];
+        
+        const { newProduct, newVariant } = await productService.createProduct(req.body, transaction);
 
+        const images = await productImageService.createProductImages(files, newProduct.id, transaction);
         // await adminLogService.CreateAdminLog(
         //     (req.user as Admins).id,
         //     'Create',
@@ -44,7 +25,13 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
         // );
 
         await transaction.commit();
-        return res.status(201).json(new ResOk().formatResponse(newProduct));
+        return res.status(201).json(
+            new ResOk().formatResponse({
+                product: newProduct,
+                defaultVariant: newVariant,
+                images
+            })
+        );
     } catch (error) {
         await transaction.rollback();
         next(error);

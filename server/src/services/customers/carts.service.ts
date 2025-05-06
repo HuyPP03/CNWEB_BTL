@@ -13,7 +13,18 @@ export const getOrCreateCart = async (customerId: number) => {
 		cart = await db.carts.create({ customerId });
 	}
 
-	return cart;
+	return {cart,
+		include:
+			{
+				model: db.cartItems,
+				include: [
+					{
+						model: db.productVariants,
+						include: [{ model: db.products }],
+					},
+				],
+			},
+	};
 };
 
 export const deleteCart = (cartId: number) => {

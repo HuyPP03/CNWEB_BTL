@@ -3,7 +3,7 @@ import { db } from '../../loaders/database.loader';
 export const variantAttributeService = {
   async getAttribute(variantId?: number) {
     const where = variantId ? { variantId } : {};
-    return db.variantAttributes.findAll({ where });
+    return db.variantAttributes.findAll({ where, include: [{ model: db.attributeValues}] });
   },
 
   async createAttribute(data: Array<{

@@ -70,8 +70,6 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
-
-
 // Cập nhật đơn hàng theo ID
 export const updateOrderById = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -94,62 +92,32 @@ export const deleteOrderById = async (req: Request, res: Response, next: NextFun
         next(error);
     }
 }
-
-// Lấy tất cả đơn hàng
-export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
+// Lấy đơn hàng
+export const getOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const orders = await ordersService.getAllOrders();
-        return res.status(200).json(new ResOk().formatResponse(orders, 'Lấy tất cả đơn hàng thành công!'));
-    } catch (error) {
-        next(error);
-    }
-}
+        const {
+            id,
+            customerId,
+            status,
+            startDate,
+            endDate,
+            paymentMethod,
+        } = req.query;
 
-// Lấy đơn hàng theo ID
-export const getOrderById = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        const order = await ordersService.getOrderById(id);
-        return res.status(200).json(new ResOk().formatResponse(order, 'Lấy đơn hàng theo ID thành công!'));
-    } catch (error) {
-        next(error);
-    }
-}
+        const filters = {
+            id: id ? Number(id) : undefined,
+            customerId: customerId ? Number(customerId) : undefined,
+            status: status as string,
+            startDate: startDate as string,
+            endDate: endDate as string,
+            paymentMethod: req.query.paymentMethod as string,
+        };
 
-// Lấy đơn hàng theo customerId
-export const getOrdersByCustomerId = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { customerId } = req.params;
-        const orders = await ordersService.getOrdersByCustomerId(customerId);
-        return res.status(200).json(new ResOk().formatResponse(orders, 'Lấy đơn hàng theo customerId thành công!'));
-    } catch (error) {
-        next(error);
-    }
-}
+        const orders = await ordersService.getOrders(filters);
 
-// Lấy đơn hàng theo trạng thái
-export const getOrdersByStatus = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { status } = req.params;
-        const orders = await ordersService.getOrdersByStatus(status);
-        return res.status(200).json(new ResOk().formatResponse(orders, 'Lấy đơn hàng theo trạng thái thành công!'));
-    } catch (error) {
-        next(error);
-    }
-}
-
-// Lấy danh sách order items theo orderId
-export const getOrderItemsByOrderId = async (req: Request, res: Response, next: NextFunction) => {
-    const { orderId } = req.params;
-
-    try {
-        const orderItems = await ordersService.getOrderItemsByOrderId(orderId);
-
-        if (!orderItems || orderItems.length === 0) {
-            return res.status(404).json(new ResOk().formatResponse([], 'Không tìm thấy order items.'));
-        }
-
-        return res.status(200).json(new ResOk().formatResponse(orderItems, 'Lấy danh sách order items thành công.'));
+        return res
+            .status(200)
+            .json(new ResOk().formatResponse(orders, 'Lấy danh sách đơn hàng thành công!'));
     } catch (error) {
         next(error);
     }

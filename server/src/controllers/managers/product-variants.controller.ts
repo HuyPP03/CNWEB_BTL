@@ -8,36 +8,22 @@ import { db } from '../../loaders/database.loader';
 import * as adminLogService from '../../services/managers/admin-logs.service'; 
 import { Admins } from 'src/models/admins.model';
 
-// Lấy tất cả biến thể của sản phẩm
-export const getAllVariants = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const variants = await variantService.getAllVariants();
-        return res.status(200).json(new ResOk().formatResponse(variants));
-    } catch (error) {
-        next(error);
-    }
-};
-
-// Lấy biến thể theo ID
-export const getVariantById = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const variant = await variantService.getVariantById(req.params.id);
-        if (!variant) {
-            return res.status(404).json({ message: 'Variant not found' });
-        }
-        return res.status(200).json(new ResOk().formatResponse(variant));
-    } catch (error) {
-        next(error);
-    }
-};
-
 // Tạo biến thể mới cho sản phẩm
 export const createVariant = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
         const newVariant = await variantService.createVariant(req.body, transaction);
 
-        //Optional: Log action của admin
+        if (req.body.attributes && req.body.attributes.length > 0) {
+          for (let attribute of req.body.attributes) {
+              // Gọi service để thêm thuộc tính cho biến thể
+              await variantService.addVariantAttributes({
+                  variantId: newVariant.id,
+                  ...attribute
+              }, transaction);
+          }
+        }
+
         // await adminLogService.CreateAdminLog(
         //     (req.user as Admins).id,
         //     'Create',
@@ -65,11 +51,22 @@ export const updateVariant = async (req: Request, res: Response, next: NextFunct
             return res.status(404).json({ message: 'Variant not found' });
         }
 
-        // Optional: Log action của admin
+        if (req.body.attributes && req.body.attributes.length > 0) {
+          // Xóa các thuộc tính cũ nếu có
+          await variantService.deleteAttribute(updatedVariant.id, transaction);
+          
+          // Thêm các thuộc tính mới
+          for (let attribute of req.body.attributes) {
+              await variantService.addVariantAttributes({
+                  variantId: updatedVariant.id,
+                  ...attribute
+              }, transaction);
+          }
+      }
         // await adminLogService.CreateAdminLog(
         //     (req.user as Admins).id,
-        //     'Update',
-        //     updatedVariant.id,
+        //     'Delete',
+        //     deletedVariant.id,
         //     'Variant',
         //     req.body,
         //     transaction
@@ -85,30 +82,22 @@ export const updateVariant = async (req: Request, res: Response, next: NextFunct
 
 // Xoá biến thể sản phẩm
 export const deleteVariant = async (req: Request, res: Response, next: NextFunction) => {
-    const transaction = await db.sequelize.transaction();
-    try {
-        const deletedCount = await variantService.deleteVariant(req.params.id, transaction);
-        if (!deletedCount) {
-            await transaction.rollback();
-            return res.status(404).json({ message: 'Variant not found' });
-        }
+  const transaction = await db.sequelize.transaction();
+  try {
+      const deletedCount = await variantService.deleteVariant(req.params.id, transaction);
+      if (!deletedCount) {
+          await transaction.rollback();
+          return res.status(404).json({ message: 'Variant not found' });
+      }
 
-        // Optional: Log action của admin
-        // await adminLogService.CreateAdminLog(
-        //     (req.user as Admins).id,
-        //     'Delete',
-        //     parseInt(req.params.id),
-        //     'Variant',
-        //     { deleted: true },
-        //     transaction
-        // );
 
-        await transaction.commit();
-        return res.status(200).json(new ResOk().formatResponse({ message: 'Deleted successfully' }));
-    } catch (error) {
-        await transaction.rollback();
-        next(error);
-    }
+
+      await transaction.commit();
+      return res.status(200).json(new ResOk().formatResponse({ message: 'Deleted successfully' }));
+  } catch (error) {
+      await transaction.rollback();
+      next(error);
+  }
 };
 
 export const attributeController = {

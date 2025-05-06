@@ -9,8 +9,8 @@ export const getCartWithItems = async (req: Request, res: Response, next: NextFu
 	try {
 		const customerId = parseInt(req.params.customerId);
 		const cart = await cartService.getOrCreateCart(customerId);
-		const items = await cartItemService.getCartItemsByCartId(cart.id);
-		return res.status(200).json(new ResOk().formatResponse({ cart, items }));
+//		const items = await cartItemService.getCartItemsByCartId(cart.id);
+		return res.status(200).json(new ResOk().formatResponse({ cart/*, items */}));
 	} catch (error) {
 		next(error);
 	}
@@ -59,7 +59,7 @@ export const clearCart = async (req: Request, res: Response, next: NextFunction)
 		const cart = await cartService.getOrCreateCart(cartId);
 		if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
-		await cartItemService.clearCartItems(cart.id);
+		await cartItemService.clearCartItems(cartId);
 		return res.status(200).json(new ResOk().formatResponse({ message: 'Cart cleared' }));
 	} catch (error) {
 		next(error);

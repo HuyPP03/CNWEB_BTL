@@ -1,15 +1,28 @@
 import { db } from '../../loaders/database.loader';
 import { Transaction } from 'sequelize';
-import { upload } from '../../utility/upload-image';
 import fs from 'fs';
 import path from 'path';
 
-export const uploadProductImage = async (req: any, res: any) => {
-    upload.single('image')(req, res, async (err: any) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
 
+export const createProductImages = async (files: any, productId: number, transaction?: Transaction) => {
+    try {
+       const fileCreates = files.map((file: any, indx: number) => {
+            const relativePath = path.relative(path.resolve('./'), file.path).replace(/\\/g, '/');
+            return ({
+                productId,
+                imageUrl: relativePath,
+                isPrimary: indx === 0,
+            });
+       })
+        return await db.productImages.bulkCreate(fileCreates, { returning: true, 
+            transaction
+          });
+    } catch (error) {
+        throw new Error('Error creating product images');
+    }
+}
+
+export const uploadProductImage = async (req: any, res: any) => {
         const { productId } = req.params;
         const fullPath = req.file?.path;
 
@@ -32,7 +45,6 @@ export const uploadProductImage = async (req: any, res: any) => {
             console.error(error);
             return res.status(500).json({ error: 'Error saving product image to database' });
         }
-    });
 };
 
 export const getProductImages = async (productId: string) => {
@@ -49,7 +61,8 @@ export const deleteProductImage = async (id: string, transaction?: Transaction) 
         const productImage = await db.productImages.findByPk(id, { transaction });    
         if (!productImage) return null;
 
-        const productId = productImage.productId; // Lấy productId từ productImage
+        // Lấy productId từ productImage để xóa thư mục chứa ảnh
+        // const productId = productImage.productId; // Lấy productId từ productImage
         
         // Lưu đường dẫn file trước khi xóa DB
         const imagePath = path.resolve(productImage.imageUrl); // Chuyển relative path thành absolute path
@@ -65,14 +78,15 @@ export const deleteProductImage = async (id: string, transaction?: Transaction) 
             }
         });
 
-        // Kiểm tra thư mục có còn ảnh nào không
-        const productFolder = path.join(__dirname, '..', '..', 'uploads', productId.toString());
-        const files = fs.readdirSync(productFolder);
+        // Tam thời bỏ qua việc xóa thư mục chứa ảnh
+        // // Kiểm tra thư mục có còn ảnh nào không
+        // const productFolder = path.join(__dirname, '..', '..', 'uploads', productId.toString());
+        // const files = fs.readdirSync(productFolder);
 
-        // Nếu không còn ảnh nào trong thư mục, xóa luôn thư mục đó
-        if (files.length === 0) {
-            fs.rmdirSync(productFolder);
-        }
+        // // Nếu không còn ảnh nào trong thư mục, xóa luôn thư mục đó
+        // if (files.length === 0) {
+        //     fs.rmdirSync(productFolder);
+        // }
 
         return productImage;
     } catch (error) {
