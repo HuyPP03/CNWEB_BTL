@@ -5,6 +5,7 @@ export const getProducts = async (filters: any) => {
 	const where: any = {};
 	const include: any[] = [
 		{ model: db.productVariants, include: [{ model: db.productImages }] },
+		{ model: db.productImages } 
 	];
 
 	// Điều kiện lọc theo id sản phẩm

@@ -9,8 +9,7 @@ export const getCartWithItems = async (req: Request, res: Response, next: NextFu
 	try {
 		const customerId = parseInt(req.params.customerId);
 		const cart = await cartService.getOrCreateCart(customerId);
-//		const items = await cartItemService.getCartItemsByCartId(cart.id);
-		return res.status(200).json(new ResOk().formatResponse({ cart/*, items */}));
+		return res.status(200).json(new ResOk().formatResponse({ cart }));
 	} catch (error) {
 		next(error);
 	}

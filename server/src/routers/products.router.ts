@@ -6,11 +6,11 @@ import { upload } from '../utility/media.util';
 const router = express.Router();
 
 // Router cho managers
-router.post('/managers/', upload.any(), productsManagers.createProduct);
-router.put('/managers/:id', productsManagers.updateProduct);
-router.delete('/managers/:id', productsManagers.deleteProduct);
+router.post('/', upload.any(), productsManagers.createProduct);
+router.put('/:id', productsManagers.updateProduct);
+router.delete('/:id', productsManagers.deleteProduct);
 
 // Router cho customers (lấy ra sản phẩm)
-router.get('/customers', productsCustomers.getProducts);
+router.get('/', productsCustomers.getProducts);
 
 export default router;

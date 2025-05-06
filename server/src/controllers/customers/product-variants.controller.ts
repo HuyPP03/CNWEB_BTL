@@ -3,9 +3,10 @@ import { ResOk } from '../../utility/response.util';
 import * as variantService from '../../services/customers/product-variants.service';
 
 export const getVariants = async (req: Request, res: Response, next: NextFunction) => {
-try {
+  try { 
     const {
       id = '',
+      productId,
       brandId = '',
       categoryId = '',
       min = 0,
@@ -22,6 +23,7 @@ try {
 
     const filters = {
       id: id ? Number(id) : undefined,
+      productId: productId ? Number(productId) : undefined,
       brandId: brandId ? Number(brandId) : undefined,
       categoryId: categoryId ? Number(categoryId) : undefined,
       priceRange: {
@@ -34,8 +36,8 @@ try {
       limit: pageLimit
     };
 
-    const products = await variantService.getVariants(filters);
-    return res.status(200).json(new ResOk().formatResponse(products));
+    const variants = await variantService.getVariants(filters);
+    return res.status(200).json(new ResOk().formatResponse(variants));
   } catch (error) {
     next(error);
   }

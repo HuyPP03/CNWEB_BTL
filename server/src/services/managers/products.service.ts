@@ -7,6 +7,7 @@ export const createProduct = async (data: any, transaction?: Transaction) => {
         ...data,
         categoryId: parseInt(data.categoryId, 10),
         brandId: parseInt(data.brandId, 10),
+        slug: data.slug || data.name.replace(/\s+/g, '-').toLowerCase(),  
     }, { transaction });
 
     // Tạo biến thể sản phẩm mặc định
@@ -24,14 +25,16 @@ export const createProduct = async (data: any, transaction?: Transaction) => {
     return {newProduct , newVariant};
 };
 
+// Cập nhật sản phẩm
 export const updateProduct = async (
-    id: string,
+    id: number,
     data: any,
     transaction?: Transaction
 ) => {
-    const product = await db.products.findByPk(id, { transaction });
+    const product = await db.products.findByPk(id, { transaction});
     if (!product) return null;
 
+    // Cập nhật thông tin sản phẩm
     await product.update(data, { transaction });
     return product;
 };

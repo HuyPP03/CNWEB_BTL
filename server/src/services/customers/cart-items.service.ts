@@ -4,7 +4,16 @@ export const getCartItemsByCartId = (cartId: number) => {
 	return db.cartItems.findAll({ where: { cartId } });
 };
 
-export const addOrUpdateCartItem = async (cartId: number, variantId: number, quantity: number) => {
+export const addOrUpdateCartItem = async (
+	cartId: number, 
+	variantId: number, 
+	quantity: number
+) => {
+	const variant = await db.productVariants.findByPk(variantId);
+
+	if (!variant) throw new Error('Variant not found');
+	if (variant.stock < quantity) throw new Error('Not enough stock available');
+
 	const existingItem = await db.cartItems.findOne({ where: { cartId, variantId } });
 
 	if (existingItem) {

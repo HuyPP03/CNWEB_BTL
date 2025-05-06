@@ -42,7 +42,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
 export const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const updatedProduct = await productService.updateProduct(req.params.id, req.body, transaction);
+        const updatedProduct = await productService.updateProduct(Number(req.params.id), req.body, transaction);
         if (!updatedProduct) {
             await transaction.rollback();
             return res.status(404).json({ message: 'Product not found' });
