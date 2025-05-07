@@ -6,69 +6,16 @@ import { db } from '../../loaders/database.loader';
 
 // Tạo đơn hàng mới từ giỏ hàng
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
-//    const t = await db.sequelize.transaction();
-    try { 
-        const {customerId, warehouseId, shippingAddress, paymentMethod } = req.body;
-
-//        const cart = await db.carts.findOne({ where: { customerId }, transaction: t });
-        const cart = await db.carts.findOne({ where: { customerId } });
-
-        if (!cart) throw new Error('Không tìm thấy giỏ hàng');
-
-//        const cartItems = await db.cartItems.findAll({ where: { cartId: cart.id }, transaction: t });
-        const cartItems = await db.cartItems.findAll({ where: { cartId: cart.id } });
-        if (cartItems.length === 0) throw new Error('Giỏ hàng trống');
-
-        // Lấy thông tin các variantId trong cart
-        const variantIds = cartItems.map(item => item.variantId);
-        const variants = await db.productVariants.findAll({
-            where: { id: variantIds },
-//            transaction: t
-        });
-
-        // Map variantId -> price
-        const variantPriceMap = new Map<number, number>();
-        variants.forEach(v => {
-            variantPriceMap.set(v.id, Number(v.price));
-        });
-
-        // Tính tổng tiền từ variant price
-        const totalAmount = cartItems.reduce((sum, item) => {
-            const price = variantPriceMap.get(item.variantId) || 0;
-            return sum + (price * item.quantity);
-        }, 0);
-
-        const orderData = {
-            customerId,
-            warehouseId,
-            shippingAddress,
-            paymentMethod,
-            totalAmount,
-        };
-//        const newOrder = await db.orders.create(orderData as any, { transaction: t });
-        const newOrder = await db.orders.create(orderData as any);
-
-        const orderItemsData = cartItems.map(item => ({
-            orderId: newOrder.id,
-            variantId: item.variantId, 
-            quantity: item.quantity,
-            priceAtTime: variantPriceMap.get(item.variantId) || 0,
-        }));        
-
-        await ordersItemService.createOrderItem(orderItemsData);
-
-        // await db.cartItems.destroy({ where: { cartId: cart.id }, transaction: t });
-        // await db.carts.destroy({ where: { id: cart.id }, transaction: t });
-        await db.cartItems.destroy({ where: { cartId: cart.id } });
-        await db.carts.destroy({ where: { id: cart.id } });
-
-//        await t.commit();
+    try {
+        const customerId = parseInt(req.params.customerId, 10);
+        const {warehouseId, shippingAddress, paymentMethod} = req.body;
+        const newOrder = await ordersService.createOrderFromCart(customerId, warehouseId, shippingAddress, paymentMethod);
         return res.status(201).json(new ResOk().formatResponse(newOrder, 'Tạo đơn hàng thành công từ giỏ hàng!'));
     } catch (error) {
-//        await t.rollback();
         next(error);
     }
 };
+
 
 // Cập nhật đơn hàng theo ID
 export const updateOrderById = async (req: Request, res: Response, next: NextFunction) => {
@@ -101,6 +48,8 @@ export const getOrders = async (req: Request, res: Response, next: NextFunction)
             status,
             startDate,
             endDate,
+            minTotalAmount,
+            maxTotalAmount,
             paymentMethod,
         } = req.query;
 
@@ -110,6 +59,8 @@ export const getOrders = async (req: Request, res: Response, next: NextFunction)
             status: status as string,
             startDate: startDate as string,
             endDate: endDate as string,
+            minTotalAmount: minTotalAmount ? Number(minTotalAmount) : undefined,
+            maxTotalAmount: maxTotalAmount ? Number(maxTotalAmount) : undefined,
             paymentMethod: req.query.paymentMethod as string,
         };
 

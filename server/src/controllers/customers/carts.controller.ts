@@ -54,11 +54,11 @@ export const removeItemFromCart = async (req: Request, res: Response, next: Next
 // Xoá toàn bộ sản phẩm khỏi giỏ hàng
 export const clearCart = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const cartId = parseInt(req.params.cartId);
-		const cart = await cartService.getOrCreateCart(cartId);
+		const customerId = parseInt(req.params.customerId);
+		const cart = await cartService.getOrCreateCart(customerId);
 		if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
-		await cartItemService.clearCartItems(cartId);
+		await cartItemService.clearCartItems(cart.id);
 		return res.status(200).json(new ResOk().formatResponse({ message: 'Cart cleared' }));
 	} catch (error) {
 		next(error);

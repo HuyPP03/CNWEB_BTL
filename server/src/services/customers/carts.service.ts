@@ -6,6 +6,12 @@ export const getOrCreateCart = async (customerId: number) => {
 	// Tìm giỏ hàng dựa trên customerId
 	let cart = await db.carts.findOne({
 		where: { customerId },
+		include: [
+			{
+				model: db.cartItems,
+				include: [db.productVariants],
+			},
+		],
 	});
 
 	if (!cart) {
@@ -13,18 +19,7 @@ export const getOrCreateCart = async (customerId: number) => {
 		cart = await db.carts.create({ customerId });
 	}
 
-	return {cart,
-		include:
-			{
-				model: db.cartItems,
-				include: [
-					{
-						model: db.productVariants,
-						include: [{ model: db.products }],
-					},
-				],
-			},
-	};
+	return cart;
 };
 
 export const deleteCart = (cartId: number) => {

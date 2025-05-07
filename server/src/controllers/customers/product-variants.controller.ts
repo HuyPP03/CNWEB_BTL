@@ -7,8 +7,6 @@ export const getVariants = async (req: Request, res: Response, next: NextFunctio
     const {
       id = '',
       productId,
-      brandId = '',
-      categoryId = '',
       min = 0,
       max,
       stock = 0,
@@ -24,8 +22,6 @@ export const getVariants = async (req: Request, res: Response, next: NextFunctio
     const filters = {
       id: id ? Number(id) : undefined,
       productId: productId ? Number(productId) : undefined,
-      brandId: brandId ? Number(brandId) : undefined,
-      categoryId: categoryId ? Number(categoryId) : undefined,
       priceRange: {
         min: parseFloat(min as string),
         max: max ? parseFloat(max as string) : Number.MAX_SAFE_INTEGER  
