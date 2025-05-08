@@ -1,8 +1,10 @@
 import express from 'express';
 import * as variantsManagers from "../controllers/managers/product-variants.controller";
 import * as variantsCustomers from "../controllers/customers/product-variants.controller";
+import { verifyToken } from '../middleware/authenticate.middleware';
 
 const router = express.Router();
+router.use(verifyToken);
 
 // Router cho managers (Quản lý biến thể sản phẩm)
 router.post('/', variantsManagers.createVariant);            // Tạo biến thể sản phẩm mới

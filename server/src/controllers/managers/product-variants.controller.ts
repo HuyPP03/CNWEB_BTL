@@ -24,6 +24,15 @@ export const createVariant = async (req: Request, res: Response, next: NextFunct
           }
         }
 
+        const fullVariant = await db.productVariants.findByPk(newVariant.id, {
+          include: [
+            { model: db.variantAttributes, include: [{ model: db.attributeValues }] },
+            { model: db.productImages },
+            { model: db.products }
+          ],
+          transaction
+        });
+
         // await adminLogService.CreateAdminLog(
         //     (req.user as Admins).id,
         //     'Create',
@@ -34,7 +43,7 @@ export const createVariant = async (req: Request, res: Response, next: NextFunct
         // );
 
         await transaction.commit();
-        return res.status(201).json(new ResOk().formatResponse(newVariant));
+        return res.status(201).json(new ResOk().formatResponse(fullVariant));
     } catch (error) {
         await transaction.rollback();
         next(error);
@@ -89,8 +98,6 @@ export const deleteVariant = async (req: Request, res: Response, next: NextFunct
           await transaction.rollback();
           return res.status(404).json({ message: 'Variant not found' });
       }
-
-
 
       await transaction.commit();
       return res.status(200).json(new ResOk().formatResponse({ message: 'Deleted successfully' }));

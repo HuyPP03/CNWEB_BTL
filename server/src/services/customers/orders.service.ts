@@ -1,24 +1,27 @@
-import { Warehouses } from 'src/models/warehouses.model';
 import { db } from '../../loaders/database.loader';
 import * as ordersItemService from '../../services/customers/order-items.service'
-import { Op } from 'sequelize';
+import * as paymentService from '../customers/payments.service'
+import * as shippingService from '../customers/shippings.service'
+import { Op, Transaction } from 'sequelize';
 
 // Tao đơn hàng mới
 export const createOrderFromCart = async (
+    cartId: number,
     customerId: number ,
     warehouseId: number,
     shippingAddress: string,
-    paymentMethod: string
+    paymentMethod: string,
+    transaction?: Transaction
 ) => {
     try {
-        const cart = await db.carts.findOne({ where: { customerId } });
-        if (!cart) throw new Error('Không tìm thấy giỏ hàng');
+        const cart = await db.carts.findOne({ where: { id:cartId } , transaction });
+        if (!cart||cart.customerId!==customerId) throw new Error('Không tìm thấy giỏ hàng');
 
-        const cartItems = await db.cartItems.findAll({ where: { cartId: cart.id } });
+        const cartItems = await db.cartItems.findAll({ where: { cartId } , transaction} );
         if (cartItems.length === 0) throw new Error('Giỏ hàng trống');
 
         const variantIds = cartItems.map(item => item.variantId);
-        const variants = await db.productVariants.findAll({ where: { id: variantIds } });
+        const variants = await db.productVariants.findAll({ where: { id: variantIds }, transaction });
 
         const variantPriceMap = new Map<number, number>();
         const variantStockMap = new Map<number, number>();
@@ -47,7 +50,7 @@ export const createOrderFromCart = async (
             paymentMethod: paymentMethod,
             totalAmount,
         };
-        const newOrder = await db.orders.create(orderData);
+        const newOrder = await db.orders.create(orderData, { transaction });
 
         const orderItemsData = cartItems.map(item => ({
             orderId: newOrder.id,
@@ -55,7 +58,7 @@ export const createOrderFromCart = async (
             quantity: item.quantity,
             priceAtTime: variantPriceMap.get(item.variantId) || 0,
         }));
-        await ordersItemService.createOrderItem(orderItemsData);
+        await ordersItemService.createOrderItem(orderItemsData, transaction);
 
         // Trừ tồn kho
         for (const item of cartItems) {
@@ -65,12 +68,32 @@ export const createOrderFromCart = async (
             );
         }
 
-        await db.cartItems.destroy({ where: { cartId: cart.id } });
-        await db.carts.destroy({ where: { id: cart.id } });
+        await db.cartItems.destroy({ where: { cartId: cart.id } , transaction });
+        // await db.carts.destroy({ where: { id: cart.id } });
 
         const orderWithItems = await db.orders.findByPk(newOrder.id, {
-            include: [{ model: db.orderItems }]
+            include: [
+                { model: db.orderItems },
+                { model: db.payments },
+                { model: db.shipping }
+            ],
+            transaction
         });
+
+        // Tạo payment và shipping
+        const paymentData = {
+            orderId: newOrder.id,
+            amount: totalAmount,
+            paymentMethod: paymentMethod,
+            status: 'pending',
+        };
+        await paymentService.createPayment(paymentData, transaction);
+
+        const shippingData = {
+            orderId: newOrder.id,
+            address: shippingAddress,
+        };
+        await shippingService.createShipping(shippingData, transaction);
 
         return orderWithItems;
     } catch (err) {
@@ -79,23 +102,47 @@ export const createOrderFromCart = async (
 };
 
 // Cập nhật đơn hàng theo ID
-export const updateOrderById = (id: string, orderData: any) =>{
-    db.orders.update(orderData, { where: { id } });
-    return db.orders.findByPk(id, {
-        include: [{ model: db.orderItems }]
+export const updateOrderById = async (id: string, orderData: any, transaction?: Transaction) =>{
+    db.orders.update(orderData, { where: { id } , transaction });
+    const order = db.orders.findByPk(id, {
+        include: [
+            { model: db.orderItems },
+            { model: db.payments },
+            { model: db.shipping }
+        ],
+        transaction
     });
+
+    // Cập nhật trạng thái thanh toán 
+    let paymentStatus: 'pending' | 'success' | 'failed' = 'success';
+    if (orderData.paymentStatus=== "pending") paymentStatus = 'pending';
+    else if (orderData.paymentStatus=== "cancelled") paymentStatus = 'failed';
+
+    const payment = await db.payments.findOne({ where: { orderId: id } , transaction });
+    const shipping = await db.shipping.findOne({ where: { orderId: id } , transaction });
+
+    await paymentService.updatePayment((payment as any).id, paymentStatus, transaction);
+    await shippingService.updateShipping((shipping as any).id, orderData.shippingAddress, transaction);
+
+    return order;
 }
-    
 
 // Xóa đơn hàng theo ID
-export const deleteOrderById = (id: string) => db.orders.destroy({ where: { id } });
+export const deleteOrderById = async (id: string, transaction?: Transaction) => {
+    await db.shipping.destroy({ where: { orderId: id }, transaction });
+    await db.payments.destroy({ where: { orderId: id }, transaction });
+    await db.orderItems.destroy({ where: { orderId: id }, transaction }); 
+    return await db.orders.destroy({ where: { id }, transaction });
+};
 
 // Lấy tất cả đơn hàng
-export const getOrders = async (filters: any) => {
+export const getOrders = async (filters: any, transaction?: Transaction) => {
     const where: any = {};
 	const include: any[] = [
 		{ model: db.orderItems,
             include: [{ model: db.productVariants }]  },
+        { model: db.payments },
+        { model: db.shipping }
 	];
 
 	// Điều kiện lọc theo id sản phẩm
@@ -149,7 +196,13 @@ export const getOrders = async (filters: any) => {
         where,
         include,
         order: [['createdAt', 'DESC']],
+        transaction
     });
 	
 	return orders;
+}
+
+export const getOrderById = async (id: string, transaction?: Transaction) => {
+    const order = await db.orders.findByPk(id, { transaction });
+    return order;
 }

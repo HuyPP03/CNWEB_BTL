@@ -6,7 +6,7 @@ import env from '../../env';
 import { db } from '../loaders/database.loader';
 
 export const isManager = async (
-	req: Request,
+	req: any,
 	res: Response,
 	next: NextFunction,
 ) => {
@@ -19,7 +19,7 @@ export const isManager = async (
 };
 
 export const verifyToken = async (
-	req: Request,
+	req: any,
 	res: Response,
 	next: NextFunction,
 ) => {

@@ -6,8 +6,8 @@ export const attributeValueService = {
     return db.attributeValues.findAll({ where });
   },
 
-  async createValue(data: Array<{ attributeTypeId: number; value: string }>) {
-    return db.attributeValues.bulkCreate(data);
+  async createValue(data: any, transaction?: any) {
+    return db.attributeValues.bulkCreate(data, {transaction});
   },
 
   async updateValue(id: number, data: Partial<{ value: string }>) {

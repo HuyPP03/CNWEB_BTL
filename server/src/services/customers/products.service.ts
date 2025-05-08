@@ -1,7 +1,7 @@
-import { Op } from 'sequelize';
+import { Op , Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
 
-export const getProducts = async (filters: any) => {
+export const getProducts = async (filters: any, transaction?: Transaction) => {
 	const where: any = {};
 	const include: any[] = [
 		{ model: db.productVariants, include: [{ model: db.productImages }] },
@@ -46,12 +46,19 @@ export const getProducts = async (filters: any) => {
 	}
 
 	// Lấy dữ liệu từ cơ sở dữ liệu với phân trang
-	const products = await db.products.findAll({
-		where,
-		include,
-		limit: filters.limit,   // Số lượng sản phẩm mỗi trang
-		offset: filters.offset  // Dịch chuyển dữ liệu, tính từ trang hiện tại
-	});
-	
-	return products;
+	const [rows, count] = await Promise.all([    
+		db.products.findAll({        
+			where,         
+			include,         
+			limit: filters.limit,          
+			offset: filters.offset,
+			transaction     
+		}),     
+		db.products.count({         
+			where,
+			transaction    
+		})
+	]);
+
+	return [rows, count];
 };

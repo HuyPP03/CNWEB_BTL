@@ -89,9 +89,6 @@ Shipping.initClass(sequelize);
 Categories.belongsTo(Categories, { as: 'parent', foreignKey: 'parentId' });
 Categories.hasMany(Categories, { as: 'subCategories', foreignKey: 'parentId' });
 
-AttributeValues.belongsTo(Categories, { foreignKey: 'categoryId' });
-Categories.hasMany(AttributeValues, { foreignKey: 'categoryId' });
-
 // 2. Products - Categories (mỗi sản phẩm thuộc một danh mục)
 Products.belongsTo(Categories, { foreignKey: 'categoryId' });
 Categories.hasMany(Products, { foreignKey: 'categoryId' });

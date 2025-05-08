@@ -1,46 +1,67 @@
 import { Request, Response, NextFunction } from 'express';
 import { ResOk } from '../../utility/response.util'
 import * as ordersService from '../../services/customers/orders.service'
-import * as ordersItemService from '../../services/customers/order-items.service'
+import * as cartsService from '../../services/customers/carts.service'
 import { db } from '../../loaders/database.loader';
 
 // Tạo đơn hàng mới từ giỏ hàng
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
+	const transaction = await db.sequelize.transaction();
     try {
-        const customerId = parseInt(req.params.customerId, 10);
+        const customerId = parseInt((req as any).user?.id);
+        const cart = await cartsService.getOrCreateCart(customerId,transaction);
         const {warehouseId, shippingAddress, paymentMethod} = req.body;
-        const newOrder = await ordersService.createOrderFromCart(customerId, warehouseId, shippingAddress, paymentMethod);
+        const newOrder = await ordersService.createOrderFromCart(cart.id, customerId, warehouseId, shippingAddress, paymentMethod, transaction);
+        await transaction.commit();
         return res.status(201).json(new ResOk().formatResponse(newOrder, 'Tạo đơn hàng thành công từ giỏ hàng!'));
     } catch (error) {
+        await transaction.rollback();
         next(error);
     }
 };
 
-
 // Cập nhật đơn hàng theo ID
 export const updateOrderById = async (req: Request, res: Response, next: NextFunction) => {
+    const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
         const orderData = req.body;
-        const updatedOrder = await ordersService.updateOrderById(id, orderData);
+        const customerId = parseInt((req as any).user?.id);
+        const order:any = await ordersService.getOrderById(id, transaction);
+        if (!orderData || customerId !== order.customerId){
+            return res.status(403).json(new ResOk().formatResponse(null, 'Bạn không có quyền cập nhật đơn hàng này!'));
+        }
+        const updatedOrder = await ordersService.updateOrderById(id, orderData, transaction);
+        await transaction.commit();
         return res.status(200).json(new ResOk().formatResponse(updatedOrder));
     } catch (error) {
+        await transaction.rollback();
         next(error);
     }
 }
 
 // Xóa đơn hàng theo ID
 export const deleteOrderById = async (req: Request, res: Response, next: NextFunction) => {
+    const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        await ordersService.deleteOrderById(id);
+        const customerId = parseInt((req as any).user?.id);
+        const order:any = await ordersService.getOrderById(id);
+        if (!order || customerId !== order.customerId) {
+            return res.status(403).json(new ResOk().formatResponse(null, 'Bạn không có quyền xóa đơn hàng này!'));
+        }
+        await ordersService.deleteOrderById(id, transaction);
+        await transaction.commit();
         return res.status(200).json(new ResOk().formatResponse(null, 'Xóa đơn hàng thành công!'));
     } catch (error) {
+        await transaction.rollback();
         next(error);
     }
 }
+
 // Lấy đơn hàng
 export const getOrders = async (req: Request, res: Response, next: NextFunction) => {
+    const transaction = await db.sequelize.transaction();
     try {
         const {
             id,
@@ -64,12 +85,13 @@ export const getOrders = async (req: Request, res: Response, next: NextFunction)
             paymentMethod: req.query.paymentMethod as string,
         };
 
-        const orders = await ordersService.getOrders(filters);
-
+        const orders = await ordersService.getOrders(filters, transaction);
+        await transaction.commit();
         return res
             .status(200)
             .json(new ResOk().formatResponse(orders, 'Lấy danh sách đơn hàng thành công!'));
     } catch (error) {
+        await transaction.rollback();
         next(error);
     }
 };

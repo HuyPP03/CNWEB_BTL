@@ -1,4 +1,12 @@
 import { db } from '../../loaders/database.loader';
+import { Transaction } from 'sequelize';
+
+export const getCartItemById = async (cartItemId: number, transaction?: Transaction) => {
+	return await db.cartItems.findByPk(cartItemId, {
+		include: [db.carts],
+		transaction
+	});
+};
 
 export const getCartItemsByCartId = (cartId: number) => {
 	return db.cartItems.findAll({ where: { cartId } });
@@ -7,35 +15,28 @@ export const getCartItemsByCartId = (cartId: number) => {
 export const addOrUpdateCartItem = async (
 	cartId: number, 
 	variantId: number, 
-	quantity: number
+	quantity: number,
+	transaction?: Transaction
 ) => {
-	const variant = await db.productVariants.findByPk(variantId);
+	const variant = await db.productVariants.findByPk(variantId, { transaction });
 
 	if (!variant) throw new Error('Variant not found');
 	if (variant.stock < quantity) throw new Error('Not enough stock available');
 
-	const existingItem = await db.cartItems.findOne({ where: { cartId, variantId } });
+	const existingItem = await db.cartItems.findOne({ where: { cartId, variantId } , transaction});
 
 	if (existingItem) {
 		existingItem.quantity += quantity;
 		return existingItem.save();
 	}
 
-	return db.cartItems.create({ cartId, variantId, quantity });
+	return db.cartItems.create({ cartId, variantId, quantity }, { transaction });
 };
 
-export const updateCartItemQuantity = async (cartItemId: number, quantity: number) => {
-	const item = await db.cartItems.findByPk(cartItemId);
-	if (!item) return null;
-
-	item.quantity = quantity;
-	return item.save();
+export const removeCartItem = (cartItemId: number, transaction?: Transaction) => {
+	return db.cartItems.destroy({ where: { id: cartItemId } , transaction });
 };
 
-export const removeCartItem = (cartItemId: number) => {
-	return db.cartItems.destroy({ where: { id: cartItemId } });
-};
-
-export const clearCartItems = (cartId: number) => {
-	return db.cartItems.destroy({ where: { cartId } });
+export const clearCartItems = (cartId: number, transaction?: Transaction) => {
+	return db.cartItems.destroy({ where: { cartId } , transaction });
 };

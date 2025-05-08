@@ -6,6 +6,8 @@ export const getVariants = async (filters: any) => {
     const where: any = {};
     const include: any[] = [
         { model: db.productImages },
+        { model: db.variantAttributes, include: [{ model: db.attributeValues }] },
+
     ];
 
     // Điều kiện lọc theo id biến thể sản phẩm

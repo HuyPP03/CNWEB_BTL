@@ -12,8 +12,8 @@ export const variantAttributeService = {
     attributeTypeId: number;
     attributeValueId: number;
     name?: string;
-  }>) {
-    return db.variantAttributes.bulkCreate(data);
+  }>, transaction?: any) {
+    return db.variantAttributes.bulkCreate(data, {transaction});
   },
 
   async updateAttribute(id: number, data: Partial<{

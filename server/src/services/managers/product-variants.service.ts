@@ -1,5 +1,7 @@
 import { Op , Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
+import { variantAttributeService } from '../../services/managers/variant-attributes.service';
+import { attributeValueService } from '../../services/managers/attribute-values.service';
 
 // Tạo biến thể sản phẩm mới
 export const createVariant = (data: any, transaction?: Transaction) => {
@@ -38,8 +40,32 @@ export const deleteVariant = async (
 };
 
 // Thêm thuộc tính cho biến thể sản phẩm
-export const addVariantAttributes = (data: any, transaction?: Transaction) => {
-    return db.variantAttributes.bulkCreate(data, { transaction });
+export const addVariantAttributes = async (data: any, transaction?: Transaction) => {
+
+    const attributeData = {
+        productId: data.productId || null,
+        variantId: data.variantId,
+        attributeTypeId: data.attributeTypeId,
+        attributeValueId: data.attributeValueId || null,
+        name: data.name
+    };
+
+    const valueData = {
+        attributeTypeId: data.attributeTypeId,
+        value: data.value
+    };
+    await attributeValueService.createValue([valueData as any], transaction);
+    
+    await variantAttributeService.createAttribute([attributeData as any], transaction);
+
+    return db.variantAttributes.findByPk(data.variantId, {
+        include: [
+            {
+                model: db.attributeValues,
+                required: true
+            }
+        ]
+    });
 }   
 
 // Sửa thuộc tính cho biến thể sản phẩm

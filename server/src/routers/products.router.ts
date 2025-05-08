@@ -2,8 +2,10 @@ import express from 'express';
 import * as productsManagers from "../controllers/managers/products.controller";
 import * as productsCustomers from "../controllers/customers/products.controller";
 import { upload } from '../utility/media.util';
+import { verifyToken } from '../middleware/authenticate.middleware';
 
 const router = express.Router();
+router.use(verifyToken);
 
 // Router cho managers
 router.post('/', upload.any(), productsManagers.createProduct);
