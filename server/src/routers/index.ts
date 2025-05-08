@@ -7,6 +7,8 @@ import productVariant from './product-variants.router';
 import carts from './carts.router';
 import orders from './orders.router';
 import productImages from './product-images.router';
+import managerRoute from './manager.router';
+import customerRoute from './customer.router';
 
 const router = Router();
 
@@ -17,6 +19,8 @@ router.use('/product-variant', productVariant);
 router.use('/carts', carts);
 router.use('/orders', orders);
 router.use('/product-images', productImages);
+router.use('/manager', managerRoute);
+router.use('/customer', customerRoute);
 
 router.use('/health', (req, res) => {
 	return res.send('Server starting');
