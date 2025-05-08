@@ -13,7 +13,7 @@ dotenv.config({
 export default {
 	app: {
 		client_url: process.env.CLIENT_URL || 'http://localhost:3000',
-		base_url: process.env.BASE_URL || 'http://localhost:3000',
+		base_url: process.env.BASE_URL || 'http://localhost:3005',
 		isProduction: process.env.NODE_ENV === 'production',
 		root_path: path.join(process.cwd()),
 		name,
@@ -21,10 +21,14 @@ export default {
 		description,
 		port: Number(process.env.PORT) || 3000,
 		saltRounds: Number(process.env.SALT_ROUNDS) || 10,
-		cors: '*',
-		jwtSecret: process.env['JWT_SECRET'] || '123456',
-		jwtSecretManager: process.env['JWT_SECRET_MANAGER'] || '123456',
-		jwtExpiredIn: process.env['JWT_EXPIRED_IN'] || '1d',
+		cors: process.env.CORS?.split(',') || ['http://localhost:3000'],
+		jwtSecret: process.env.JWT_SECRET || 'secret',
+		jwtSecretManager: process.env.JWT_SECRET_MANAGER || 'secret_manager',
+		jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'refresh_secret',
+		jwtRefreshSecretManager:
+			process.env.JWT_REFRESH_SECRET_MANAGER || 'refresh_secret_manager',
+		jwtExpiredIn: process.env.JWT_EXPIRED_IN || '1h',
+		refreshTokenExpiry: process.env.REFRESH_TOKEN_EXPIRY || '7d',
 		debugLog: process.env.DEBUG_LOG === 'true',
 	},
 	admin: {
@@ -53,5 +57,12 @@ export default {
 		user: process.env.MAIL_USER || '740ba294e9d57f',
 		pass: process.env.MAIL_PASS || 'd5ff0cc1a9a948',
 		from: process.env.MAIL_FROM_NAME || 'Platform',
+	},
+	google: {
+		clientID: process.env.GOOGLE_CLIENT_ID || '',
+		clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+		callbackURL:
+			process.env.BASE_URL + '/' + process.env.GOOGLE_CALLBACK_URL ||
+			'http://localhost:3005/api/auth/google/callback',
 	},
 };

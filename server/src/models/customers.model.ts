@@ -17,6 +17,7 @@ export class Customers extends Model<
 	declare passwordHash: CreationOptional<string>;
 	declare address: CreationOptional<string>;
 	declare isActive: CreationOptional<boolean>;
+	declare googleId: CreationOptional<string>;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 	static initClass = (sequelize: Sequelize) => {
@@ -33,6 +34,7 @@ export class Customers extends Model<
 				passwordHash: DataTypes.STRING(255),
 				address: DataTypes.TEXT,
 				isActive: { type: DataTypes.BOOLEAN, defaultValue: false },
+				googleId: { type: DataTypes.STRING(100), allowNull: true },
 				createdAt: DataTypes.DATE,
 				updatedAt: DataTypes.DATE,
 			},
