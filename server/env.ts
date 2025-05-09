@@ -65,4 +65,34 @@ export default {
 			process.env.BASE_URL + '/' + process.env.GOOGLE_CALLBACK_URL ||
 			'http://localhost:3005/api/auth/google/callback',
 	},
+	payment: {
+		// VNPay
+		VNPAY_TMN_CODE: process.env.VNPAY_TMN_CODE || '',
+		VNPAY_SECRET_KEY: process.env.VNPAY_SECRET_KEY || '',
+		VNPAY_URL:
+			process.env.VNPAY_URL ||
+			'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+		VNPAY_RETURN_URL:
+			process.env.VNPAY_RETURN_URL ||
+			'http://localhost:3005/api/payments/vnpay/callback',
+
+		// MoMo
+		MOMO_PARTNER_CODE: process.env.MOMO_PARTNER_CODE || '',
+		MOMO_ACCESS_KEY: process.env.MOMO_ACCESS_KEY || '',
+		MOMO_SECRET_KEY: process.env.MOMO_SECRET_KEY || '',
+		MOMO_API_ENDPOINT:
+			process.env.MOMO_API_ENDPOINT ||
+			'https://test-payment.momo.vn/v2/gateway/api/create',
+		MOMO_RETURN_URL:
+			process.env.MOMO_RETURN_URL ||
+			'http://localhost:3005/api/payments/momo/callback',
+		MOMO_NOTIFY_URL:
+			process.env.MOMO_NOTIFY_URL ||
+			'http://localhost:3005/api/payments/momo/notify',
+
+		// PayPal
+		PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID || '',
+		PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET || '',
+		PAYPAL_MODE: process.env.PAYPAL_MODE || 'sandbox',
+	},
 };
