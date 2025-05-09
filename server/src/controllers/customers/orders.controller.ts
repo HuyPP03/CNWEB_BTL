@@ -3,6 +3,8 @@ import { ResOk } from '../../utility/response.util'
 import * as ordersService from '../../services/customers/orders.service'
 import * as cartsService from '../../services/customers/carts.service'
 import { db } from '../../loaders/database.loader';
+import * as adminLogService from '../../services/managers/admin-logs.service'; 
+import { Admins } from 'src/models/admins.model';
 
 // Tạo đơn hàng mới từ giỏ hàng
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
@@ -12,6 +14,17 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
         const cart = await cartsService.getOrCreateCart(customerId,transaction);
         const {warehouseId, shippingAddress, paymentMethod} = req.body;
         const newOrder = await ordersService.createOrderFromCart(cart.id, customerId, warehouseId, shippingAddress, paymentMethod, transaction);
+       
+        // Ghi adminlog
+        await adminLogService.CreateAdminLog(
+            (req.user as Admins).id,
+            'Create',
+            (newOrder as any).id,
+            'Order',
+            req.body,
+            transaction
+        );
+
         await transaction.commit();
         return res.status(201).json(new ResOk().formatResponse(newOrder, 'Tạo đơn hàng thành công từ giỏ hàng!'));
     } catch (error) {
@@ -32,6 +45,17 @@ export const updateOrderById = async (req: Request, res: Response, next: NextFun
             return res.status(403).json(new ResOk().formatResponse(null, 'Bạn không có quyền cập nhật đơn hàng này!'));
         }
         const updatedOrder = await ordersService.updateOrderById(id, orderData, transaction);
+
+        // Ghi adminlog
+        await adminLogService.CreateAdminLog(
+            (req.user as Admins).id,
+            'Update',
+            (order as any).id,
+            'Order',
+            req.body,
+            transaction
+        );
+
         await transaction.commit();
         return res.status(200).json(new ResOk().formatResponse(updatedOrder));
     } catch (error) {
@@ -51,6 +75,16 @@ export const deleteOrderById = async (req: Request, res: Response, next: NextFun
             return res.status(403).json(new ResOk().formatResponse(null, 'Bạn không có quyền xóa đơn hàng này!'));
         }
         await ordersService.deleteOrderById(id, transaction);
+
+        // Ghi adminlog
+        await adminLogService.CreateAdminLog(
+            (req.user as Admins).id,
+            'Delete',
+            (order as any).id,
+            'Order',
+            req.body,
+            transaction
+        );
         await transaction.commit();
         return res.status(200).json(new ResOk().formatResponse(null, 'Xóa đơn hàng thành công!'));
     } catch (error) {

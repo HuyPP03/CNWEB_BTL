@@ -11,7 +11,7 @@ export const uploadProductImageController = async (req: Request, res: Response) 
 };
 
 export const getProductImagesController = async (req: Request, res: Response) => {
-    const { productId } = req.params;
+    const productId = parseInt(req.params.productId);
     try {
         const images = await imageService.getProductImages(productId);
         if (!images || images.length === 0) {
@@ -25,7 +25,7 @@ export const getProductImagesController = async (req: Request, res: Response) =>
 };
 
 export const deleteProductImageController = async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = parseInt(req.params.id);
     try {
         const deletedImage = await imageService.deleteProductImage(id);
         if (!deletedImage) {
@@ -39,7 +39,8 @@ export const deleteProductImageController = async (req: Request, res: Response) 
 };
 
 export const setPrimaryImageController = async (req: Request, res: Response) => {
-    const { productId, imageId } = req.params;
+    const productId = parseInt(req.params.productId);
+    const imageId = parseInt(req.params.imageId);
     try {
         const updatedImage = await imageService.setPrimaryImage(productId, imageId);
         return res.status(200).json({ message: 'Primary image updated successfully', updatedImage });

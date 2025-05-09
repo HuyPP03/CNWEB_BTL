@@ -3,17 +3,21 @@ import { ResOk } from '../../utility/response.util';
 import * as variantService from '../../services/managers/product-variants.service'; 
 import { variantAttributeService } from '../../services/managers/variant-attributes.service';
 import { attributeValueService } from '../../services/managers/attribute-values.service';
+import * as productImageService from '../../services/managers/product-images.service'
 
 import { db } from '../../loaders/database.loader';
 import * as adminLogService from '../../services/managers/admin-logs.service'; 
-import { Admins } from 'src/models/admins.model';
+import { Admins } from '../../models/admins.model'
 
 // Tạo biến thể mới cho sản phẩm
 export const createVariant = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
+        const files = req.files as Express.Multer.File[];
         const newVariant = await variantService.createVariant(req.body, transaction);
 
+        const images = await productImageService.createProductImages(files, newVariant.id, transaction);
+        
         if (req.body.attributes && req.body.attributes.length > 0) {
           for (let attribute of req.body.attributes) {
               // Gọi service để thêm thuộc tính cho biến thể
@@ -33,17 +37,18 @@ export const createVariant = async (req: Request, res: Response, next: NextFunct
           transaction
         });
 
-        // await adminLogService.CreateAdminLog(
-        //     (req.user as Admins).id,
-        //     'Create',
-        //     newVariant.id,
-        //     'Variant',
-        //     req.body,
-        //     transaction
-        // );
+        // Ghi adminlog
+        await adminLogService.CreateAdminLog(
+            (req.user as Admins).id,
+            'Create',
+            newVariant.id,
+            'Variant',
+            req.body,
+            transaction
+        );
 
         await transaction.commit();
-        return res.status(201).json(new ResOk().formatResponse(fullVariant));
+        return res.status(201).json(new ResOk().formatResponse({fullVariant, images}));
     } catch (error) {
         await transaction.rollback();
         next(error);
@@ -60,6 +65,31 @@ export const updateVariant = async (req: Request, res: Response, next: NextFunct
             return res.status(404).json({ message: 'Variant not found' });
         }
 
+        // Xử lý ảnh
+        const keepImageIds: number[] = req.body.keepImageIds || [];
+        const primaryImageId: number | null = req.body.primaryImageId || null;
+
+        // 1. Xoá các ảnh không được giữ lại
+        const existingImages = await productImageService.getProductImages((updatedVariant as any)?.id, transaction);
+        const imagesToDelete = existingImages.filter(
+            img => !keepImageIds.includes(img.id)
+        );
+
+        for (const img of imagesToDelete) {
+            await productImageService.deleteProductImage(img.id);
+        }
+
+        // 2. Tải ảnh mới nếu có
+        if (req.files && Array.isArray(req.files)) {
+            await productImageService.createProductImages(req.files, (updatedVariant as any)?.id, transaction);
+        }
+
+        // 3. Cập nhật ảnh chính nếu có
+        if (primaryImageId) {
+            await productImageService.setPrimaryImage((updatedVariant as any)?.id, primaryImageId, transaction);
+        }
+
+        // Xử lý các thuộc tính
         if (req.body.attributes && req.body.attributes.length > 0) {
           // Xóa các thuộc tính cũ nếu có
           await variantService.deleteAttribute(updatedVariant.id, transaction);
@@ -72,14 +102,16 @@ export const updateVariant = async (req: Request, res: Response, next: NextFunct
               }, transaction);
           }
       }
-        // await adminLogService.CreateAdminLog(
-        //     (req.user as Admins).id,
-        //     'Delete',
-        //     deletedVariant.id,
-        //     'Variant',
-        //     req.body,
-        //     transaction
-        // );
+
+      // Ghi adminlog
+        await adminLogService.CreateAdminLog(
+            (req.user as Admins).id,
+            'Update',
+            updatedVariant.id,
+            'Variant',
+            req.body,
+            transaction
+        );
 
         await transaction.commit();
         return res.status(200).json(new ResOk().formatResponse(updatedVariant));
@@ -93,11 +125,33 @@ export const updateVariant = async (req: Request, res: Response, next: NextFunct
 export const deleteVariant = async (req: Request, res: Response, next: NextFunction) => {
   const transaction = await db.sequelize.transaction();
   try {
+      // Xóa các ảnh 
+      const variantId = parseInt(req.params.id);
+      const productImages = await db.productImages.findAll({
+          where: { variantId },
+          transaction
+      });
+
+      for (const image of productImages) {
+          await productImageService.deleteProductImage(image.id, transaction);
+      }
+
+      // Xóa sản phẩm
       const deletedCount = await variantService.deleteVariant(req.params.id, transaction);
       if (!deletedCount) {
           await transaction.rollback();
           return res.status(404).json({ message: 'Variant not found' });
       }
+
+      // Ghi adminlog
+      await adminLogService.CreateAdminLog(
+            (req.user as Admins).id,
+            'Delete',
+            variantId,
+            'Variant',
+            req.body,
+            transaction
+        );
 
       await transaction.commit();
       return res.status(200).json(new ResOk().formatResponse({ message: 'Deleted successfully' }));
