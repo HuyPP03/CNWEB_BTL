@@ -1,0 +1,424 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, User, X, Calendar } from 'lucide-react';
+import { mockOrders, orderSummary } from '../data';
+import { Order, OrderStatus } from '../types';
+import { useAuth } from '../hooks/useAuth';
+
+// Format currency
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+};
+
+// Format date
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('vi-VN');
+};
+
+// Status badge component
+const StatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {
+  const getStatusColor = (status: OrderStatus) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800';
+      case 'shipping':
+        return 'bg-purple-100 text-purple-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'canceled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: OrderStatus) => {
+    switch (status) {
+      case 'pending':
+        return 'Chờ xác nhận';
+      case 'confirmed':
+        return 'Đã xác nhận';
+      case 'shipping':
+        return 'Đang vận chuyển';
+      case 'delivered':
+        return 'Đã giao hàng';
+      case 'canceled':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  };
+
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+      {getStatusText(status)}
+    </span>
+  );
+};
+
+const OrdersPage: React.FC = () => {
+  const { user } = useAuth();
+  const [orders] = useState<Order[]>(mockOrders);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>(mockOrders);
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'all'>('all');
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    start: new Date('2025-01-01'),
+    end: new Date()
+  });
+  const datePickerRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close date picker
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setIsDatePickerOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Filter orders by status and date range
+  useEffect(() => {
+    let filtered = [...orders];
+
+    // Filter by status if not "all"
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(order => order.status === selectedStatus);
+    }
+
+    // Filter by date range
+    filtered = filtered.filter(order => {
+      const orderDate = new Date(order.date);
+      return orderDate >= dateRange.start && orderDate <= dateRange.end;
+    });
+
+    setFilteredOrders(filtered);
+  }, [orders, selectedStatus, dateRange]);
+
+  // Format date range for display
+  const formatDateRange = () => {
+    return `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`;
+  };
+
+  // Handle date range selection
+  const handleDateRangeChange = (start: Date, end: Date) => {
+    setDateRange({ start, end });
+    setIsDatePickerOpen(false);
+  };
+
+  // Quick date range selections
+  const quickDateRanges = [
+    {
+      label: 'Hôm nay', action: () => {
+        const today = new Date();
+        handleDateRangeChange(today, today);
+      }
+    },
+    {
+      label: '7 ngày qua', action: () => {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 7);
+        handleDateRangeChange(start, end);
+      }
+    },
+    {
+      label: '30 ngày qua', action: () => {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 30);
+        handleDateRangeChange(start, end);
+      }
+    },
+    {
+      label: 'Tháng này', action: () => {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        handleDateRangeChange(start, end);
+      }
+    },
+    {
+      label: '3 tháng gần đây', action: () => {
+        const end = new Date();
+        const start = new Date();
+        start.setMonth(start.getMonth() - 3);
+        handleDateRangeChange(start, end);
+      }
+    }
+  ];
+
+  return (
+    <div className="bg-gray-100 min-h-screen pb-10">
+      <div className="container mx-auto px-4 py-6">
+        {/* User info and order summary section */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+            {/* User information */}
+            <div className="flex items-center mb-4 md:mb-0">
+              <div className="bg-blue-600 rounded-full p-3 mr-4">
+                <User size={24} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">{user?.fullName || 'Người dùng'}</h1>
+                <p className="text-gray-600">{user?.phone || '09****868'}</p>
+              </div>
+            </div>
+
+            {/* Order statistics */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="bg-gray-50 rounded-lg p-4 text-center min-w-[160px]">
+                <p className="text-2xl font-bold">{orderSummary.totalOrders}</p>
+                <p className="text-gray-600 text-sm">đơn hàng</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 text-center min-w-[160px]">
+                <p className="text-2xl font-bold text-blue-600">{formatCurrency(orderSummary.totalSpent)}</p>
+                <p className="text-gray-600 text-sm">Tổng tiền tích lũy từ 01/01/2024</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters section */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Date range picker */}
+            <div className="relative" ref={datePickerRef}>
+              <button
+                className="flex items-center border border-gray-300 rounded-lg px-4 py-2.5 text-sm hover:bg-gray-50 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-300"
+                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+              >
+                <Calendar size={16} className="mr-2 text-blue-500" />
+                <span className="font-medium">{formatDateRange()}</span>
+                <ChevronDown size={16} className={`ml-2 text-gray-500 transition-transform duration-200 ${isDatePickerOpen ? 'transform rotate-180' : ''}`} />
+              </button>
+
+              {/* Enhanced date picker dropdown */}
+              {isDatePickerOpen && (
+                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl p-5 z-20 w-[320px] animate-fadeIn">
+                  <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 className="font-medium text-gray-700">Khoảng thời gian</h3>
+                    <button
+                      className="text-gray-400 hover:text-gray-600"
+                      onClick={() => setIsDatePickerOpen(false)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Quick selections */}
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-2">Chọn nhanh:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {quickDateRanges.map((range, index) => (
+                        <button
+                          key={index}
+                          onClick={range.action}
+                          className="text-sm py-1.5 px-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-700 transition-colors"
+                        >
+                          {range.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom date range */}
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-500">Tùy chỉnh:</p>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Từ ngày</label>
+                      <input
+                        type="date"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-300"
+                        value={dateRange.start.toISOString().split('T')[0]}
+                        onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Đến ngày</label>
+                      <input
+                        type="date"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-300"
+                        value={dateRange.end.toISOString().split('T')[0]}
+                        onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end mt-4 pt-3 border-t">
+                    <button
+                      className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-sm mr-2 hover:bg-gray-300 transition-colors"
+                      onClick={() => setIsDatePickerOpen(false)}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                      onClick={() => handleDateRangeChange(dateRange.start, dateRange.end)}
+                    >
+                      Áp dụng
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Status filter tabs */}
+            <div className="flex overflow-x-auto gap-2 md:gap-3 pb-1 scrollbar-hide">
+              <button
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'all'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'border border-gray-200 hover:bg-gray-50'}`}
+                onClick={() => setSelectedStatus('all')}
+              >
+                Tất cả
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'pending'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'border border-gray-200 hover:bg-gray-50'}`}
+                onClick={() => setSelectedStatus('pending')}
+              >
+                Chờ xác nhận
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'confirmed'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'border border-gray-200 hover:bg-gray-50'}`}
+                onClick={() => setSelectedStatus('confirmed')}
+              >
+                Đã xác nhận
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'shipping'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'border border-gray-200 hover:bg-gray-50'}`}
+                onClick={() => setSelectedStatus('shipping')}
+              >
+                Đang vận chuyển
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'delivered'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'border border-gray-200 hover:bg-gray-50'}`}
+                onClick={() => setSelectedStatus('delivered')}
+              >
+                Đã giao hàng
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'canceled'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'border border-gray-200 hover:bg-gray-50'}`}
+                onClick={() => setSelectedStatus('canceled')}
+              >
+                Đã hủy
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Orders list */}
+        {filteredOrders.length > 0 ? (
+          <div className="space-y-4">
+            {filteredOrders.map((order) => (
+              <div key={order.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                {/* Order header */}
+                <div className="flex items-center justify-between border-b border-gray-100 p-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Mã đơn hàng: <span className="font-medium text-gray-900">{order.id}</span></p>
+                    <p className="text-sm text-gray-500 mt-1">Ngày đặt: {formatDate(order.date)}</p>
+                  </div>
+                  <StatusBadge status={order.status} />
+                </div>
+
+                {/* Order items */}
+                <div className="p-4">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="flex py-3">
+                      <div className="w-16 h-16 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
+                        <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+                      </div>
+                      <div className="ml-4 flex-grow">
+                        <h3 className="font-medium text-gray-900">{item.name}</h3>
+                        <p className="text-gray-500 text-sm mt-1">SL: {item.quantity}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">{formatCurrency(item.price * item.quantity)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Order footer */}
+                <div className="bg-gray-50 p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Phương thức thanh toán: <span className="font-medium">{order.paymentMethod}</span></p>
+                  </div>
+                  <div className="flex items-center">
+                    <p className="text-sm text-gray-600 mr-2">Tổng tiền:</p>
+                    <p className="text-lg font-bold text-blue-600">{formatCurrency(order.total)}</p>
+                  </div>
+                </div>
+
+                {/* Order actions */}
+                <div className="p-4 flex justify-end border-t border-gray-100">
+                  <button className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    Xem chi tiết
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg p-8 text-center">
+            <img
+              src="/images/empty-order.png"
+              alt="Không có đơn hàng"
+              className="w-48 h-48 object-contain mx-auto mb-4 opacity-50"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "https://cellphones.com.vn/media/wysiwyg/empty-cat.png";
+              }}
+            />
+            <h2 className="text-xl font-bold text-gray-700">Không có đơn hàng nào thỏa mãn!</h2>
+            <p className="text-gray-500 mt-2 mb-6">Có vẻ như bạn chưa có đơn hàng nào trong khoảng thời gian này</p>
+            <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Tiếp tục mua sắm
+            </button>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out forwards;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default OrdersPage;
