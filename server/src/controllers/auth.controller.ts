@@ -1,5 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
-import { PERMISSION_ERROR, RESPONSE_SUCCESS } from '../constants/constants';
+import {
+	CONFLICT_ERROR,
+	PERMISSION_ERROR,
+	RESPONSE_SUCCESS,
+} from '../constants/constants';
 import * as authService from '../services/auth.service';
 import { AppError } from '../utility/appError.util';
 import env from '../../env';
@@ -23,7 +27,7 @@ export const login = async (
 			isAdmin,
 		);
 		if (user == null) {
-			throw new AppError(PERMISSION_ERROR, 'email or password mismatch');
+			throw new AppError(CONFLICT_ERROR, 'email or password mismatch');
 		}
 
 		const accessToken = authService.getAccessToken(
@@ -92,7 +96,7 @@ export const refreshToken = async (
 			);
 		} catch (error) {
 			console.error('Error refreshing token:', error);
-			throw new AppError(PERMISSION_ERROR, 'Invalid refresh token');
+			throw new AppError(CONFLICT_ERROR, 'Invalid refresh token');
 		}
 	} catch (e) {
 		next(e);
