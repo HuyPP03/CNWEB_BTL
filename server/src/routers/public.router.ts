@@ -8,6 +8,7 @@ const router = Router();
 
 router.get('/categories', categoriesController.getCategories);
 router.get('/brands', brandsController.getBrands);
+router.get('/brands/:categoryId', brandsController.getBrandsByCategoryId);
 router.get(
 	'/attribute-types/:categoryId',
 	attributeTypesController.getAttributeByCategoryId,
