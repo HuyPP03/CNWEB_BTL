@@ -96,7 +96,7 @@ export const refreshToken = async (
 			);
 		} catch (error) {
 			console.error('Error refreshing token:', error);
-			throw new AppError(CONFLICT_ERROR, 'Invalid refresh token');
+			throw new AppError(PERMISSION_ERROR, 'Invalid refresh token');
 		}
 	} catch (e) {
 		next(e);
