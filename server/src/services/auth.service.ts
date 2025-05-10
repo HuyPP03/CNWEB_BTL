@@ -284,3 +284,22 @@ export async function resetPassword(
 		throw new AppError(CONFLICT_ERROR, 'Invalid or expired token');
 	}
 }
+
+export async function getMe(
+	id: string,
+	isAdmin: boolean,
+): Promise<Customers | Admins> {
+	const user = isAdmin
+		? await db.admins.findOne({
+				where: { id },
+				attributes: { exclude: ['passwordHash'] },
+		  })
+		: await db.customers.findOne({
+				where: { id },
+				attributes: { exclude: ['passwordHash'] },
+		  });
+	if (!user) {
+		throw new AppError(CONFLICT_ERROR, 'User not found');
+	}
+	return user;
+}

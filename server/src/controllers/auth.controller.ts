@@ -594,3 +594,26 @@ export const googleCallback = (
 		next(e);
 	}
 };
+
+export const getMe = async (
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => {
+	try {
+		const isAdmin = (req as any).isAdmin;
+		const id = (req as any).user.id;
+		const user = await authService.getMe(id, isAdmin);
+		return res
+			.status(RESPONSE_SUCCESS)
+			.json(
+				new ResOk().formatResponse(
+					user,
+					'User information',
+					RESPONSE_SUCCESS,
+				),
+			);
+	} catch (error) {
+		next(error);
+	}
+};
