@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import env from '../../env';
-import { PERMISSION_ERROR } from '../constants/constants';
+import { CONFLICT_ERROR } from '../constants/constants';
 import { db } from '../loaders/database.loader';
 import { Customers } from '../models/customers.model';
 import { AppError } from '../utility/appError.util';
@@ -19,15 +19,15 @@ export async function authenticate(
 		? await db.admins.findOne({ where: { email: email } })
 		: await db.customers.findOne({ where: { email: email } });
 	if (user == null) {
-		throw new AppError(PERMISSION_ERROR, 'email or password mismatch');
+		throw new AppError(CONFLICT_ERROR, 'email or password mismatch');
 	}
 	if (!user.isActive) {
-		throw new AppError(PERMISSION_ERROR, 'User is not active');
+		throw new AppError(CONFLICT_ERROR, 'User is not active');
 	}
 	const isMatch = await EncUtil.comparePassword(password, user.passwordHash);
 
 	if (!isMatch) {
-		throw new AppError(PERMISSION_ERROR, 'email or password mismatch');
+		throw new AppError(CONFLICT_ERROR, 'email or password mismatch');
 	}
 
 	return user;
@@ -39,11 +39,11 @@ export async function authenticateGoogle(googleId: string): Promise<Customers> {
 	});
 
 	if (user == null) {
-		throw new AppError(PERMISSION_ERROR, 'Người dùng không tồn tại');
+		throw new AppError(CONFLICT_ERROR, 'Người dùng không tồn tại');
 	}
 
 	if (!user.isActive) {
-		throw new AppError(PERMISSION_ERROR, 'Tài khoản chưa được kích hoạt');
+		throw new AppError(CONFLICT_ERROR, 'Tài khoản chưa được kích hoạt');
 	}
 
 	return user;
@@ -111,16 +111,15 @@ export async function refreshAccessToken(
 		const user = isAdmin
 			? await db.admins.findOne({ where: { id: payload.id } })
 			: await db.customers.findOne({ where: { id: payload.id } });
-		console.log('[DEBUG] user::::', user);
 		if (!user) {
-			throw new AppError(PERMISSION_ERROR, 'Invalid refresh token');
+			throw new AppError(CONFLICT_ERROR, 'Invalid refresh token');
 		}
 
 		const accessToken = getAccessToken(user, env.app.jwtExpiredIn, isAdmin);
 		const newRefreshToken = getRefreshToken(user, isAdmin);
 		return { accessToken, refreshToken: newRefreshToken, user };
 	} catch (error) {
-		throw new AppError(PERMISSION_ERROR, 'Invalid refresh token');
+		throw new AppError(CONFLICT_ERROR, 'Invalid refresh token');
 	}
 }
 
@@ -131,7 +130,7 @@ export async function register(data: any): Promise<Customers> {
 		},
 	});
 	if (user) {
-		throw new AppError(PERMISSION_ERROR, 'User already exists');
+		throw new AppError(CONFLICT_ERROR, 'User already exists');
 	}
 	const passwordHash = await EncUtil.createHash(data.password);
 	data.passwordHash = passwordHash;
@@ -179,10 +178,7 @@ export async function createOrUpdateUserFromGoogle(
 	}
 
 	if (!user) {
-		throw new AppError(
-			PERMISSION_ERROR,
-			'Không thể tạo tài khoản từ Google',
-		);
+		throw new AppError(CONFLICT_ERROR, 'Không thể tạo tài khoản từ Google');
 	}
 
 	return user;
@@ -194,10 +190,10 @@ export async function verify(token: string, email: string): Promise<Customers> {
 		where: { id: user.id, email: user.email },
 	});
 	if (userDb == null) {
-		throw new AppError(PERMISSION_ERROR, 'User not found');
+		throw new AppError(CONFLICT_ERROR, 'User not found');
 	}
 	if (userDb.email !== email) {
-		throw new AppError(PERMISSION_ERROR, 'User not found');
+		throw new AppError(CONFLICT_ERROR, 'User not found');
 	}
 	userDb.isActive = true;
 	return await userDb.save();
@@ -206,7 +202,7 @@ export async function verify(token: string, email: string): Promise<Customers> {
 export async function forgotPassword(email: string): Promise<boolean> {
 	const user = await db.customers.findOne({ where: { email } });
 	if (!user) {
-		throw new AppError(PERMISSION_ERROR, 'User not found');
+		throw new AppError(CONFLICT_ERROR, 'User not found');
 	}
 
 	const resetToken = getToken(user, '1h');
@@ -276,7 +272,7 @@ export async function resetPassword(
 
 		if (!user) {
 			throw new AppError(
-				PERMISSION_ERROR,
+				CONFLICT_ERROR,
 				'User not found or invalid token',
 			);
 		}
@@ -285,6 +281,25 @@ export async function resetPassword(
 		await user.save();
 		return true;
 	} catch (error) {
-		throw new AppError(PERMISSION_ERROR, 'Invalid or expired token');
+		throw new AppError(CONFLICT_ERROR, 'Invalid or expired token');
 	}
+}
+
+export async function getMe(
+	id: string,
+	isAdmin: boolean,
+): Promise<Customers | Admins> {
+	const user = isAdmin
+		? await db.admins.findOne({
+				where: { id },
+				attributes: { exclude: ['passwordHash'] },
+		  })
+		: await db.customers.findOne({
+				where: { id },
+				attributes: { exclude: ['passwordHash'] },
+		  });
+	if (!user) {
+		throw new AppError(CONFLICT_ERROR, 'User not found');
+	}
+	return user;
 }

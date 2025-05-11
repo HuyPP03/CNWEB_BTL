@@ -3,3 +3,4 @@ dist
 .env
 .http
 package-lock.json
+uploads

@@ -4,6 +4,7 @@ import env from '../../env';
 // Import tất cả các model
 import { Categories } from '../models/categories.model';
 import { Brands } from '../models/brands.model';
+import { BrandCategories } from '../models/brand-categories.model';
 import { AttributeTypes } from '../models/attribute-types.model';
 import { AttributeValues } from '../models/attribute-values.model';
 import { Products } from '../models/products.model';
@@ -60,6 +61,7 @@ const connectToDatabase = async () => {
 // Khởi tạo tất cả các model
 Categories.initClass(sequelize);
 Brands.initClass(sequelize);
+BrandCategories.initClass(sequelize);
 AttributeTypes.initClass(sequelize);
 AttributeValues.initClass(sequelize);
 Products.initClass(sequelize);
@@ -88,6 +90,13 @@ Shipping.initClass(sequelize);
 // 1. Categories (có thể có danh mục cha)
 Categories.belongsTo(Categories, { as: 'parent', foreignKey: 'parentId' });
 Categories.hasMany(Categories, { as: 'subCategories', foreignKey: 'parentId' });
+
+// 2. Brands - Categories (mỗi thương hiệu thuộc nhiều danh mục)
+Brands.belongsToMany(Categories, { through: BrandCategories });
+Categories.belongsToMany(Brands, { through: BrandCategories });
+
+AttributeValues.belongsTo(Categories, { foreignKey: 'categoryId' });
+Categories.hasMany(AttributeValues, { foreignKey: 'categoryId' });
 
 // 2. Products - Categories (mỗi sản phẩm thuộc một danh mục)
 Products.belongsTo(Categories, { foreignKey: 'categoryId' });
@@ -206,6 +215,7 @@ export const db = {
 	sequelize: sequelize,
 	categories: Categories,
 	brands: Brands,
+	brandCategories: BrandCategories,
 	attributeTypes: AttributeTypes,
 	attributeValues: AttributeValues,
 	products: Products,
