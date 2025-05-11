@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { ResOk } from '../../utility/response.util';
 import * as variantService from '../../services/customers/product-variants.service';
+import { db } from '../../loaders/database.loader';
 
 export const getVariants = async (req: Request, res: Response, next: NextFunction) => {
-  try { 
+  const transaction = await db.sequelize.transaction();
+  try{
     const {
       id = '',
       productId,
@@ -29,12 +31,15 @@ export const getVariants = async (req: Request, res: Response, next: NextFunctio
       stock: stock ? Number(stock) : undefined,
       include: (include as string)?.split(','),
       offset,
+      page: parseInt(page as string),
       limit: pageLimit
     };
 
-    const variants = await variantService.getVariants(filters);
-    return res.status(200).json(new ResOk().formatResponse(variants));
+    const [rows, count] = await variantService.getVariants(filters, transaction);
+    await transaction.commit();
+    return res.status(200).json(new ResOk().formatResponse(rows, 'Products retrieved successfully', 200, filters.limit, filters.page, count as any));
   } catch (error) {
+    await transaction.rollback();
     next(error);
   }
 };

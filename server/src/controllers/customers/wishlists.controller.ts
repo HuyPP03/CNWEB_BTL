@@ -1,64 +1,64 @@
 import { Request, Response, NextFunction } from 'express';
 import { ResOk } from '../../utility/response.util';
-import * as reviewService from '../../services/customers/reviews.service';
+import * as wishlistService from '../../services/customers/wishlists.service';
 import { db } from '../../loaders/database.loader'
 
-export const createReview = async (req: Request, res: Response, next: NextFunction) => {
+export const createWishlist = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
         const customerId = (req as any).user.id;
-        const review = await reviewService.createReview(customerId, req.body);
+        const wishlist = await wishlistService.createWishlist(customerId, req.body);
         await transaction.commit();
-        return res.status(200).json(new ResOk().formatResponse(review));
+        return res.status(200).json(new ResOk().formatResponse(wishlist));
     } catch (error) {
 		await transaction.rollback();
 		next(error);
 	}
 };
 
-export const getAllReviews = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllWishlists = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const reviews = await reviewService.getAllReviews(transaction);
+        const wishlists = await wishlistService.getAllWishlists(transaction);
         await transaction.commit();
-        return res.status(200).json(new ResOk().formatResponse(reviews));
+        return res.status(200).json(new ResOk().formatResponse(wishlists));
     } catch (error) {
 		await transaction.rollback();
 		next(error);
 	}
 };
 
-export const getReviewsByProduct = async (req: Request, res: Response, next: NextFunction) => {
+export const getWishlistsByProduct = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { productId } = req.params;
-        const reviews = await reviewService.getReviewsByProduct(Number(productId));
+        const wishlists = await wishlistService.getWishlistsByProduct(Number(productId));
         await transaction.commit();
-        return res.status(200).json(new ResOk().formatResponse(reviews));
+        return res.status(200).json(new ResOk().formatResponse(wishlists));
     } catch (error) {
 		await transaction.rollback();
 		next(error);
 	}
 };
 
-export const updateReview = async (req: Request, res: Response, next: NextFunction) => {
+export const updateWishlist = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        const review = await reviewService.updateReview(Number(id), req.body);
+        const wishlist = await wishlistService.updateWishlist(Number(id), req.body);
         await transaction.commit();
-        return res.status(200).json(new ResOk().formatResponse(review));
+        return res.status(200).json(new ResOk().formatResponse(wishlist));
     } catch (error) {
 		await transaction.rollback();
 		next(error);
 	}
 };
 
-export const deleteReview = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteWishlist = async (req: Request, res: Response, next: NextFunction) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        await reviewService.deleteReview(Number(id));
+        await wishlistService.deleteWishlist(Number(id));
         await transaction.commit();
         return res.status(200).json(new ResOk().formatResponse({}));
     } catch (error) {

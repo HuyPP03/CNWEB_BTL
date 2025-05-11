@@ -93,6 +93,9 @@ Categories.hasMany(Categories, { as: 'subCategories', foreignKey: 'parentId' });
 Products.belongsTo(Categories, { foreignKey: 'categoryId' });
 Categories.hasMany(Products, { foreignKey: 'categoryId' });
 
+AttributeTypes.belongsTo(Categories, { foreignKey: 'categoryId' });
+Categories.hasMany(AttributeTypes, { foreignKey: 'categoryId' });
+
 // 3. Products - Brands (mỗi sản phẩm thuộc một thương hiệu)
 Products.belongsTo(Brands, { foreignKey: 'brandId' });
 Brands.hasMany(Products, { foreignKey: 'brandId' });

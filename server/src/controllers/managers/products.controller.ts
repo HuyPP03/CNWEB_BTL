@@ -14,7 +14,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
         
         const { newProduct, newVariant } = await productService.createProduct(req.body, transaction);
 
-        const images = await productImageService.createProductImages(files, newProduct.id, transaction);
+        const images = await productImageService.createProductImages(files, newProduct.id, undefined ,transaction);
 
         // Ghi adminlog
         await adminLogService.CreateAdminLog(
@@ -62,7 +62,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
 
         // 2. Tải ảnh mới nếu có
         if (req.files && Array.isArray(req.files)) {
-            await productImageService.createProductImages(req.files, (updatedProduct as any)?.id, transaction);
+            await productImageService.createProductImages(req.files, (updatedProduct as any)?.id, undefined, transaction);
         }
 
         // 3. Cập nhật ảnh chính nếu có

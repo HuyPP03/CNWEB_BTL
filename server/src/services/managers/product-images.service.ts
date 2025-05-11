@@ -3,12 +3,13 @@ import { Transaction } from 'sequelize';
 import fs from 'fs';
 import path from 'path';
 
-export const createProductImages = async (files: any, productId: number, transaction?: Transaction) => {
+export const createProductImages = async (files: any, productId: number, variantId?: number, transaction?: Transaction) => {
     try {
        const fileCreates = files.map((file: any, indx: number) => {
             const relativePath = path.relative(path.resolve('./'), file.path).replace(/\\/g, '/');
             return ({
                 productId,
+                variantId,
                 imageUrl: relativePath,
                 isPrimary: indx === 0,
             });

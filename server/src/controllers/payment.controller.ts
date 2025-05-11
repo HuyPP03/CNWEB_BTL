@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PaymentGateway, PaymentService } from '../services/payments';
+import { db } from '../loaders/database.loader';
 
 export class PaymentController {
 	/**
@@ -148,11 +149,25 @@ export class PaymentController {
 
 			if (isValid) {
 				// Xử lý thanh toán thành công tại đây (cập nhật DB, ...)
+				const orderId = Number(vnpParams.vnp_TxnRef);
+
+				await db.payments.update(
+					{ status: 'success' },
+					{ where: { orderId: orderId } },
+				);
+
 				// Chuyển hướng người dùng về trang thành công
 				res.redirect(
 					`/payment-success?orderId=${vnpParams.vnp_TxnRef}`,
 				);
 			} else {
+				// Cập nhật trong db
+				const orderId = Number(vnpParams.vnp_TxnRef);
+
+				await db.payments.update(
+					{ status: 'failed' },
+					{ where: { orderId: orderId } },
+				);
 				// Xử lý thanh toán thất bại
 				res.redirect('/payment-failed');
 			}
@@ -179,9 +194,23 @@ export class PaymentController {
 
 			if (isValid) {
 				// Xử lý thanh toán thành công tại đây (cập nhật DB, ...)
+				const orderId = Number(momoParams.orderId);
+
+				await db.payments.update(
+					{ status: 'success' },
+					{ where: { orderId: orderId } },
+				);
+
 				// Chuyển hướng người dùng về trang thành công
 				res.redirect(`/payment-success?orderId=${momoParams.orderId}`);
 			} else {
+				// Cập nhật trong db
+				const orderId = Number(momoParams.orderId);
+
+				await db.payments.update(
+					{ status: 'failed' },
+					{ where: { orderId: orderId } },
+				);
 				// Xử lý thanh toán thất bại
 				res.redirect('/payment-failed');
 			}
@@ -214,9 +243,23 @@ export class PaymentController {
 
 			if (result && result.state === 'approved') {
 				// Xử lý thanh toán thành công tại đây (cập nhật DB, ...)
+				const orderId = Number(paymentId);
+
+				await db.payments.update(
+					{ status: 'success' },
+					{ where: { orderId: orderId } },
+				);
+
 				// Chuyển hướng người dùng về trang thành công
 				res.redirect(`/payment-success?paymentId=${paymentId}`);
 			} else {
+				const orderId = Number(paymentId);
+
+				await db.payments.update(
+					{ status: 'failed' },
+					{ where: { orderId: orderId } },
+				);
+
 				res.redirect('/payment-failed');
 			}
 		} catch (error) {

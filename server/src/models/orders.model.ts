@@ -22,8 +22,6 @@ export class Orders extends Model<
 		| 'delivered'
 		| 'cancelled'
 	>;
-	declare shippingAddress: string;
-	declare paymentMethod: CreationOptional<string>;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 	static initClass = (sequelize: Sequelize) => {
@@ -51,8 +49,6 @@ export class Orders extends Model<
 					),
 					defaultValue: 'draft',
 				},
-				shippingAddress: { type: DataTypes.TEXT, allowNull: false },
-				paymentMethod: DataTypes.STRING(50),
 				createdAt: DataTypes.DATE,
 				updatedAt: DataTypes.DATE,
 			},
