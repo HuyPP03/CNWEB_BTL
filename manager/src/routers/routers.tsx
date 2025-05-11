@@ -18,7 +18,7 @@ import HistoryManagement from "../pages/HistoryManagement";
 import PromotionManagement from "../pages/PromotionManagement";
 import AddPromotion from "../pages/AddPromotion";
 import PrivateRoute from "../components/PrivateRoute";
-
+import ProductDetail from "../pages/ProductDetail";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -32,6 +32,7 @@ export default function AppRoutes() {
       <Route path="/qlnhanvien/edit/:id" element={<EditEmployee />} />
       <Route path="/qlsanpham/add" element={<AddProduct />} />
       <Route path="/qlsanpham/edit/:id" element={<NotFound />} />
+      <Route path="/qlsanpham/detail/:id" element={<ProductDetail />} />
       <Route path="/qlnhacungcap" element={<BrandManagement />} />
       <Route path="/qlnhacungcap/add" element={<AddBrand />} />
       <Route path="/qlnhacungcap/detail/:id" element={<BrandDetail />} />

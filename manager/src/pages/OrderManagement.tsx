@@ -61,7 +61,8 @@ const OrderManagement = () => {
             <div className="p-4">
                 <ManagementTable
                     data={currentCustomers}
-                    headers={["ID", "Tên khách hàng", "Ngày tạo", "Hành động"]}
+                    headers={["ID", "Tên khách hàng", "Ngày tạo"]}
+                    columns={['id', 'name', 'createAt']}
                     onDetail={handleDetail}
                     onEdit={handleEdit}
                     onDelete={handleDelete}

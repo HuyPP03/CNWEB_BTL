@@ -43,21 +43,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const checkLoginStatus = () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        if (token) {
-          const decodedToken = jwtDecode<DecodedToken>(token);
-          if (decodedToken.exp * 1000 < Date.now()) {
-            handleLogout();
-          } else {
-            setCurrentUser({
-              id: decodedToken.sub,
-              email: decodedToken.email,
-            });
-          }
+  // Hàm kiểm tra token
+  const checkToken = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
+      const decodedToken = jwtDecode<DecodedToken>(token);
+      const currentTime = Date.now() / 1000;
+
+      // Nếu token đã hết hạn hoặc còn hạn dưới 5 phút, thử refresh
+      if (decodedToken.exp <= currentTime || decodedToken.exp - currentTime < 300) {
+        try {
+          const response = await api.post("/auth/refresh-token");
+          const { accessToken } = response.data.data;
+          localStorage.setItem("accessToken", accessToken);
+          
+          const newDecodedToken = jwtDecode<DecodedToken>(accessToken);
+          setCurrentUser({
+            id: newDecodedToken.sub,
+            email: newDecodedToken.email,
+          });
+        } catch (err) {
+          console.error("Error refreshing token:", err);
+          handleLogout();
         }
+      } else {
+        setCurrentUser({
+          id: decodedToken.sub,
+          email: decodedToken.email,
+        });
+      }
+    } catch (err) {
+      console.error("Error checking token:", err);
+      handleLogout();
+    }
+  };
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        await checkToken();
       } catch (err) {
         console.error("Error checking auth status:", err);
         handleLogout();
@@ -67,6 +96,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     checkLoginStatus();
+
+    // Thiết lập interval để kiểm tra token mỗi phút
+    const tokenCheckInterval = setInterval(checkToken, 60000);
+
+    // Cleanup interval khi component unmount
+    return () => clearInterval(tokenCheckInterval);
   }, []);
 
   // Hàm login dùng axios
@@ -75,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setError(null);
       setLoading(true);
       const response = await api.post("/auth/managers/login", { email, password });
-      const accessToken = response.data.data;
+      const { accessToken } = response.data.data;
 
       localStorage.setItem("accessToken", accessToken);
 
@@ -97,6 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const handleLogout = async () => {
     try {
       setLoading(true);
+      await api.post("/auth/logout");
       localStorage.removeItem("accessToken");
       setCurrentUser(null);
     } catch (err) {

@@ -2,11 +2,26 @@ import { FaBars, FaUserCircle } from 'react-icons/fa';
 import { useAuth } from '../components/AuthContext';
 import { Navigate } from 'react-router-dom';
 import LoadingSpinner from './Loading';
+import api from '../services/api';
+import { useEffect, useState } from 'react';
 
 const Header = ({ toggleSidebar }: {toggleSidebar : () => void}) => {
   const { currentUser, logout, loading } = useAuth();
+  const [userInfo, setUserInfo] = useState<any>(null);
 
-  // Redirect if not logged in
+  const fetchUserInfo = async () => {
+    try {
+      const res = await api.get("/manager/me");
+      setUserInfo(res.data.data);
+    } catch (error) {
+      console.error("Lỗi khi lấy thông tin người dùng:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
   if (!loading && !currentUser) {
     return <Navigate to="/login" />;
   }
@@ -22,6 +37,7 @@ const Header = ({ toggleSidebar }: {toggleSidebar : () => void}) => {
       </div>
     );
   }
+
   return (
     <header className="bg-yellow-500 h-16 p-4 flex justify-between items-center fixed top-0 left-0 w-full z-50">
       <div className="flex items-center gap-4">
@@ -30,7 +46,7 @@ const Header = ({ toggleSidebar }: {toggleSidebar : () => void}) => {
       </div>
       <div className="flex items-center gap-4">
         <FaUserCircle className="text-white text-2xl" />
-        <span className="text-white">Người quản lý</span>
+        <span className="text-white">{userInfo?.fullName}</span>
         <button 
           className="text-white bg-red-500 hover:bg-red-600 active:bg-red-700 px-4 py-2 rounded transition-all duration-300"
           onClick={handleLogout}>

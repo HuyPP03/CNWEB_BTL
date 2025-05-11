@@ -11,7 +11,7 @@ const PromotionManagement = () => {
     { id: 3, name: "Khuyen mai mua he", dateStart: "2024-06-01", dateEnd: "2024-08-31" },
     { id: 4, name: "Khuyen mai Giang Sinh", dateStart: "2023-12-01", dateEnd: "2023-12-31" },
   ]);
-  const headers = ["ID", "Tên chương trình" , "Ngày bắt đầu", "Ngày kết thúc" , "Hành động"];
+  const headers = ["ID", "Tên chương trình" , "Ngày bắt đầu", "Ngày kết thúc"];
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,6 +63,7 @@ const PromotionManagement = () => {
       <div className="p-4">
         <ManagementTable
           headers={headers}
+          columns={['id', 'name', 'dateStart', 'dateEnd']}
           data={currentEmployees}
           onDetail={handleDetail}
           onEdit={handleEdit}

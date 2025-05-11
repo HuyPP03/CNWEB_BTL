@@ -8,7 +8,7 @@ import api from "../services/api";
 
 const BrandManagement = () => {
   const [brands, setBrands] = useState<any[]>([]);
-  const headers = ["ID", "Tên nhà cung cấp", "Hành động"];
+  const headers = ["ID", "Tên nhà cung cấp"];
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
@@ -73,6 +73,7 @@ const BrandManagement = () => {
       <div className="p-4">
         <ManagementTable
           headers={headers}
+          columns={['id', 'name']}
           data={current.map((brand: any) => ({
             id: brand.id,
             name: brand.name,

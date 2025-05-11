@@ -15,7 +15,7 @@ const EmployeeManagement = () => {
     { id: 7, name: "Ngô Văn G", position: "Nhân viên" },
     { id: 8, name: "Bùi Thị H", position: "Nhân viên" },
   ]);
-  const headers = ["ID", "Tên nhân viên", "Chức vụ", "Hành động"];
+  const headers = ["ID", "Tên nhân viên", "Chức vụ"];
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
@@ -73,6 +73,7 @@ const EmployeeManagement = () => {
       <div className="p-4">
         <ManagementTable
           headers={headers}
+          columns={['id', 'name', 'position']}
           data={currentEmployees}
           onDetail={handleDetail}
           onEdit={handleEdit}

@@ -5,7 +5,7 @@ const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: React.Elemen
 
   const location = useLocation();
 
-  const isActive = location.pathname.startsWith(to);
+  const isActive = location.pathname === to;
 
   return (
     <NavLink

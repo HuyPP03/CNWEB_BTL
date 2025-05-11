@@ -1,43 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaUserPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
 import ManagementTable from "../components/ManagementTable";
+import api from "../services/api";
+
+const headers = ["ID", "Tên danh mục"];
+const columns = ["id", "name"];
+
+interface Category {
+  id: number;
+  name: string;
+  [key: string]: any;
+}
 
 const CategoryManagement = () => {
-  const [employees] = useState([
-    { id: 1, name: "Điện thoại" },
-    { id: 2, name: "Máy tính" },
-    { id: 3, name: "Đồng hồ" },
-  ]);
-  const headers = ["ID", "Tên danh mục", "Hành động"];
-
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const employeesPerPage = 10;
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get("/public/categories");
+        setCategories(res.data.data || []);
+      } catch (err) {
+        setCategories([]);
+      }
+      setLoading(false);
+    };
+    fetchCategories();
+  }, []);
 
   const handleDetail = (id: number) => {
-    console.log("Chi tiết danh mục", id);
     navigate(`/qldanhmuc/detail/${id}`);
   };
 
   const handleAdd = () => {
-    console.log("Thêm danh mục");
     navigate("/qldanhmuc/add");
   };
 
   const handleEdit = (id: number) => {
-    console.log("Sửa danh mục", id);
     navigate(`/qldanhmuc/edit/${id}`);
   };
 
   const handleDelete = (id: number) => {
-    console.log("Xóa danh mục", id);
+    // Xử lý xóa danh mục nếu cần
   };
 
-  const indexOfLastEmployee = currentPage * employeesPerPage;
-  const indexOfFirstEmployee = indexOfLastEmployee - employeesPerPage;
-  const currentEmployees = employees.slice(indexOfFirstEmployee, indexOfLastEmployee);
+  const indexOfLast = currentPage * itemsPerPage;
+  const indexOfFirst = indexOfLast - itemsPerPage;
+  const currentCategories = categories.slice(indexOfFirst, indexOfLast);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
@@ -49,27 +65,29 @@ const CategoryManagement = () => {
         <input
           type="text"
           placeholder="Tìm theo ID..."
-          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
+          onChange={(e) => {}}
           className="p-2 border rounded w-1/3"
         />
         <input
           type="text"
           placeholder="Tìm theo tên..."
-          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
+          onChange={(e) => {}}
           className="p-2 border rounded w-1/3"
         />
       </div>
       <div className="p-4">
         <ManagementTable
           headers={headers}
-          data={currentEmployees}
+          columns={columns}
+          data={currentCategories}
           onDetail={handleDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
+        {loading && <div>Đang tải dữ liệu...</div>}
       </div>
       <div className="flex justify-center mt-4">
-        {Array.from({ length: Math.ceil(employees.length / employeesPerPage) }, (_, index) => (
+        {Array.from({ length: Math.ceil(categories.length / itemsPerPage) }, (_, index) => (
           <button
             key={index + 1}
             className={`mx-1 px-3 py-1 border rounded ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-white text-blue-500"}`}

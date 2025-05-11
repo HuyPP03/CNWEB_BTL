@@ -56,7 +56,8 @@ const HistoryManagement = () => {
             <div className="p-4">
                 <ManagementTable
                     data={currentCustomers}
-                    headers={["ID", "Tên nhân viên", "Ngày tạo", "Hoạt động", "Hành động"]}
+                    headers={["ID", "Tên nhân viên", "Ngày tạo", "Hoạt động"]}
+                    columns={['id', 'name', 'createAt', 'activity']}
                     onDetail={handleDetail}
                     onDelete={handleDelete}
                 />
