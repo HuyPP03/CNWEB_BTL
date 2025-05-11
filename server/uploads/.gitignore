@@ -1,7 +1,2 @@
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.bmp
-*.tiff
-*.webp
+!./brands/*
+./*
