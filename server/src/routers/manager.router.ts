@@ -10,13 +10,6 @@ const router = Router();
 router.use(isManager);
 router.use(verifyToken);
 
-router.post(
-	'/',
-	authorization([RoleManager.staff]),
-	upload.any(),
-	productController.create,
-);
-
 router.get('/me', getMe);
 
 export default router;

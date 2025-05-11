@@ -12,6 +12,10 @@ export class Shipping extends Model<
 > {
 	declare id: CreationOptional<number>;
 	declare orderId: number;
+	declare name: CreationOptional<string>;
+	declare email: CreationOptional<string>;
+	declare phone: string;
+	declare shippingAddress: string;
 	declare shippingProvider: string;
 	declare trackingNumber: CreationOptional<string>;
 	declare shippedAt: CreationOptional<Date>;
@@ -27,6 +31,16 @@ export class Shipping extends Model<
 					autoIncrement: true,
 				},
 				orderId: { type: DataTypes.INTEGER, allowNull: false },
+				name: DataTypes.STRING(100),
+				email: DataTypes.STRING(100),
+				phone: {
+					type: DataTypes.STRING(100),
+					allowNull: false,
+				},
+				shippingAddress: {
+					type: DataTypes.STRING(100),
+					allowNull: false,
+				},
 				shippingProvider: {
 					type: DataTypes.STRING(100),
 					allowNull: false,

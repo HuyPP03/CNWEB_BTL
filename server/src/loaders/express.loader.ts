@@ -67,6 +67,7 @@ export default (app: express.Application) => {
 		express.urlencoded({ extended: true }),
 		// express.static(path.join(process.cwd(), 'uploads'), staticOptions),
 	);
+
 	app.use(
 		'/uploads',
 		express.static(path.join(process.cwd(), 'uploads'), staticOptions),
