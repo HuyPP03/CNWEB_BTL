@@ -2,8 +2,6 @@ import { Op, Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
 import { variantAttributeService } from '../../services/managers/variant-attributes.service';
 import { attributeValueService } from '../../services/managers/attribute-values.service';
-import { Categories } from 'src/models/categories.model';
-import { transport } from 'winston';
 
 // Tạo biến thể sản phẩm mới
 export const createVariant = (data: any, transaction?: Transaction) => {

@@ -1,9 +1,12 @@
-// import { Router } from 'express';
-// import * as promotionManager from '../controllers/managers/promotions.controller';
+import { Router } from 'express';
+import * as promotionManager from '../controllers/managers/promotions.controller';
+import { isManager, verifyToken } from 'src/middleware/authenticate.middleware';
 
-// const router = Router();
+const router = Router();
+router.use(verifyToken);
+router.use(isManager);
 
-// router.get('/product-promotions', promotionManager.getPromotion);
-// router.post('/product-promotions', promotionManager.createPromotion);
-// router.put('/product-promotions/:productId/:promotionId', promotionManager.updatePromotion);
-// router.delete('/product-promotions/:productId/:promotionId', promotionManager.deletePromotion);
+router.get('/', promotionManager.getPromotion);
+router.post('/', promotionManager.createPromotion);
+router.put('/:id', promotionManager.updatePromotion);
+router.delete('/:id', promotionManager.deletePromotion);
