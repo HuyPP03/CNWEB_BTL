@@ -1,18 +1,18 @@
-import { Op , Transaction } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
 
 export const getProducts = async (filters: any, transaction?: Transaction) => {
 	const where: any = {};
 	const include: any[] = [
 		{ model: db.productVariants, include: [{ model: db.productImages }] },
-		{ model: db.productImages } 
+		{ model: db.productImages },
 	];
 
 	// Điều kiện lọc theo id sản phẩm
 	if (filters.id) {
 		where.id = filters.id;
 	}
-	
+
 	// Điều kiện lọc theo tên sản phẩm
 	if (filters.name) {
 		where.name = { [Op.like]: `%${filters.name}%` };
@@ -31,8 +31,10 @@ export const getProducts = async (filters: any, transaction?: Transaction) => {
 	// Điều kiện lọc theo khoảng giá
 	if (filters.priceRange.min || filters.priceRange.max) {
 		where.basePrice = {};
-		if (filters.priceRange.min) where.basePrice[Op.gte] = filters.priceRange.min;
-		if (filters.priceRange.max) where.basePrice[Op.lte] = filters.priceRange.max;
+		if (filters.priceRange.min)
+			where.basePrice[Op.gte] = filters.priceRange.min;
+		if (filters.priceRange.max)
+			where.basePrice[Op.lte] = filters.priceRange.max;
 	}
 
 	// Thêm mối quan hệ với bảng brands nếu cần
@@ -46,18 +48,19 @@ export const getProducts = async (filters: any, transaction?: Transaction) => {
 	}
 
 	// Lấy dữ liệu từ cơ sở dữ liệu với phân trang
-	const [rows, count] = await Promise.all([    
-		db.products.findAll({        
-			where,         
-			include,         
-			limit: filters.limit,          
-			offset: filters.offset,
-			transaction     
-		}),     
-		db.products.count({         
+	const [rows, count] = await Promise.all([
+		db.products.findAll({
 			where,
-			transaction    
-		})
+			include,
+			order: filters.order,
+			limit: filters.limit,
+			offset: filters.offset,
+			transaction,
+		}),
+		db.products.count({
+			where,
+			transaction,
+		}),
 	]);
 
 	return [rows, count];

@@ -32,51 +32,65 @@ export const getPromotion = async (data: any, transaction?: Transaction) => {
 	// Truy vấn khuyến mãi
 	const promotion = await db.promotions.findOne({
 		where: whereClause,
+		include: [{ model: db.productPromotions }],
 		transaction,
 	});
-
-	// Nếu có `promotion`, thì tìm tiếp productPromotions liên quan (nếu cần)
-	if (!promotion) return null;
-
-	const productPromotion = await db.productPromotions.findOne({
-		where: { promotionId: promotion.id },
-		transaction,
-	});
-
-	// Trả về cả 2 nếu cần, hoặc có thể trả về promotion thôi
 	return {
 		promotion,
-		productPromotion,
 	};
 };
 
 export const createProductPromotion = async (
+	productIds: number[],
 	data: any,
 	transaction?: Transaction,
 ) => {
-	await db.promotions.create(data, { transaction });
-	return db.productPromotions.create(data, { transaction });
+	const promotion = await db.promotions.create(data, { transaction });
+
+	// Lặp qua từng productId và tạo bản ghi productPromotion
+	for (const productId of productIds) {
+		await db.productPromotions.create(
+			{ productId, promotionId: promotion.id },
+			{ transaction },
+		);
+	}
+
+	// Trả về promotion kèm theo danh sách sản phẩm liên quan
+	return await db.promotions.findByPk(promotion.id, {
+		include: [
+			{
+				model: db.productPromotions,
+				include: [{ model: db.products }],
+			},
+		],
+		transaction,
+	});
 };
-export const updateProductPromotion = async (
+
+export const updatePromotion = async (
 	promotionId: number,
 	data: any,
 	transaction?: Transaction,
 ) => {
-	const productPromotion = await db.productPromotions.findByPk(promotionId, {
+	const promotion = await db.promotions.findByPk(promotionId, {
 		transaction,
 	});
-	if (!productPromotion) return null;
+	if (!promotion) return null;
 
-	await productPromotion.update(data, { transaction });
-	return productPromotion;
+	await promotion.update(data, { transaction });
+	return promotion;
 };
 
 export const deleteProductPromotion = async (
 	id: number,
 	transaction?: Transaction,
 ) => {
-	return db.productPromotions.destroy({
+	db.productPromotions.destroy({
 		where: { promotionId: id },
+		transaction,
+	});
+	return db.promotions.destroy({
+		where: { id: id },
 		transaction,
 	});
 };

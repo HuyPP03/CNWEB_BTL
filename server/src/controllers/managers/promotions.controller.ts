@@ -20,7 +20,7 @@ export const getPromotion = async (
 	}
 };
 
-// Tạo mới promotion
+// Tạo mới promotion cho nhiều sản phẩm
 export const createPromotion = async (
 	req: Request,
 	res: Response,
@@ -28,12 +28,78 @@ export const createPromotion = async (
 ) => {
 	const transaction = await db.sequelize.transaction();
 	try {
+		const productIds = await req.body.productIds;
 		const created = await promotionService.createProductPromotion(
+			productIds,
 			req.body,
 			transaction,
 		);
 		return res.status(201).json(new ResOk().formatResponse(created));
 	} catch (error) {
+		next(error);
+	}
+};
+
+// Thêm promotion đã có cho sản phẩm
+export const productPromotion = async (
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => {
+	const transaction = await db.sequelize.transaction();
+	try {
+		const productId = req.body.productId;
+		const promotionId = req.body.promotionId;
+
+		// 1. Kiểm tra promotion tồn tại
+		const promotion = await db.promotions.findByPk(promotionId);
+		if (!promotion) {
+			await transaction.rollback();
+			return res.status(404).json({ message: 'Promotion not found' });
+		}
+
+		// 2. Kiểm tra promotion còn hiệu lực (nếu có startDate / endDate)
+		const now = new Date();
+		if (
+			(promotion.startDate && new Date(promotion.startDate) > now) ||
+			(promotion.endDate && new Date(promotion.endDate) < now)
+		) {
+			await transaction.rollback();
+			return res
+				.status(400)
+				.json({ message: 'Promotion is not currently active' });
+		}
+
+		// 3. Kiểm tra sản phẩm tồn tại
+		const product = await db.products.findByPk(productId);
+		if (!product) {
+			await transaction.rollback();
+			return res.status(404).json({ message: 'Product not found' });
+		}
+
+		// 4. (Optional) Kiểm tra đã gán chưa
+		const exists = await db.productPromotions.findOne({
+			where: { productId, promotionId },
+		});
+		if (exists) {
+			await transaction.rollback();
+			return res
+				.status(409)
+				.json({ message: 'Product already has this promotion' });
+		}
+
+		// Tạo mới
+		const resProductPromotion = await db.productPromotions.create(
+			{ productId, promotionId },
+			{ transaction },
+		);
+
+		await transaction.commit();
+		return res
+			.status(201)
+			.json(new ResOk().formatResponse(resProductPromotion));
+	} catch (error) {
+		await transaction.rollback();
 		next(error);
 	}
 };
@@ -47,7 +113,7 @@ export const updatePromotion = async (
 	try {
 		const promotionId = parseInt((req as any).params);
 
-		const updated = await promotionService.updateProductPromotion(
+		const updated = await promotionService.updatePromotion(
 			promotionId,
 			req.body,
 		);
@@ -69,7 +135,7 @@ export const deletePromotion = async (
 	next: NextFunction,
 ) => {
 	try {
-		const promotionId = parseInt((req as any).params);
+		const promotionId = Number(req.params.id);
 
 		const deleted = await promotionService.deleteProductPromotion(
 			promotionId,
@@ -79,7 +145,11 @@ export const deletePromotion = async (
 				.status(404)
 				.json({ message: 'Product-Promotion not found' });
 		}
-		return res.status(200).json(new ResOk().formatResponse({ deleted }));
+		return res
+			.status(200)
+			.json(
+				new ResOk().formatResponse({ message: 'Deleted successfully' }),
+			);
 	} catch (error) {
 		next(error);
 	}
