@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as promotionManager from '../controllers/managers/promotions.controller';
-import { isManager, verifyToken } from 'src/middleware/authenticate.middleware';
+import { isManager, verifyToken } from '../middleware/authenticate.middleware';
 
 const router = Router();
 router.use(verifyToken);

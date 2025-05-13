@@ -27,9 +27,11 @@ export const createWishlist = async (
 	const transaction = await db.sequelize.transaction();
 	try {
 		const customerId = (req as any).user.id;
+		const productId = Number(req.params.id);
 		const wishlist = await wishlistService.createWishlist(
 			customerId,
-			req.body,
+			productId,
+			transaction,
 		);
 		await transaction.commit();
 		return res.status(200).json(new ResOk().formatResponse(wishlist));
@@ -54,7 +56,11 @@ export const deleteWishlist = async (
 			transaction,
 		);
 		await transaction.commit();
-		return res.status(200).json(new ResOk().formatResponse({}));
+		return res
+			.status(200)
+			.json(
+				new ResOk().formatResponse({ message: 'Deleted successfully' }),
+			);
 	} catch (error) {
 		await transaction.rollback();
 		next(error);

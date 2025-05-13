@@ -46,10 +46,14 @@ export const deletefeedback = async (
 ) => {
 	const transaction = await db.sequelize.transaction();
 	try {
-		const { id } = req.params;
-		await feedbackService.deleteFeedback(Number(id));
+		const id = Number(req.params.id);
+		await feedbackService.deleteFeedback(id);
 		await transaction.commit();
-		return res.status(200).json(new ResOk().formatResponse({}));
+		return res
+			.status(200)
+			.json(
+				new ResOk().formatResponse({ message: 'Deleted successfully' }),
+			);
 	} catch (error) {
 		await transaction.rollback();
 		next(error);

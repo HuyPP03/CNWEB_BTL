@@ -1,18 +1,35 @@
 import express from 'express';
 import * as reviewService from '../controllers/customers/reviews.controller';
-import { isManager, verifyToken } from 'src/middleware/authenticate.middleware';
+import { isManager, verifyToken } from '../middleware/authenticate.middleware';
+import { authorization, RoleManager } from '../middleware/manager.middleware';
 
 const router = express.Router();
-router.use(verifyToken);
 
+//Public
 router.get('/', reviewService.getAllReviews);
 router.get('/:id', reviewService.getReviewsByProduct);
 
-router.post('/', reviewService.createReview);
-router.put('/:id', reviewService.updateReview);
+//Customer
+router.post('/', verifyToken, reviewService.createReview);
+router.put('/:id', verifyToken, reviewService.updateReview);
 
-router.delete('/customer/:id', reviewService.deleteReview);
+//Manager
+router.delete(
+	'/:id',
+	isManager,
+	verifyToken,
+	authorization([RoleManager.manager, RoleManager.staff]),
+	reviewService.deleteReview,
+);
 
-router.delete('/:id', isManager, reviewService.deleteReview);
+router.delete('/customer/:id', verifyToken, reviewService.deleteReview);
+
+router.put(
+	'/approve/:id',
+	isManager,
+	verifyToken,
+	authorization([RoleManager.manager, RoleManager.staff]),
+	reviewService.approveReview,
+);
 
 export default router;

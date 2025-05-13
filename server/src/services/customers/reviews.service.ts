@@ -9,6 +9,7 @@ export const createReview = async (
 	const review = {
 		...data,
 		customerId,
+		isApproved: false,
 	};
 	const res = await db.reviews.create(review, { transaction });
 
@@ -46,14 +47,15 @@ export const updateReview = async (
 	transaction?: Transaction,
 ) => {
 	const review = await db.reviews.findOne({
-		where: {
-			id: id,
-			customerId: customerId,
-		},
+		where: { id, customerId },
 		transaction,
 	});
 	if (!review) throw new Error('Review not found');
-	await review.update(data, transaction);
+	const dataReview = {
+		...data,
+		isApproved: false,
+	};
+	await review.update(dataReview, { transaction });
 	const res = await db.reviews.findOne({
 		where: { id: id },
 		include: [{ model: db.products }],

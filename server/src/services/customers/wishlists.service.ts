@@ -10,14 +10,17 @@ export const getAllWishlists = async (transaction?: Transaction) => {
 
 export const createWishlist = async (
 	customerId: number,
-	data: any,
+	productId: number,
 	transaction?: Transaction,
 ) => {
-	const wishlist = {
-		...data,
-		customerId,
-	};
-	const wish = await db.wishlists.create(wishlist, { transaction });
+	const product = await db.products.findByPk(productId, { transaction });
+	if (!product) {
+		throw new Error('Product does not exist');
+	}
+
+	const data = { customerId, productId };
+	const wish = await db.wishlists.create(data, { transaction });
+
 	return await db.wishlists.findByPk(wish.id, {
 		include: [{ model: db.products }],
 		transaction,
