@@ -11,30 +11,32 @@ const router = express.Router();
 // Router cho customers (lấy ra sản phẩm)
 router.get('/', productsCustomers.getProducts);
 
-router.use(verifyToken);
-
 // Wishlist cho customer
-router.get('/wishlist', wishlist.getAllWishlists);
-router.post('/wishlist/:id', wishlist.createWishlist);
-router.delete('/wishlist/:id', wishlist.deleteWishlist);
-
-router.use(isManager);
+router.get('/wishlist', verifyToken, wishlist.getAllWishlists);
+router.post('/wishlist/:id', verifyToken, wishlist.createWishlist);
+router.delete('/wishlist/:id', verifyToken, wishlist.deleteWishlist);
 
 // Router cho managers
 router.post(
 	'/',
+	isManager,
+	verifyToken,
 	authorization([RoleManager.manager, RoleManager.staff]),
 	upload.any(),
 	productsManagers.createProduct,
 );
 router.put(
 	'/:id',
+	isManager,
+	verifyToken,
 	authorization([RoleManager.manager, RoleManager.staff]),
 	upload.any(),
 	productsManagers.updateProduct,
 );
 router.delete(
 	'/:id',
+	isManager,
+	verifyToken,
 	authorization([RoleManager.manager, RoleManager.staff]),
 	productsManagers.deleteProduct,
 );

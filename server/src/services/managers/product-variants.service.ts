@@ -83,8 +83,6 @@ export const addVariantAttributes = async (
 
 	if (!variant) throw new Error('Variant not found');
 
-	const createdVariantAttributes = [];
-
 	for (const attribute of attributes) {
 		const { attributeTypeId, value } = attribute;
 
@@ -119,7 +117,7 @@ export const addVariantAttributes = async (
 		);
 
 		// Tạo variantAttribute
-		const variantAttr = await variantAttributeService.createAttribute(
+		await variantAttributeService.createAttribute(
 			[
 				{
 					productId: variant.productId,
@@ -131,8 +129,6 @@ export const addVariantAttributes = async (
 			],
 			transaction,
 		);
-
-		createdVariantAttributes.push(variantAttr);
 	}
 
 	// Trả về toàn bộ variant attributes của variant
