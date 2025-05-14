@@ -6,27 +6,11 @@ export const getVariants = async (filters: any, transaction?: Transaction) => {
 	const where: any = {};
 	const include: any[] = [
 		{
-			model: db.products,
-			include: [
-				{
-					model: db.categories,
-				},
-			],
+			model: db.variantAttributes,
+			include: [{ model: db.attributeValues }],
 		},
 		{ model: db.productImages },
-		{
-			model: db.variantAttributes,
-			include: [
-				{
-					model: db.attributeTypes,
-					include: [{ model: db.attributeTypes, as: 'parent' }],
-				},
-				{
-					model: db.attributeValues,
-					include: [{ model: db.attributeTypes }],
-				},
-			],
-		},
+		{ model: db.products },
 	];
 
 	// Điều kiện lọc theo id biến thể sản phẩm

@@ -2,8 +2,6 @@ import { Op, Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
 import { variantAttributeService } from '../../services/managers/variant-attributes.service';
 import { attributeValueService } from '../../services/managers/attribute-values.service';
-import { Categories } from 'src/models/categories.model';
-import { transport } from 'winston';
 
 // Tạo biến thể sản phẩm mới
 export const createVariant = (data: any, transaction?: Transaction) => {
@@ -85,8 +83,6 @@ export const addVariantAttributes = async (
 
 	if (!variant) throw new Error('Variant not found');
 
-	const createdVariantAttributes = [];
-
 	for (const attribute of attributes) {
 		const { attributeTypeId, value } = attribute;
 
@@ -121,7 +117,7 @@ export const addVariantAttributes = async (
 		);
 
 		// Tạo variantAttribute
-		const variantAttr = await variantAttributeService.createAttribute(
+		await variantAttributeService.createAttribute(
 			[
 				{
 					productId: variant.productId,
@@ -133,8 +129,6 @@ export const addVariantAttributes = async (
 			],
 			transaction,
 		);
-
-		createdVariantAttributes.push(variantAttr);
 	}
 
 	// Trả về toàn bộ variant attributes của variant
