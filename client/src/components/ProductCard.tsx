@@ -1,27 +1,5 @@
 import React from "react";
-
-export interface Product {
-    id: number;
-    name: string;
-    brand: string;
-    category: 'laptop' | 'smartphone' | 'smartwatch' | 'audio' | 'tablet' | 'other';
-    specs: {
-        processor: string;
-        ram: string;
-        storage: string;
-        other?: string[];
-    };
-    price: number;
-    originalPrice: number;
-    discountPercentage: number;
-    rating: number;
-    reviews: number;
-    giftValue?: number;
-    image: string;
-    isPromotion?: boolean;
-    isNew?: boolean;
-    hasComparison?: boolean;
-}
+import { Product } from "../types";
 
 const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
     return (

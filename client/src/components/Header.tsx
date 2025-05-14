@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, Map, Search, ShoppingCart, User, X, Bell, Menu, LogOut } from 'lucide-react';
 import AddressSelection from './AddressSelection';
 import { mockProducts } from '../data/products';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 // Mock suggestions type
 interface SuggestionProduct {
@@ -33,7 +33,6 @@ const Header: React.FC = () => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
-
   const mainCategories = [
     { name: 'Điện thoại', path: '/smartphone', icon: 'phone' },
     { name: 'Laptop', path: '/laptop', icon: 'laptop' },
@@ -41,55 +40,58 @@ const Header: React.FC = () => {
     { name: 'Smartwatch', path: '/smartwatch', icon: 'watch' },
     { name: 'Đồng hồ', path: '/dong-ho', icon: 'clock' },
     { name: 'Tablet', path: '/tablet', icon: 'tablet' },
-    { name: 'Máy cũ, Thu cũ', path: '/may-cu', icon: 'refurbished', hasDropdown: true },
     { name: 'Màn hình, Máy in', path: '/man-hinh-may-in', icon: 'monitor', hasDropdown: true },
-    { name: 'Sim, Thẻ cào', path: '/sim-the-cao', icon: 'sim', hasDropdown: true },
-    { name: 'Dịch vụ tiện ích', path: '/dich-vu-tien-ich', icon: 'services', hasDropdown: true },
+    { name: 'Camera', path: '/camera', icon: 'camera' },
+    { name: 'Thiết bị giám sát', path: '/thiet-bi-giam-sat', icon: 'cctv' },
+    { name: 'Máy in', path: '/may-in', icon: 'printer' },
   ];
-
   const accessoriesCategories = [
     {
       title: 'Phụ kiện di động',
       items: [
-        { name: 'Sạc dự phòng', path: '/phu-kien/sac-du-phong', image: '/sac-du-phong.png' },
-        { name: 'Sạc, cáp', path: '/phu-kien/sac-cap', image: '/sac-cap.png' },
-        { name: 'Ốp lưng điện thoại', path: '/phu-kien/op-lung-dien-thoai', image: '/op-lung.png' },
-        { name: 'Ốp lưng máy tính bảng', path: '/phu-kien/op-lung-may-tinh-bang', image: '/op-lung-tablet.png' },
-        { name: 'Miếng dán điện thoại', path: '/phu-kien/mieng-dan-dien-thoai', image: '/mieng-dan.png' },
-        { name: 'Miếng dán Camera', path: '/phu-kien/mieng-dan-camera', image: '/mieng-dan-camera.png' },
+        { name: 'Sạc dự phòng', path: '/sac-du-phong', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/99/61/9961578164909f8a9ee7678dc95feeb0.png' },
+        { name: 'Sạc, cáp', path: '/sac-cap', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/6b/64/6b646ec5f1e9a726933ee31b86a32524.png' },
+        { name: 'Ốp lưng điện thoại', path: '/op-lung-dien-thoai', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/34/02/3402dd9ba3457b84482572d10bcae84e.png' },
+        { name: 'Ốp lưng máy tính bảng', path: '/op-lung-may-tinh-bang', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/83/60/836050bcf5e1c92dd8d9899bef9f039d.png' },
+        { name: 'Miếng dán màn hình', path: '/mieng-dan-man-hinh', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/72/f4/72f4b3ee8f5c1b1a170d590b3a07256d.png' },
+        { name: 'Miếng dán Camera', path: '/mieng-dan-camera', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/33/77/33770e364079ac9dd3888190bd574b8d.png' },
+        { name: 'Túi đựng AirPods', path: '/tui-dung-airpods', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/24/66/2466de3fc4831f43afb0d69462130030.png' },
+        { name: 'AirTag, Vỏ bảo vệ', path: '/airtag-vo-bao-ve', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/27/e7/27e7538fb93c10e768cd0344ee8f8cd9.png' },
+        { name: 'Bút tablet', path: '/but-tablet', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/3f/d5/3fd5723ac6f01521bd3d768d8ebc8d1a.png' },
+        { name: 'Dây đồng hồ', path: '/day-dong-ho', image: '/day-dong-ho.png' },
       ]
     },
     {
       title: 'Thiết bị âm thanh',
       items: [
-        { name: 'Tai nghe Bluetooth', path: '/phu-kien/tai-nghe-bluetooth', image: '/tai-nghe-bluetooth.png' },
-        { name: 'Tai nghe dây', path: '/phu-kien/tai-nghe-day', image: '/tai-nghe-day.png' },
-        { name: 'Tai nghe chụp tai', path: '/phu-kien/tai-nghe-chup-tai', image: '/tai-nghe-chup-tai.png' },
-        { name: 'Tai nghe thể thao', path: '/phu-kien/tai-nghe-the-thao', image: '/tai-nghe-the-thao.png' },
-        { name: 'Loa', path: '/phu-kien/loa', image: '/loa.png' },
-        { name: 'Micro', path: '/phu-kien/micro', image: '/micro.png' },
+        { name: 'Tai nghe Bluetooth', path: '/tai-nghe-bluetooth', image: '/tai-nghe-bluetooth.png' },
+        { name: 'Tai nghe dây', path: '/tai-nghe-day', image: '/tai-nghe-day.png' },
+        { name: 'Tai nghe chụp tai', path: '/tai-nghe-chup-tai', image: '/tai-nghe-chup-tai.png' },
+        { name: 'Tai nghe thể thao', path: '/tai-nghe-the-thao', image: '/tai-nghe-the-thao.png' },
+        { name: 'Loa', path: '/loa', image: '/loa.png' },
+        { name: 'Micro', path: '/micro', image: '/micro.png' },
       ]
     },
     {
       title: 'Camera / Flycam / Gimbal',
       items: [
-        { name: 'Camera trong nhà', path: '/phu-kien/camera-trong-nha', image: '/camera-trong-nha.png' },
-        { name: 'Camera ngoài trời', path: '/phu-kien/camera-ngoai-troi', image: '/camera-ngoai-troi.png' },
-        { name: 'Flycam', path: '/phu-kien/flycam', image: '/flycam.png' },
-        { name: 'Camera hành trình', path: '/phu-kien/camera-hanh-trinh', image: '/camera-hanh-trinh.png' },
-        { name: 'Gimbal', path: '/phu-kien/gimbal', image: '/gimbal.png' },
-        { name: 'Máy chiếu', path: '/phu-kien/may-chieu', image: '/may-chieu.png' },
+        { name: 'Camera trong nhà', path: '/camera-trong-nha', image: '/camera-trong-nha.png' },
+        { name: 'Camera ngoài trời', path: '/camera-ngoai-troi', image: '/camera-ngoai-troi.png' },
+        { name: 'Flycam', path: '/flycam', image: '/flycam.png' },
+        { name: 'Camera hành trình', path: '/camera-hanh-trinh', image: '/camera-hanh-trinh.png' },
+        { name: 'Gimbal', path: '/gimbal', image: '/gimbal.png' },
+        { name: 'Máy chiếu', path: '/may-chieu', image: '/may-chieu.png' },
       ]
     },
     {
       title: 'Phụ kiện laptop',
       items: [
-        { name: 'Hub, cáp chuyển đổi', path: '/phu-kien/hub-cap-chuyen-doi', image: '/hub-cap.png' },
-        { name: 'Chuột máy tính', path: '/phu-kien/chuot-may-tinh', image: '/chuot.png' },
-        { name: 'Bàn phím', path: '/phu-kien/ban-phim', image: '/ban-phim.png' },
-        { name: 'Router - Thiết bị mạng', path: '/phu-kien/router', image: '/router.png' },
-        { name: 'Balo, túi chống sốc', path: '/phu-kien/balo-tui', image: '/balo.png' },
-        { name: 'Phần mềm', path: '/phu-kien/phan-mem', image: '/phan-mem.png' },
+        { name: 'Hub, cáp chuyển đổi', path: '/hub-cap-chuyen-doi', image: '/hub-cap.png' },
+        { name: 'Chuột máy tính', path: '/chuot-may-tinh', image: '/chuot.png' },
+        { name: 'Bàn phím', path: '/ban-phim', image: '/ban-phim.png' },
+        { name: 'Router - Thiết bị mạng', path: '/router-thiet-bi-mang', image: '/router.png' },
+        { name: 'Balo, túi chống sốc', path: '/balo-tui-chong-soc', image: '/balo.png' },
+        { name: 'Phần mềm', path: '/phan-mem', image: '/phan-mem.png' },
       ]
     },
     {
@@ -206,7 +208,6 @@ const Header: React.FC = () => {
     setCurrentLocation(address.province);
     setIsAddressModalOpen(false);
   };
-
   const handleCategoryMouseEnter = (category: string) => {
     if (category === 'Phụ kiện') {
       setActiveCategoryDropdown(category);
@@ -366,7 +367,7 @@ const Header: React.FC = () => {
               {/* Account */}
               {isAuthenticated ? (
                 <div className="hidden md:block relative" ref={userDropdownRef}>
-                  <button 
+                  <button
                     className="flex items-center text-white hover:opacity-80 group"
                     onClick={() => setShowUserDropdown(!showUserDropdown)}
                   >
@@ -377,12 +378,12 @@ const Header: React.FC = () => {
                       <span className="text-xs text-white/80">Tài khoản</span>
                       <span className="text-sm font-medium">{user?.fullName?.split(' ').pop() || 'Người dùng'}</span>
                     </div>
-                    <ChevronDown 
-                      size={16} 
+                    <ChevronDown
+                      size={16}
                       className={`ml-1 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
                     />
                   </button>
-                  
+
                   {/* User dropdown menu */}
                   {showUserDropdown && (
                     <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50 animate-fadeDown">
@@ -399,7 +400,7 @@ const Header: React.FC = () => {
                       <Link to="/notifications" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setShowUserDropdown(false)}>
                         Thông báo
                       </Link>
-                      <button 
+                      <button
                         className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 border-t"
                         onClick={handleLogout}
                       >
@@ -465,81 +466,72 @@ const Header: React.FC = () => {
                       onMouseEnter={() => handleCategoryMouseEnter(category.name)}
                       onMouseLeave={handleCategoryMouseLeave}
                     >
-                      <div className="w-8 h-8 mb-1 flex items-center justify-center bg-white/20 rounded-full hover:bg-white/30 transition-colors">
-                        {category.icon === 'phone' && <i className="fas fa-mobile-alt text-lg"></i>}
+                      <div className="w-8 h-8 mb-1 flex items-center justify-center bg-white/20 rounded-full hover:bg-white/30 transition-colors">                      {category.icon === 'phone' && <i className="fas fa-mobile-alt text-lg"></i>}
                         {category.icon === 'laptop' && <i className="fas fa-laptop text-lg"></i>}
                         {category.icon === 'accessories' && <i className="fas fa-headphones text-lg"></i>}
                         {category.icon === 'watch' && <i className="fas fa-stopwatch text-lg"></i>}
                         {category.icon === 'clock' && <i className="fas fa-clock text-lg"></i>}
                         {category.icon === 'tablet' && <i className="fas fa-tablet-alt text-lg"></i>}
-                        {category.icon === 'refurbished' && <i className="fas fa-exchange-alt text-lg"></i>}
                         {category.icon === 'monitor' && <i className="fas fa-desktop text-lg"></i>}
-                        {category.icon === 'sim' && <i className="fas fa-sim-card text-lg"></i>}
-                        {category.icon === 'services' && <i className="fas fa-concierge-bell text-lg"></i>}
+                        {category.icon === 'camera' && <i className="fas fa-camera text-lg"></i>}
+                        {category.icon === 'cctv' && <i className="fas fa-video text-lg"></i>}
+                        {category.icon === 'printer' && <i className="fas fa-print text-lg"></i>}
                       </div>
                       <span className="text-xs font-medium">{category.name}</span>
-                      {category.hasDropdown && (
+                      {/* {category.hasDropdown && (
                         <ChevronDown size={12} className="ml-1 transition-transform group-hover:rotate-180" />
-                      )}
+                      )} */}
                     </Link>
                   </li>
                 ))}
               </ul>
-
               {/* Dropdown menu for Phụ kiện */}
               {activeCategoryDropdown === 'Phụ kiện' && (
                 <div
-                  className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-b-lg z-50 animate-fadeDown"
+                  className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-b-lg z-50 animate-fadeDown max-h-[65vh] overflow-y-auto modern-scrollbar"
                   onMouseEnter={() => setActiveCategoryDropdown('Phụ kiện')}
                   onMouseLeave={() => setActiveCategoryDropdown(null)}
-                >
-                  <div className="max-w-7xl mx-auto p-6">
-                    <div className="grid grid-cols-2 gap-8">
-                      <div className="space-y-8">
-                        {/* Phụ kiện di động */}
-                        <div>
-                          <h3 className="font-medium mb-4 text-gray-800 border-b pb-2">Phụ kiện di động</h3>
-                          <div className="grid grid-cols-3 gap-5">
-                            {accessoriesCategories[0].items.map((item) => (
-                              <Link
-                                key={item.name}
-                                to={item.path}
-                                className="flex flex-col items-center text-center group"
-                              >
-                                <div className="w-14 h-14 mb-2 bg-gray-100 rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-gray-50 transition-all transform group-hover:scale-105">
-                                  <img src={item.image} alt={item.name} className="w-8 h-8 object-contain" />
-                                </div>
-                                <span className="text-xs text-gray-700 group-hover:text-blue-600 transition-colors">{item.name}</span>
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Thiết bị âm thanh */}
-                        <div>
-                          <h3 className="font-medium mb-4 text-gray-800 border-b pb-2">Thiết bị âm thanh</h3>
-                          <div className="grid grid-cols-3 gap-5">
-                            {accessoriesCategories[1].items.map((item) => (
-                              <Link
-                                key={item.name}
-                                to={item.path}
-                                className="flex flex-col items-center text-center group"
-                              >
-                                <div className="w-14 h-14 mb-2 bg-gray-100 rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-gray-50 transition-all transform group-hover:scale-105">
-                                  <img src={item.image} alt={item.name} className="w-8 h-8 object-contain" />
-                                </div>
-                                <span className="text-xs text-gray-700 group-hover:text-blue-600 transition-colors">{item.name}</span>
-                              </Link>
-                            ))}
-                          </div>
+                >                  <div className="max-w-7xl mx-auto p-4">
+                    <div className="grid grid-cols-2 gap-6">                      <div className="space-y-6">
+                      {/* Phụ kiện di động */}
+                      <div>                        <h3 className="font-medium mb-3 text-gray-800 border-b pb-1.5">Phụ kiện di động</h3>
+                        <div className="grid grid-cols-3 gap-3">
+                          {accessoriesCategories[0].items.map((item) => (
+                            <Link
+                              key={item.name}
+                              to={item.path}
+                              className="flex flex-col items-center text-center group"
+                            >
+                              <div className="w-14 h-14 mb-2 bg-gray-100 rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-gray-50 transition-all transform group-hover:scale-105">
+                                <img src={item.image} alt={item.name} className="w-8 h-8 object-contain" />
+                              </div>
+                              <span className="text-xs text-gray-700 group-hover:text-blue-600 transition-colors">{item.name}</span>
+                            </Link>
+                          ))}
                         </div>
                       </div>
 
-                      <div className="space-y-8">
+                      {/* Thiết bị âm thanh */}
+                      <div>                        <h3 className="font-medium mb-3 text-gray-800 border-b pb-1.5">Thiết bị âm thanh</h3>
+                        <div className="grid grid-cols-3 gap-3">
+                          {accessoriesCategories[1].items.map((item) => (
+                            <Link
+                              key={item.name}
+                              to={item.path}
+                              className="flex flex-col items-center text-center group"
+                            >
+                              <div className="w-14 h-14 mb-2 bg-gray-100 rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-gray-50 transition-all transform group-hover:scale-105">
+                                <img src={item.image} alt={item.name} className="w-8 h-8 object-contain" />
+                              </div>
+                              <span className="text-xs text-gray-700 group-hover:text-blue-600 transition-colors">{item.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>                      <div className="space-y-6">
                         {/* Camera / Flycam / Gimbal */}
-                        <div>
-                          <h3 className="font-medium mb-4 text-gray-800 border-b pb-2">Camera / Flycam / Gimbal</h3>
-                          <div className="grid grid-cols-3 gap-5">
+                        <div>                          <h3 className="font-medium mb-3 text-gray-800 border-b pb-1.5">Camera / Flycam / Gimbal</h3>
+                          <div className="grid grid-cols-3 gap-3">
                             {accessoriesCategories[2].items.map((item) => (
                               <Link
                                 key={item.name}
@@ -556,9 +548,8 @@ const Header: React.FC = () => {
                         </div>
 
                         {/* Phụ kiện laptop */}
-                        <div>
-                          <h3 className="font-medium mb-4 text-gray-800 border-b pb-2">Phụ kiện laptop</h3>
-                          <div className="grid grid-cols-3 gap-5">
+                        <div>                          <h3 className="font-medium mb-4 text-gray-800 border-b pb-2">Phụ kiện laptop</h3>
+                          <div className="grid grid-cols-3 gap-3">
                             {accessoriesCategories[3].items.map((item) => (
                               <Link
                                 key={item.name}
@@ -574,20 +565,16 @@ const Header: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Thương hiệu hàng đầu - Special section */}
-                    <div className="mt-8 pt-6 border-t">
-                      <h3 className="font-medium mb-4 text-gray-800">Thương hiệu hàng đầu</h3>
-                      <div className="grid grid-cols-6 gap-6">
+                    </div>                    {/* Thương hiệu hàng đầu - Special section */}
+                    <div className="mt-5 pt-4 border-t">                      <h3 className="font-medium mb-3 text-gray-800">Thương hiệu hàng đầu</h3>
+                      <div className="grid grid-cols-6 gap-3">
                         {accessoriesCategories[4].items.map((item) => (
                           <Link
                             key={item.name}
                             to={item.path}
                             className="flex flex-col items-center text-center group"
-                          >
-                            <div className="w-16 h-16 mb-2 bg-gray-100 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-gray-50 transition-all transform group-hover:scale-105 border border-gray-200">
-                              <img src={item.image} alt={item.name} className="w-10 h-10 object-contain" />
+                          >                            <div className="w-14 h-14 mb-2 bg-gray-100 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-gray-50 transition-all transform group-hover:scale-105 border border-gray-200">
+                              <img src={item.image} alt={item.name} className="w-9 h-9 object-contain" />
                             </div>
                             <span className="text-xs font-medium text-gray-800 group-hover:text-blue-600 transition-colors">{item.name}</span>
                           </Link>
@@ -647,15 +634,15 @@ const Header: React.FC = () => {
                 </>
               ) : (
                 <div className="mt-4 flex space-x-4">
-                  <Link 
+                  <Link
                     to="/auth/login"
-                    className="flex-1 bg-white rounded py-2 text-center text-blue-600 text-sm font-medium" 
+                    className="flex-1 bg-white rounded py-2 text-center text-blue-600 text-sm font-medium"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Đăng nhập
                   </Link>
-                  <Link 
-                    to="/auth/register" 
+                  <Link
+                    to="/auth/register"
                     className="flex-1 bg-white/20 rounded py-2 text-center text-white text-sm font-medium"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -677,9 +664,7 @@ const Header: React.FC = () => {
                 <span className="text-sm font-medium">{currentLocation}</span>
               </div>
               <ChevronDown size={16} className="ml-auto" />
-            </a>
-
-            {/* Categories */}
+            </a>            {/* Categories */}
             <div className="flex-1 overflow-y-auto">
               <div className="p-2">
                 {mainCategories.map((category) => (
@@ -692,7 +677,14 @@ const Header: React.FC = () => {
                     <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center mr-3">
                       {category.icon === 'phone' && <i className="fas fa-mobile-alt text-sm text-blue-600"></i>}
                       {category.icon === 'laptop' && <i className="fas fa-laptop text-sm text-blue-600"></i>}
-                      {/* ...rest of icons... */}
+                      {category.icon === 'accessories' && <i className="fas fa-headphones text-sm text-blue-600"></i>}
+                      {category.icon === 'watch' && <i className="fas fa-stopwatch text-sm text-blue-600"></i>}
+                      {category.icon === 'clock' && <i className="fas fa-clock text-sm text-blue-600"></i>}
+                      {category.icon === 'tablet' && <i className="fas fa-tablet-alt text-sm text-blue-600"></i>}
+                      {category.icon === 'monitor' && <i className="fas fa-desktop text-sm text-blue-600"></i>}
+                      {category.icon === 'camera' && <i className="fas fa-camera text-sm text-blue-600"></i>}
+                      {category.icon === 'cctv' && <i className="fas fa-video text-sm text-blue-600"></i>}
+                      {category.icon === 'printer' && <i className="fas fa-print text-sm text-blue-600"></i>}
                     </div>
                     <span className="text-sm">{category.name}</span>
                     {category.hasDropdown && <ChevronDown size={16} className="ml-auto" />}
@@ -735,9 +727,7 @@ const Header: React.FC = () => {
         isOpen={isAddressModalOpen}
         onClose={handleCloseAddressModal}
         onAddressSelected={handleAddressSelected}
-      />
-
-      {/* Add these styles to your global CSS */}
+      />      {/* Add these styles to your global CSS */}
       <style>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
@@ -761,6 +751,27 @@ const Header: React.FC = () => {
         }
         .animate-fadeDown {
           animation: fadeDown 0.2s ease-out forwards;
+        }
+        
+        /* Modern scrollbar styling */
+        .modern-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .modern-scrollbar::-webkit-scrollbar-track {
+          background: rgba(241, 241, 241, 0.5);
+          border-radius: 10px;
+        }
+        .modern-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(136, 136, 136, 0.5);
+          border-radius: 10px;
+          transition: background 0.2s ease;
+        }
+        .modern-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(85, 85, 85, 0.7);
+        }
+        .modern-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(136, 136, 136, 0.5) rgba(241, 241, 241, 0.5);
         }
       `}</style>
     </>
