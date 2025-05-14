@@ -1,12 +1,13 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
+import authService from '../services/auth.service';
+import { parseJwt } from '../utils/jwt';
 
-// Định nghĩa các kiểu dữ liệu
 export interface User {
   id: string;
   fullName: string;
   phone: string;
   email?: string;
-  role: 'user' | 'admin' | 'student';
+  role: 'user' | 'admin' | 'staff';
   createdAt: Date;
 }
 
@@ -14,7 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (phone: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
   logout: () => void;
   error: string | null;
@@ -24,10 +25,10 @@ interface AuthContextType {
 export interface RegisterData {
   fullName: string;
   phone: string;
-  email?: string;
-  birthDate: string;
+  email: string;
   password: string;
-  isStudent: boolean;
+  birthDate?: string;
+  isStudent?: boolean;
 }
 
 // Tạo context với giá trị mặc định
@@ -42,9 +43,6 @@ const AuthContext = createContext<AuthContextType>({
   clearError: () => { },
 });
 
-// Hook để sử dụng context
-export const useAuth = () => useContext(AuthContext);
-
 // Provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -55,13 +53,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuthStatus = () => {
       try {
+        const token = localStorage.getItem('accessToken');
         const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
+
+        if (token && storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+
+            // Verify if the token is still valid
+            const tokenData = parseJwt(token);
+            if (tokenData) {
+              console.log('Token still valid, user authenticated');
+              setUser(userData);
+            } else {
+              // Token invalid or expired, log out the user
+              console.log('Token invalid or expired, logging out');
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('user');
+            }
+          } catch (parseError) {
+            console.error('Error parsing stored user data or token:', parseError);
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('user');
+          }
         }
       } catch (err) {
         console.error('Error checking auth status:', err);
+        // On error, remove potentially corrupted data
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
       } finally {
         setIsLoading(false);
       }
@@ -70,70 +90,112 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuthStatus();
   }, []);
 
-  // Mock API calls - Trong thực tế, sẽ gọi đến backend API
-  const login = async (phone: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Mô phỏng gọi API (thay thế bằng API thực tế khi có)
-      // Trong môi trường thực tế, sẽ gọi đến endpoint đăng nhập của backend
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mô phỏng độ trễ mạng
+      console.log('Logging in with:', email, password);
 
-      // Kiểm tra đăng nhập (mô phỏng)
-      if (phone === '0123456789' && password === 'password123') {
-        const mockUser: User = {
-          id: '1',
-          fullName: 'Nguyễn Văn A',
-          phone: phone,
-          email: 'example@gmail.com',
-          role: 'user',
-          createdAt: new Date(),
-        };
+      const response = await authService.login(email, password);
+      console.log('Got login response:', response);
+      if (response && response.accessToken) {
+        const token = response.accessToken;
+        // Lưu access token
+        localStorage.setItem('accessToken', token);
+        console.log('Saved token:', token);
 
-        // Lưu thông tin người dùng vào localStorage để duy trì trạng thái đăng nhập
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        setUser(mockUser);
-        return true;
+        // Parse JWT token để lấy thông tin người dùng
+        const tokenData = parseJwt(token);
+        console.log('Token data:', tokenData);
+
+        if (tokenData && tokenData.id) {
+          // Tạo thông tin người dùng từ dữ liệu trong token
+          const user: User = {
+            id: tokenData.id.toString(),
+            fullName: tokenData.fullName || email.split('@')[0], // Fallback to email username if no fullName
+            phone: tokenData.phone || '',
+            email: tokenData.email || email,
+            role: tokenData.role || 'user',
+            createdAt: new Date(),
+          };
+
+          // Lưu thông tin người dùng vào localStorage để duy trì trạng thái đăng nhập
+          localStorage.setItem('user', JSON.stringify(user));
+          setUser(user);
+          return true;
+        } else {
+          console.log('Using fallback user data since token did not contain user info');
+          // Fallback to using the email as basic user info when token data is invalid
+          const basicUser: User = {
+            id: '0',
+            fullName: email.split('@')[0],
+            phone: '',
+            email: email,
+            role: 'user',
+            createdAt: new Date(),
+          };
+
+          localStorage.setItem('user', JSON.stringify(basicUser));
+          setUser(basicUser);
+          return true;
+        }
       } else {
-        setError('Số điện thoại hoặc mật khẩu không đúng');
+        setError('Không thể đăng nhập. Vui lòng thử lại.');
         return false;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError('Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.');
+
+      // Try to extract more detailed error message from API response
+      if (err.response?.data?.message) {
+        setError(`Lỗi: ${err.response.data.message}`);
+      } else if (err.response?.status === 401) {
+        setError('Email hoặc mật khẩu không đúng');
+      } else if (err.response?.status === 403) {
+        setError('Tài khoản của bạn chưa được xác thực. Vui lòng kiểm tra email để xác thực.');
+      } else if (err.message === 'Network Error') {
+        setError('Lỗi kết nối. Vui lòng kiểm tra kết nối internet và thử lại sau.');
+      } else {
+        setError('Không thể đăng nhập. Vui lòng thử lại sau.');
+      }
+
       return false;
     } finally {
       setIsLoading(false);
     }
   };
-
   const register = async (userData: RegisterData): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Mô phỏng gọi API (thay thế bằng API thực tế khi có)
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mô phỏng độ trễ mạng
+      await authService.register(userData);
 
-      // Kiểm tra đăng ký (mô phỏng)
-      // Trong thực tế, kiểm tra này sẽ được thực hiện ở phía server
-      const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9), // Random ID
-        fullName: userData.fullName,
-        phone: userData.phone,
-        email: userData.email,
-        role: userData.isStudent ? 'student' : 'user',
-        createdAt: new Date(),
-      };
-
-      // Lưu thông tin người dùng vào localStorage để duy trì trạng thái đăng nhập
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
+      // Không đăng nhập tự động vì cần xác nhận email
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      setError('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.');
+      // Check if there's a more detailed error message from the API
+      if (error.response?.data?.message) {
+        const errorMsg = error.response.data.message.toLowerCase();
+        console.log('Error message:', errorMsg);
+
+        // Set specific user-friendly error messages based on the error
+        if (errorMsg.includes('email') && errorMsg.includes('exists')) {
+          setError('Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.');
+        } else if (errorMsg.includes('phone') && errorMsg.includes('exists')) {
+          setError('Số điện thoại này đã được đăng ký. Vui lòng sử dụng số điện thoại khác.');
+        } else if (errorMsg.includes('exists')) {
+          setError('Email hoặc số điện thoại này đã được đăng ký. Vui lòng sử dụng thông tin khác hoặc đăng nhập.');
+        } else {
+          setError(error.response.data.message);
+        }
+      } else if (error.message === 'Network Error') {
+        setError('Lỗi kết nối. Vui lòng kiểm tra kết nối internet và thử lại sau.');
+      } else {
+        setError('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.');
+      }
       return false;
     } finally {
       setIsLoading(false);
@@ -141,6 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     setUser(null);
   };

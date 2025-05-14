@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ProductCard from './ProductCard';
-import { products } from '../data/products';
+import { mockProducts } from '../data';
 
 // Brand filter button component
 const BrandButton: React.FC<{ brand: string; logo: string; isActive: boolean; onClick: () => void }> = ({
@@ -40,15 +40,32 @@ const SortOption: React.FC<{ label: string; isActive: boolean; onClick: () => vo
 
 
 
-const ProductListing: React.FC = () => {
+interface ProductListingProps {
+    categoryId?: number;
+}
+
+const ProductListing: React.FC<ProductListingProps> = ({ categoryId }) => {
     // Brand filtering state
     const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
     // Sorting state
     const [sortOption, setSortOption] = useState<string>('Nổi bật');
 
+    // Price filtering state
+    const [priceRange, setPriceRange] = useState<string | null>(null);
+
     // State for visible products count
     const [visibleProducts, setVisibleProducts] = useState<number>(10);
+
+    // NOTE: In a real implementation, we would call an API with the categoryId
+    // For example: 
+    // useEffect(() => {
+    //     if (categoryId) {
+    //         fetchProductsByCategory(categoryId);
+    //     } else {
+    //         fetchAllProducts();
+    //     }
+    // }, [categoryId]);
 
     const brands = [
         { name: 'ASUS', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/9f/72/9f72697b78e17090628020cca9cce5e6.png' },
@@ -63,11 +80,44 @@ const ProductListing: React.FC = () => {
 
     const sortOptions = ['Nổi bật', 'Bán chạy', 'Giảm giá', 'Mới', 'Giá'];
 
+    // Price range options
+    const priceRanges = [
+        { label: "Dưới 5 triệu", value: "under-5", min: 0, max: 5000000 },
+        { label: "Từ 5 - 10 triệu", value: "5-10", min: 5000000, max: 10000000 },
+        { label: "Từ 10 - 20 triệu", value: "10-20", min: 10000000, max: 20000000 },
+        { label: "Từ 20 - 30 triệu", value: "20-30", min: 20000000, max: 30000000 },
+        { label: "Trên 30 triệu", value: "over-30", min: 30000000, max: Infinity }
+    ];    // First filter by category ID if provided (using the mock data structure for now)
+    // In a real implementation, this would be an API call using categoryId
+    const categoryFilteredProducts = categoryId
+        ? mockProducts.filter(product => {
+            // This is a mock implementation - in reality, products would have categoryId property
+            // For now, we're mapping from the category string to an assumed ID based on our mappings
+            const productCategoryId = product.category === 'smartphone' ? 1 :
+                product.category === 'laptop' ? 2 :
+                    product.category === 'smartwatch' ? 4 :
+                        product.category === 'tablet' ? 6 :
+                            product.category === 'audio' ? 48 : 0;
 
-    // Filter products by selected brand
-    const filteredProducts = selectedBrand
-        ? products.filter(product => product.brand === selectedBrand)
-        : products;
+            return productCategoryId === categoryId;
+        })
+        : mockProducts;
+
+    // Then filter by selected brand
+    let filteredProducts = selectedBrand
+        ? categoryFilteredProducts.filter(product => product.brand === selectedBrand)
+        : categoryFilteredProducts;
+
+    // Apply price filter if selected
+    if (priceRange) {
+        const selectedPriceRange = priceRanges.find(range => range.value === priceRange);
+        if (selectedPriceRange) {
+            filteredProducts = filteredProducts.filter(product =>
+                product.price >= selectedPriceRange.min &&
+                product.price <= selectedPriceRange.max
+            );
+        }
+    }
 
     // Sort products based on selected option
     const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -133,8 +183,27 @@ const ProductListing: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Sort options */}
-                    <div className="flex items-center text-sm text-gray-600">
+                    {/* Price range filters */}
+                    <div className="flex items-center mb-2 mt-3">
+                        <span className="text-sm text-gray-600 mr-3">Khoảng giá: </span>
+                        <div className="overflow-x-auto flex-grow">
+                            <div className="flex gap-2 pb-1">
+                                {priceRanges.map((range) => (
+                                    <button
+                                        key={range.value}
+                                        className={`px-3 py-1.5 rounded-full border transition-colors text-sm ${priceRange === range.value
+                                            ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                            : 'border-gray-200 hover:border-blue-300'
+                                            }`}
+                                        onClick={() => setPriceRange(priceRange === range.value ? null : range.value)}
+                                    >
+                                        {range.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>                    {/* Sort options */}
+                    <div className="flex items-center text-sm text-gray-600 mt-3">
                         <span className="mr-2">Sắp xếp theo:</span>
                         <div className="flex gap-2">
                             {sortOptions.map(option => (
@@ -147,6 +216,47 @@ const ProductListing: React.FC = () => {
                             ))}
                         </div>
                     </div>
+
+                    {/* Active filters */}
+                    {(selectedBrand || priceRange) && (
+                        <div className="flex flex-wrap items-center mt-3 pt-3 border-t border-gray-100">
+                            <span className="text-sm text-gray-600 mr-2">Bộ lọc đã chọn:</span>
+
+                            {selectedBrand && (
+                                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-xs mr-2 mb-1">
+                                    <span>Thương hiệu: {selectedBrand}</span>
+                                    <button
+                                        className="ml-2 text-blue-500 hover:text-blue-700"
+                                        onClick={() => setSelectedBrand(null)}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
+
+                            {priceRange && (
+                                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-xs mr-2 mb-1">
+                                    <span>Giá: {priceRanges.find(r => r.value === priceRange)?.label}</span>
+                                    <button
+                                        className="ml-2 text-blue-500 hover:text-blue-700"
+                                        onClick={() => setPriceRange(null)}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
+
+                            <button
+                                className="text-xs text-blue-600 hover:text-blue-800 ml-auto underline"
+                                onClick={() => {
+                                    setSelectedBrand(null);
+                                    setPriceRange(null);
+                                }}
+                            >
+                                Xóa tất cả
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Products Grid */}

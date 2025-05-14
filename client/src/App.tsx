@@ -1,15 +1,18 @@
-import Header from "./components/Header";
-import Footer from "./components/Footer";
-import AppRoutes from "./routers/routers";
+import AppRoutes from './routers/routers';
+import Header from './components/Header';
+import { AuthProvider } from './context/AuthContext';
+import SimpleFooter from './components/SimpleFooter';
 
 function App() {
   return (
     <div className="app">
-      <Header />
-      <main>
-        <AppRoutes />
-      </main>
-      <Footer />
+      <AuthProvider>
+        <Header />
+        <main>
+          <AppRoutes />
+        </main>
+        <SimpleFooter />
+      </AuthProvider>
     </div>
   );
 }

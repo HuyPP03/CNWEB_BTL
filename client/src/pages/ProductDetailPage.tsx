@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { mockProducts } from '../data/products';
-import { Product as ProductType } from '../components/ProductCard';
 import {
     ChevronRight, ChevronDown, Star, Check, Heart, Phone,
     ShoppingCart, ShoppingBag, Gift, Shield, Truck
 } from 'lucide-react';
+import { Product } from '../types';
 
 // Types
 interface ProductImage {
@@ -30,22 +30,12 @@ interface ProductWarranty {
     description: string;
 }
 
-interface RatingDistribution {
-    rating: number;
-    percentage: number;
-}
+// Định nghĩa kiểu dữ liệu chính xác cho specs
+type SpecCategories = 'cấu hình chi tiết' | 'thiết kế & trọng lượng' | 'pin & sạc';
 
-interface FullProductDetails {
-    id: number;
-    name: string;
-    price: number;
-    originalPrice?: number;
-    discount?: number;
-    rating: number;
-    reviewCount: number;
-    ratingDistribution: RatingDistribution[];
+interface DetailedProductInfo {
     images: ProductImage[];
-    specs: Record<string, ProductSpec[]>;
+    specs: Record<SpecCategories, ProductSpec[]>;
     promotions: ProductPromotion[];
     warranty: ProductWarranty;
     inStock: boolean;
@@ -53,7 +43,7 @@ interface FullProductDetails {
 }
 
 // Sample data for detailed product information
-const sampleDetailedInfo = {
+const sampleDetailedInfo: DetailedProductInfo = {
     images: [
         { id: 1, url: "https://cdnv2.tgdd.vn/mwg-static/tgdd/Products/Images/44/332448/macbook-pro-14-nano-m4-16-512-den-tgdd-1-638682285745176008-750x500.jpg", alt: "MacBook Pro 14 inch front view" },
         { id: 2, url: "https://cdnv2.tgdd.vn/mwg-static/tgdd/Products/Images/44/332448/macbook-pro-14-nano-m4-16-512-den-tgdd-2-638682285755776945-750x500.jpg", alt: "MacBook Pro 14 inch side view" },
@@ -123,9 +113,9 @@ const sampleDetailedInfo = {
 
 const ProductDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const [product, setProduct] = useState<ProductType | null>(null);
+    const [product, setProduct] = useState<Product | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const [activeSpecTab, setActiveSpecTab] = useState<string>("cấu hình chi tiết");
+    const [activeSpecTab, setActiveSpecTab] = useState<SpecCategories>("cấu hình chi tiết");
     const [activeTab, setActiveTab] = useState<'mô tả' | 'thông số' | 'đánh giá'>('mô tả');
     const [isSpecCollapsed, setIsSpecCollapsed] = useState(true);
 
@@ -511,7 +501,7 @@ const ProductDetailPage: React.FC = () => {
                                         {Object.keys(sampleDetailedInfo.specs).map((category) => (
                                             <button
                                                 key={category}
-                                                onClick={() => setActiveSpecTab(category)}
+                                                onClick={() => setActiveSpecTab(category as SpecCategories)}
                                                 className={`py-2 px-1 text-center border-b-2 font-medium text-sm whitespace-nowrap ${activeSpecTab === category
                                                     ? 'border-blue-500 text-blue-600'
                                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
