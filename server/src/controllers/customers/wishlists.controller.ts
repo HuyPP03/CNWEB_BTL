@@ -10,7 +10,11 @@ export const getAllWishlists = async (
 ) => {
 	const transaction = await db.sequelize.transaction();
 	try {
-		const wishlists = await wishlistService.getAllWishlists(transaction);
+		const customerId = await (req as any).user.id;
+		const wishlists = await wishlistService.getAllWishlists(
+			customerId,
+			transaction,
+		);
 		await transaction.commit();
 		return res.status(200).json(new ResOk().formatResponse(wishlists));
 	} catch (error) {

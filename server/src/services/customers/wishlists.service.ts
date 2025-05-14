@@ -1,8 +1,12 @@
 import { db } from '../../loaders/database.loader';
 import { Transaction } from 'sequelize';
 
-export const getAllWishlists = async (transaction?: Transaction) => {
+export const getAllWishlists = async (
+	customerId: number,
+	transaction?: Transaction,
+) => {
 	return await db.wishlists.findAll({
+		where: { customerId },
 		include: [{ model: db.products }],
 		transaction,
 	});
