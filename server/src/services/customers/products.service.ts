@@ -18,6 +18,9 @@ export const getProducts = async (filters: any, transaction?: Transaction) => {
 	if (filters.name) {
 		where.name = { [Op.like]: `%${filters.name}%` };
 	}
+	if (filters.slug) {
+		where.slug = filters.slug;
+	}
 
 	// Điều kiện lọc theo brandId
 	if (filters.brandId) {
