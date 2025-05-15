@@ -14,6 +14,7 @@ export const getProducts = async (
 		const {
 			id = '',
 			name = '',
+			slug = '',
 			brandId = '',
 			categoryId = '',
 			min = 0,
@@ -34,6 +35,7 @@ export const getProducts = async (
 		const filters = {
 			id: id ? Number(id) : undefined,
 			name: name as string,
+			slug: slug as string,
 			brandId: brandId ? Number(brandId) : undefined,
 			categoryId: categoryId ? Number(categoryId) : undefined,
 			priceRange: {

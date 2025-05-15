@@ -6,6 +6,7 @@ export const getProducts = async (filters: any, transaction?: Transaction) => {
 	const include: any[] = [
 		{ model: db.productVariants, include: [{ model: db.productImages }] },
 		{ model: db.productImages },
+		{ model: db.productPromotions, include: [{ model: db.promotions }] },
 	];
 
 	// Điều kiện lọc theo id sản phẩm
@@ -16,6 +17,9 @@ export const getProducts = async (filters: any, transaction?: Transaction) => {
 	// Điều kiện lọc theo tên sản phẩm
 	if (filters.name) {
 		where.name = { [Op.like]: `%${filters.name}%` };
+	}
+	if (filters.slug) {
+		where.slug = filters.slug;
 	}
 
 	// Điều kiện lọc theo brandId
