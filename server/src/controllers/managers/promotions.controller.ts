@@ -2,7 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { ResOk } from '../../utility/response.util';
 import * as promotionService from '../../services/managers/product-promotions.service';
 import { db } from '../../loaders/database.loader';
-import { transcode } from 'buffer';
+import { Admins } from '../../models/admins.model';
+import * as adminLogService from '../../services/managers/admin-logs.service';
 
 // Lấy promotion (có thể lọc theo productId, promotionId)
 export const getPromotion = async (
@@ -29,10 +30,21 @@ export const createPromotion = async (
 ) => {
 	const transaction = await db.sequelize.transaction();
 	try {
-		const productIds = await req.body.productIds;
+		const { productIds, ...promotionData } = req.body;
 		const created = await promotionService.createProductPromotion(
 			productIds,
-			req.body,
+			promotionData,
+			transaction,
+		);
+		if (!created || !created.id) {
+			throw new Error('Không thể tạo promotion hoặc thiếu ID');
+		}
+		await adminLogService.CreateAdminLog(
+			(req.user as Admins).id,
+			'Create',
+			created.id,
+			'Promotion',
+			promotionData,
 			transaction,
 		);
 		await transaction.commit();
@@ -119,6 +131,15 @@ export const productPromotion = async (
 			transaction: transaction,
 		});
 
+		await adminLogService.CreateAdminLog(
+			(req.user as Admins).id,
+			'Attach',
+			promotionId,
+			'Product-Promotion',
+			{ promotionId, productIds },
+			transaction,
+		);
+
 		await transaction.commit();
 		return res.status(201).json(new ResOk().formatResponse(promo));
 	} catch (error) {
@@ -156,6 +177,15 @@ export const updatePromotion = async (
 			],
 			transaction,
 		});
+		await adminLogService.CreateAdminLog(
+			(req.user as Admins).id,
+			'Update',
+			promotionId,
+			'Promotion',
+			req.body,
+			transaction,
+		);
+
 		await transaction.commit();
 		return res
 			.status(200)
@@ -188,6 +218,15 @@ export const detachProductFromPromotion = async (
 			),
 		);
 
+		await adminLogService.CreateAdminLog(
+			(req.user as Admins).id,
+			'Detach',
+			promotionId,
+			'Product-Promotion',
+			req.body,
+			transaction,
+		);
+
 		await transaction.commit();
 		return res
 			.status(201)
@@ -218,6 +257,16 @@ export const deletePromotion = async (
 				.status(404)
 				.json({ message: 'Product-Promotion not found' });
 		}
+
+		await adminLogService.CreateAdminLog(
+			(req.user as Admins).id,
+			'Delete',
+			promotionId,
+			'Product-Promotion',
+			{ deleted: true },
+			transaction,
+		);
+
 		await transaction.commit();
 		return res
 			.status(200)

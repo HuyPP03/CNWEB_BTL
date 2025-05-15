@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { ResOk } from '../../utility/response.util';
 import * as feedbackService from '../../services/managers/feedbacks.service';
 import { db } from '../../loaders/database.loader';
+import { Admins } from '../../models/admins.model';
+import * as adminLogService from '../../services/managers/admin-logs.service';
 
 export const getAllfeedbacks = async (
 	req: Request,
@@ -48,6 +50,17 @@ export const deletefeedback = async (
 	try {
 		const id = Number(req.params.id);
 		await feedbackService.deleteFeedback(id);
+
+		// Ghi adminlog
+		await adminLogService.CreateAdminLog(
+			(req.user as Admins).id,
+			'Delete',
+			parseInt(req.params.id),
+			'Feedback',
+			{ deleted: true },
+			transaction,
+		);
+
 		await transaction.commit();
 		return res
 			.status(200)

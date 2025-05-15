@@ -6,6 +6,7 @@ export const getProducts = async (filters: any, transaction?: Transaction) => {
 	const include: any[] = [
 		{ model: db.productVariants, include: [{ model: db.productImages }] },
 		{ model: db.productImages },
+		{ model: db.productPromotions, include: [{ model: db.promotions }] },
 	];
 
 	// Điều kiện lọc theo id sản phẩm
