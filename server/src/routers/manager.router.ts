@@ -10,7 +10,15 @@ router.use(isManager);
 router.use(verifyToken);
 
 router.get('/me', getMe);
-router.get('/admin-log', adminlog.getAdminLogs);
-router.delete('/admin-log/:id', adminlog.deleteAdminLogs);
+router.get(
+	'/admin-log',
+	authorization([RoleManager.super_admin]),
+	adminlog.getAdminLogs,
+);
+router.delete(
+	'/admin-log/:id',
+	authorization([RoleManager.super_admin]),
+	adminlog.deleteAdminLogs,
+);
 
 export default router;
