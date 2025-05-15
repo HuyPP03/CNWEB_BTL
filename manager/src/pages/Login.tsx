@@ -1,15 +1,22 @@
-import { useState } from "react";
-import { useAuth } from "../components/AuthContext"; // đúng đường dẫn bạn nhé
+import { useState, useEffect } from "react";
+import { useAuth } from "../components/AuthContext";
 import { useNavigate } from "react-router-dom";
 
+
 export default function Login() {
-  const { login, error } = useAuth();
+  const { login, error, currentUser } = useAuth();
   const navigate = useNavigate();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate("/"); // hoặc navigate tới dashboard
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

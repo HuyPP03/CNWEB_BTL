@@ -48,7 +48,7 @@ const Header = ({ toggleSidebar }: {toggleSidebar : () => void}) => {
         <FaUserCircle className="text-white text-2xl" />
         <span className="text-white">{userInfo?.fullName}</span>
         <button 
-          className="text-white bg-red-500 hover:bg-red-600 active:bg-red-700 px-4 py-2 rounded transition-all duration-300"
+          className="text-white bg-red-500 hover:bg-red-600 active:bg-red-700 px-4 py-2 rounded transition-all duration-300 cursor-pointer hover:bg-opacity-50"
           onClick={handleLogout}>
           Đăng xuất
         </button>

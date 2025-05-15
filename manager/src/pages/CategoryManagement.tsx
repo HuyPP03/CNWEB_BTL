@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FaUserPlus } from "react-icons/fa";
+import { FaUserPlus, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
 import ManagementTable from "../components/ManagementTable";
@@ -57,6 +57,53 @@ const CategoryManagement = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(Math.ceil(categories.length / itemsPerPage), startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    pages.push(
+      <button
+        key="prev"
+        className={`mx-1 px-3 py-1 border rounded flex items-center ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+        onClick={() => currentPage > 1 && paginate(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        <FaChevronLeft className="w-3 h-3" />
+      </button>
+    );
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          className={`mx-1 px-3 py-1 border rounded ${currentPage === i ? "bg-blue-500 text-white" : "bg-white text-blue-500 hover:bg-blue-50"}`}
+          onClick={() => paginate(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    pages.push(
+      <button
+        key="next"
+        className={`mx-1 px-3 py-1 border rounded flex items-center ${currentPage === Math.ceil(categories.length / itemsPerPage) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+        onClick={() => currentPage < Math.ceil(categories.length / itemsPerPage) && paginate(currentPage + 1)}
+        disabled={currentPage === Math.ceil(categories.length / itemsPerPage)}
+      >
+        <FaChevronRight className="w-3 h-3" />
+      </button>
+    );
+
+    return pages;
+  };
+
   return (
     <div className="p-2">
       <h1 className="text-xl font-bold mb-4">Quản lý danh mục</h1>
@@ -87,15 +134,7 @@ const CategoryManagement = () => {
         {loading && <div>Đang tải dữ liệu...</div>}
       </div>
       <div className="flex justify-center mt-4">
-        {Array.from({ length: Math.ceil(categories.length / itemsPerPage) }, (_, index) => (
-          <button
-            key={index + 1}
-            className={`mx-1 px-3 py-1 border rounded ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-white text-blue-500"}`}
-            onClick={() => paginate(index + 1)}
-          >
-            {index + 1}
-          </button>
-        ))}
+        {renderPagination()}
       </div>
     </div>
   );

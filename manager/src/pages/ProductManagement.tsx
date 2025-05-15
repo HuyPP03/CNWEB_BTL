@@ -1,19 +1,31 @@
 import { useState, useEffect, ChangeEvent } from "react";
-import { FaUserPlus } from "react-icons/fa";
+import { FaUserPlus, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
 import ManagementTable from "../components/ManagementTable";
 import api from "../services/api";
 
 const headers = ["ID", "Tên sản phẩm", "Loại sản phẩm", "Nhà cung cấp"];
-const columns = ["id", "name", "categoryId", "brandId"];
+const columns = ["id", "name", "categoryName", "brandName"];
 
 interface Product {
   id: number;
   name: string;
   categoryId: number;
   brandId: number;
+  categoryName?: string;
+  brandName?: string;
   [key: string]: any;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface Brand {
+  id: number;
+  name: string;
 }
 
 interface Filters {
@@ -30,6 +42,8 @@ interface Filters {
 
 const ProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [filters, setFilters] = useState<Filters>({
     id: "",
     name: "",
@@ -41,8 +55,32 @@ const ProductManagement = () => {
     limit: 10,
   });
   const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get("/public/categories");
+        setCategories(res.data.data || []);
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+
+    const fetchBrands = async () => {
+      try {
+        const res = await api.get("/public/brands");
+        setBrands(res.data.data || []);
+      } catch (err) {
+        console.error("Error fetching brands:", err);
+      }
+    };
+
+    fetchCategories();
+    fetchBrands();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -53,63 +91,197 @@ const ProductManagement = () => {
           if (value !== "" && value !== null) params[key] = value;
         });
         const res = await api.get("/products", { params });
-        setProducts(res.data.data || []);
+        const productsWithNames = (res.data.data || []).map((product: Product) => {
+          const category = categories.find(c => c.id === product.categoryId);
+          const brand = brands.find(b => b.id === product.brandId);
+          return {
+            ...product,
+            categoryName: category?.name || '',
+            brandName: brand?.name || ''
+          };
+        });
+        setProducts(productsWithNames);
+        setTotalPages(Math.ceil((res.data.total || 0) / filters.limit));
       } catch (err) {
         setProducts([]);
+        setTotalPages(1);
       }
       setLoading(false);
     };
     fetchProducts();
-  }, [filters]);
+  }, [filters, categories, brands]);
 
-  const handleFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFilterChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
   };
 
   const handleDetail = (id: number) => navigate(`/qlsanpham/detail/${id}`);
   const handleAdd = () => navigate("/qlsanpham/add");
   const handleEdit = (id: number) => navigate(`/qlsanpham/edit/${id}`);
-  const handleDelete = (id: number) => { /* Xử lý xóa */ };
+  const handleDelete = async (id: number) => {  
+    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+      try {
+        await api.delete(`/products/${id}`);
+        setProducts(products.filter(p => p.id !== id));
+      } catch (err) {
+        console.error("Error deleting product:", err);
+      }
+    }
+  };
 
   const paginate = (pageNumber: number) => setFilters({ ...filters, page: pageNumber });
 
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, filters.page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    pages.push(
+      <button
+        key="prev"
+        className={`mx-1 px-3 py-1 border rounded flex items-center ${filters.page === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+        onClick={() => filters.page > 1 && paginate(filters.page - 1)}
+        disabled={filters.page === 1}
+      >
+        <FaChevronLeft className="w-3 h-3" />
+      </button>
+    );
+
+    // Add first page
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          className="mx-1 px-3 py-1 border rounded bg-white text-blue-500 hover:bg-blue-50"
+          onClick={() => paginate(1)}
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(
+          <span key="start-ellipsis" className="mx-1 px-2">
+            ...
+          </span>
+        );
+      }
+    }
+
+    // Add middle pages
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          className={`mx-1 px-3 py-1 border rounded ${filters.page === i ? "bg-blue-500 text-white" : "bg-white text-blue-500 hover:bg-blue-50"}`}
+          onClick={() => paginate(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Add last page
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(
+          <span key="end-ellipsis" className="mx-1 px-2">
+            ...
+          </span>
+        );
+      }
+      pages.push(
+        <button
+          key={totalPages}
+          className="mx-1 px-3 py-1 border rounded bg-white text-blue-500 hover:bg-blue-50"
+          onClick={() => paginate(totalPages)}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    pages.push(
+      <button
+        key="next"
+        className={`mx-1 px-3 py-1 border rounded flex items-center ${filters.page === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+        onClick={() => filters.page < totalPages && paginate(filters.page + 1)}
+        disabled={filters.page === totalPages}
+      >
+        <FaChevronRight className="w-3 h-3" />
+      </button>
+    );
+
+    return pages;
+  };
+
   return (
     <div className="p-2">
-      <h1 className="text-xl font-bold mb-4">Quản lý sản phẩm</h1>
+      <h1 className="text-2xl font-bold mb-4">Quản lý sản phẩm</h1>
       <AddButton onClick={handleAdd} label="Thêm sản phẩm" icon={FaUserPlus} />
-      <div className="flex gap-2 mt-4">
-        <input
-          type="text"
-          name="id"
-          placeholder="Tìm theo ID..."
-          value={filters.id}
-          onChange={handleFilterChange}
-          className="p-2 border rounded w-1/3"
-        />
-        <input
-          type="text"
-          name="name"
-          placeholder="Tìm theo tên..."
-          value={filters.name}
-          onChange={handleFilterChange}
-          className="p-2 border rounded w-1/3"
-        />
-        <input
-          type="text"
-          name="categoryId"
-          placeholder="Tìm theo thể loại..."
-          value={filters.categoryId}
-          onChange={handleFilterChange}
-          className="p-2 border rounded w-1/3"
-        />
-        <input
-          type="text"
-          name="brandId"
-          placeholder="Tìm theo nhà cung cấp..."
-          value={filters.brandId}
-          onChange={handleFilterChange}
-          className="p-2 border rounded w-1/3"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="id">ID sản phẩm</label>
+          <input
+            type="text"
+            name="id"
+            id="id"
+            placeholder="Nhập ID..."
+            value={filters.id}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="name">Tên sản phẩm</label>
+          <input
+            type="text"
+            name="name"
+            id="name"
+            placeholder="Nhập tên..."
+            value={filters.name}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="categoryId">Thể loại</label>
+          <select
+            name="categoryId"
+            id="categoryId"
+            value={filters.categoryId}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          >
+            <option value="">Tất cả thể loại</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="brandId">Nhà cung cấp</label>
+          <select
+            name="brandId"
+            id="brandId"
+            value={filters.brandId}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          >
+            <option value="">Tất cả nhà cung cấp</option>
+            {brands.map((brand) => (
+              <option key={brand.id} value={brand.id}>
+                {brand.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       <div className="p-4">
         <ManagementTable
@@ -123,15 +295,7 @@ const ProductManagement = () => {
         {loading && <div>Đang tải dữ liệu...</div>}
       </div>
       <div className="flex justify-center mt-4">
-        {[1, 2, 3, 4, 5].map((page) => (
-          <button
-            key={page}
-            className={`mx-1 px-3 py-1 border rounded ${filters.page === page ? "bg-blue-500 text-white" : "bg-white text-blue-500"}`}
-            onClick={() => paginate(page)}
-          >
-            {page}
-          </button>
-        ))}
+        {renderPagination()}
       </div>
     </div>
   );

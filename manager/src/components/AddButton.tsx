@@ -2,9 +2,7 @@ import { FaPlus } from "react-icons/fa";
 
 const AddButton = ({ onClick, label = "Thêm", icon: Icon = FaPlus, className = "" }: { onClick: () => void, label?: string, icon?: React.ComponentType, className?: string }) => {
   const handleClick = () => {
-    setTimeout(() => {
-      onClick();
-    }, 200);
+    onClick();
   }
 
   return (

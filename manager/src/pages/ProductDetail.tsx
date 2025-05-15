@@ -2,8 +2,18 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import BackButton from "../components/BackButton";
-import { FaArrowLeft } from "react-icons/fa";
 import ManagementTable from "../components/ManagementTable";
+import AddButton from "../components/AddButton";
+
+interface ProductImage {
+  id: number;
+  variantId: number;
+  productId: number;
+  imageUrl: string;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface Product {
   id: number;
@@ -12,7 +22,7 @@ interface Product {
   basePrice: string;
   categoryId: number;
   brandId: number;
-  images?: string[];
+  productImages?: ProductImage[];
   productVariants?: ProductVariant[];
   [key: string]: any;
 }
@@ -67,7 +77,37 @@ const ProductDetail = () => {
     fetchAll();
   }, [id]);
 
-  const handleBack = () => navigate("/qlsanpham");
+  const handleBack = () => {
+    navigate("/qlsanpham");
+  };
+
+  const handleViewVariant = (variantId: number) => {
+    // TODO: Implement view variant details
+    console.log("View variant:", variantId);
+  };
+
+  const handleEditVariant = (variantId: number) => {
+    // TODO: Implement edit variant
+    console.log("Edit variant:", variantId);
+  };
+
+  const handleDeleteVariant = async (variantId: number) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa biến thể này?")) {
+      try {
+        await api.delete(`/product-variants/${variantId}`);
+        // Refresh product data after deletion
+        const res = await api.get(`/products?id=${id}`);
+        setProduct(res.data.data[0]);
+      } catch (error) {
+        console.error("Error deleting variant:", error);
+        alert("Có lỗi xảy ra khi xóa biến thể");
+      }
+    }
+  };
+
+  const handleAddVariant = () => {
+    navigate(`/qlsanpham/detail/${id}/add-variant`);
+  };
 
   if (loading) return <div className="p-4">Đang tải dữ liệu...</div>;
   if (error) return <div className="p-4 text-red-500">{error}</div>;
@@ -82,30 +122,17 @@ const ProductDetail = () => {
   const variantColumns = ["id", "name", "price", "stock"];
   const variantData = (product.productVariants || []).map(variant => ({
     id: variant.id,
-    name: variant.slug, // hoặc variant.name nếu có
+    name: variant.slug,
     price: variant.price,
     stock: variant.stock,
   }));
 
   return (
     <div className="p-8 w-full min-h-screen bg-white">
-      <BackButton onClick={handleBack} label="Quay lại" icon={FaArrowLeft} />
-      <h1 className="text-3xl font-bold mb-8 text-blue-700 text-center">Chi tiết sản phẩm</h1>
+      <BackButton onClick={handleBack} label="Quay lại" />
+      <h1 className="text-2xl font-bold mb-8 text-center">Chi tiết sản phẩm</h1>
       <div className="bg-white shadow-lg rounded-xl p-10 space-y-8 max-w-4xl mx-auto">
         <div className="flex flex-col md:flex-row gap-10 items-center">
-          {product.images && product.images.length > 0 && (
-            <div className="flex flex-row gap-4 flex-wrap justify-center">
-              {product.images.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={`https://cnweb-btl.onrender.com/${img}`}
-                  alt={`product-img-${idx}`}
-                  className="w-60 h-60 object-cover rounded-lg border shadow cursor-pointer hover:scale-105 transition"
-                  onClick={() => setPreviewImg(img)}
-                />
-              ))}
-            </div>
-          )}
           <div className="flex-1 space-y-4 text-lg">
             <div>
               <span className="font-semibold">Tên sản phẩm: </span>
@@ -129,14 +156,41 @@ const ProductDetail = () => {
             </div>
           </div>
         </div>
+
+        {product.productImages && product.productImages.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-xl font-bold mb-4 text-blue-700">Hình ảnh sản phẩm</h2>
+            <div className="flex flex-row gap-4 flex-wrap justify-center">
+              {product.productImages.map((img: ProductImage) => (
+                <img
+                  key={img.id}
+                  src={`https://cnweb-btl.onrender.com/${img.imageUrl}`}
+                  alt={`product-img-${img.id}`}
+                  className="w-40 h-40 object-cover rounded-lg border shadow cursor-pointer hover:scale-105 transition"
+                  onClick={() => setPreviewImg(img.imageUrl)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {variantData.length > 0 && (
           <div className="mt-10">
-            <h2 className="text-xl font-bold mb-4 text-blue-700">Các biến thể sản phẩm</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-blue-700">Các biến thể sản phẩm</h2>
+              <AddButton 
+                onClick={handleAddVariant}
+                label="Thêm biến thể"
+              />
+            </div>
             <ManagementTable
               headers={variantHeaders}
               columns={variantColumns}
               data={variantData}
-              showActions={false}
+              showActions={true}
+              onDetail={handleViewVariant}
+              onEdit={handleEditVariant}
+              onDelete={handleDeleteVariant}
             />
           </div>
         )}

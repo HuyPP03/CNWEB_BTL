@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const response = await api.post("/auth/refresh-token");
           const { accessToken } = response.data.data;
           localStorage.setItem("accessToken", accessToken);
-          
+
           const newDecodedToken = jwtDecode<DecodedToken>(accessToken);
           setCurrentUser({
             id: newDecodedToken.sub,
@@ -130,16 +130,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Hàm logout 
   const handleLogout = async () => {
-    try {
-      setLoading(true);
-      await api.post("/auth/logout");
-      localStorage.removeItem("accessToken");
-      setCurrentUser(null);
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      setLoading(false);
-    }
+    localStorage.removeItem("accessToken");
+    setCurrentUser(null);
+    setError(null);
+    setLoading(false);
   };
 
   const value: AuthContextType = {

@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
-import { FaArrowLeft, FaUpload } from "react-icons/fa";
+import ImageUploader from "../components/ImageUploader";
 import api from "../services/api";
 
 interface Category {
@@ -51,10 +51,8 @@ const AddProduct = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setImages(prev => [...prev, ...Array.from(e.target.files!)]);
-    }
+  const handleImageChange = (newFiles: File[]) => {
+    setImages(prev => [...prev, ...newFiles]);
   };
 
   const handleRemoveImage = (idx: number) => {
@@ -99,8 +97,8 @@ const AddProduct = () => {
 
   return (
     <div className="p-8 w-full min-h-screen bg-white">
-      <h1 className="text-2xl font-bold mb-4">Thêm Sản phẩm mới</h1>
-      <BackButton onClick={handleBack} label="Quay lại" icon={FaArrowLeft} />
+      <BackButton onClick={handleBack} />
+      <h1 className="text-2xl font-bold mb-8 text-center">Thêm sản phẩm</h1>
       <form
         onSubmit={handleSubmit}
         className="mt-6 bg-white shadow-md rounded-lg p-10 space-y-8 max-w-4xl mx-auto"
@@ -175,42 +173,12 @@ const AddProduct = () => {
             required
           />
         </div>
-        <div>
-          <label className="block font-semibold mb-2 text-lg">Ảnh sản phẩm</label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <FaUpload className="text-blue-500" />
-            <span className="text-blue-600 underline">Chọn ảnh</span>
-            <input
-              type="file"
-              name="image"
-              multiple
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-          </label>
-          {imagePreviews.length > 0 && (
-            <div className="flex gap-4 mt-4 flex-wrap">
-              {imagePreviews.map((url, idx) => (
-                <div key={idx} className="relative group">
-                  <img
-                    src={url}
-                    alt={`preview-${idx}`}
-                    className="w-40 h-40 object-cover rounded border shadow"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-lg opacity-80 group-hover:opacity-100 hover:bg-red-700 shadow"
-                    title="Xóa ảnh"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <label className="block font-semibold mb-2 text-lg">Ảnh sản phẩm</label>
+        <ImageUploader
+          onImageChange={handleImageChange}
+          imagePreviews={imagePreviews}
+          onRemoveImage={handleRemoveImage}
+        />
         {error && <div className="text-red-500 font-semibold text-lg">{error}</div>}
         {success && <div className="text-green-600 font-semibold text-lg">{success}</div>}
         <button

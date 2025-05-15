@@ -4,7 +4,7 @@ import SidebarItem from "./SidebarItem";
 const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
   return (
     <div
-      className={`bg-blue-600 text-white h-full pt-32 p-4 fixed left-0 w-60 ${
+      className={`bg-blue-600 text-white h-full pt-20 p-4 fixed left-0 w-60 ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       } transition-all duration-500`}
     >
