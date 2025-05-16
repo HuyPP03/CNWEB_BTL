@@ -29,11 +29,39 @@ export const getAdminLogs = async (filters: any, transaction?: Transaction) => {
 	if (filters.details) {
 		where.details = { [Op.like]: `%${filters.details}%` };
 	}
+	if (filters.fromDate && filters.toDate) {
+		where.createdAt = {
+			[Op.between]: [filters.fromDate, filters.toDate],
+		};
+	} else if (filters.fromDate) {
+		where.createdAt = {
+			[Op.gte]: filters.fromDate,
+		};
+	} else if (filters.toDate) {
+		where.createdAt = {
+			[Op.lte]: filters.toDate,
+		};
+	}
 
 	// Lấy dữ liệu từ cơ sở dữ liệu với phân trang
 	const [rows, count] = await Promise.all([
 		db.adminLogs.findAll({
 			where,
+			include: [
+				{
+					model: db.admins,
+					attributes: ['username', 'email'],
+					where: {
+						...(filters.username && {
+							username: { [Op.like]: `%${filters.username}%` },
+						}),
+						...(filters.email && {
+							email: { [Op.like]: `%${filters.email}%` },
+						}),
+					},
+					required: true,
+				},
+			],
 			limit: filters.limit,
 			offset: filters.offset,
 			transaction,

@@ -13,10 +13,14 @@ export const getAdminLogs = async (
 		const {
 			id = '',
 			adminId = '',
+			username = '',
+			email = '',
 			action = '',
 			entityType = '',
 			entityId = '',
 			details = '',
+			fromDate = '',
+			toDate = '',
 			page = 1, // Mặc định trang 1
 			limit = 20, // Mặc định số sản phẩm trên mỗi trang là 20
 		} = req.query;
@@ -29,10 +33,14 @@ export const getAdminLogs = async (
 		const filters = {
 			id: id ? Number(id) : undefined,
 			adminId: adminId ? Number(adminId) : undefined,
+			username: username as string,
+			email: email as string,
 			action: action as string,
 			entityType: entityType as string,
 			entityId: entityId ? Number(entityId) : undefined,
 			details: details as string,
+			fromDate: fromDate ? new Date(fromDate as string) : undefined,
+			toDate: toDate ? new Date(toDate as string) : undefined,
 			offset,
 			page: parseInt(page as string),
 			limit: pageLimit,
