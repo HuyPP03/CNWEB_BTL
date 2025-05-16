@@ -1,10 +1,11 @@
 import express from 'express';
 import * as productsManagers from '../controllers/managers/products.controller';
 import * as productsCustomers from '../controllers/customers/products.controller';
-import { upload } from '../utility/media.util';
 import { isManager, verifyToken } from '../middleware/authenticate.middleware';
 import { authorization, RoleManager } from '../middleware/manager.middleware';
 import * as wishlist from '../controllers/customers/wishlists.controller';
+// import { upload } from '../utility/media.util';
+import { upload } from '../utility/cloudinary.util';
 
 const router = express.Router();
 
