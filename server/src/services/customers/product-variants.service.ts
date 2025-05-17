@@ -18,6 +18,10 @@ export const getVariants = async (filters: any, transaction?: Transaction) => {
 		where.id = filters.id;
 	}
 
+	if (filters.name) {
+		where.name = { [Op.like]: `%${filters.name}%` };
+	}
+
 	// Điều kiện lọc theo id sản phẩm
 	if (filters.productId) {
 		where.productId = filters.productId;
