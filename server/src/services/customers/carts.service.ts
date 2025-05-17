@@ -3,10 +3,13 @@ import { Transaction } from 'sequelize';
 
 export const getCartById = async (cartId: number) => {
 	// Tìm giỏ hàng theo cartId
-	return await db.carts.findByPk( cartId );
-}
+	return await db.carts.findByPk(cartId);
+};
 
-export const getOrCreateCart = async (customerId: number, transaction?: Transaction) => {
+export const getOrCreateCart = async (
+	customerId: number,
+	transaction?: Transaction,
+) => {
 	if (!customerId) throw new Error('Customer ID is required');
 
 	// Tìm giỏ hàng dựa trên customerId
@@ -15,15 +18,31 @@ export const getOrCreateCart = async (customerId: number, transaction?: Transact
 		include: [
 			{
 				model: db.cartItems,
-				include: [db.productVariants],
+				include: [
+					{
+						model: db.productVariants,
+						include: [
+							{
+								model: db.variantAttributes,
+								include: [
+									{ model: db.attributeTypes },
+									{ model: db.attributeValues },
+								],
+							},
+							{
+								model: db.productImages,
+							},
+						],
+					},
+				],
 			},
 		],
-		transaction
+		transaction,
 	});
 
 	if (!cart) {
 		// Nếu không tìm thấy giỏ hàng, tạo mới
-		cart = await db.carts.create({ customerId },{ transaction });
+		cart = await db.carts.create({ customerId }, { transaction });
 	}
 
 	return cart;

@@ -7,8 +7,9 @@ import { attributeValueService } from '../../services/managers/attribute-values.
 export const createVariant = (data: any, transaction?: Transaction) => {
 	const variant = {
 		productId: data.productId,
-		slug: data.name,
-		sku: data.name,
+		name: data.name,
+		slug: data.name.toLowerCase().replace(/\s+/g, '-'),
+		sku: data.name.toLowerCase().replace(/\s+/g, '-'),
 		price: data.price,
 		stock: data.stock,
 	};
@@ -39,8 +40,9 @@ export const updateVariant = async (
 	});
 	if (!variant) return null;
 	const updateData = {
-		slug: data.name,
-		sku: data.name,
+		name: data.name,
+		slug: data.name.toLowerCase().replace(/\s+/g, '-'),
+		sku: data.name.toLowerCase().replace(/\s+/g, '-'),
 		price: data.price,
 		stock: data.sock,
 	};
