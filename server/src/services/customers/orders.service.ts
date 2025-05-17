@@ -1,8 +1,5 @@
-import { clear } from 'console';
 import { db } from '../../loaders/database.loader';
 import * as ordersItemService from '../../services/customers/order-items.service';
-import * as paymentService from '../customers/payments.service';
-import * as shippingService from '../customers/shippings.service';
 import { Op, Transaction } from 'sequelize';
 
 // Tao đơn hàng mới
@@ -75,16 +72,16 @@ export const createOrderFromCart = async (
 		await ordersItemService.createOrderItem(orderItemsData, transaction);
 
 		// Trừ tồn kho
-		for (const item of cartItems) {
-			await db.productVariants.increment(
-				{ stock: -item.quantity },
-				{ where: { id: item.variantId }, transaction },
-			);
-		}
-
 		// for (const item of cartItems) {
-		//     await db.cartItems.destroy({ where: { id: item.id } , transaction });
+		// 	await db.productVariants.increment(
+		// 		{ stock: -item.quantity },
+		// 		{ where: { id: item.variantId }, transaction },
+		// 	);
 		// }
+
+		for (const item of cartItems) {
+			await db.cartItems.destroy({ where: { id: item.id }, transaction });
+		}
 		// await db.carts.destroy({ where: { id: cart.id } });
 
 		const orderWithItems = await db.orders.findByPk(newOrder.id, {
@@ -128,6 +125,11 @@ export const confirmOrder = async (
 
 	await db.payments.create(paymentData, { transaction });
 
+	if (orderData.paymentMethod?.toLowerCase() === 'cod') {
+		await order?.update({ status: 'pending' }, { transaction });
+		await changeStock(id, transaction);
+	}
+
 	const resOrder = await db.orders.findByPk(id, {
 		include: [
 			{ model: db.orderItems, include: [{ model: db.productVariants }] },
@@ -138,6 +140,28 @@ export const confirmOrder = async (
 	});
 
 	return resOrder;
+};
+
+export const cancelOrder = async (
+	id: number,
+	customerId: number,
+	transaction?: Transaction,
+) => {
+	const order = await db.orders.findOne({
+		where: [{ id: id, customerId }],
+		include: [
+			{ model: db.orderItems },
+			{ model: db.payments },
+			{ model: db.shipping },
+		],
+		transaction,
+	});
+	if (!order) throw new Error('Không tìm thấy đơn hàng');
+
+	await order.update({ status: 'cancelled' }, { transaction });
+	changeStock(id, transaction);
+
+	return order;
 };
 
 // Cập nhật đơn hàng theo ID
@@ -159,6 +183,14 @@ export const updateOrderById = async (
 	const order = await db.orders.findByPk(id, { transaction });
 	if (!order) throw new Error('Order not found');
 
+	if (
+		orderData.status === 'draft' ||
+		orderData.status === 'delivered' ||
+		orderData.status === 'cancelled'
+	) {
+		throw new Error('Bạn không thể thay đổi trạng thái của đơn hàng này.');
+	}
+
 	const currentStatusIndex = allowedStatusFlow.indexOf(order.status);
 	const newStatusIndex = allowedStatusFlow.indexOf(orderData.status);
 
@@ -177,6 +209,8 @@ export const updateOrderById = async (
 		{ status: orderData.status },
 		{ where: { id }, transaction },
 	);
+
+	changeStock(id, transaction);
 
 	const resOrder = await db.orders.findByPk(id, {
 		include: [
@@ -260,17 +294,79 @@ export const getOrders = async (filters: any, transaction?: Transaction) => {
 	}
 
 	// Truy vấn đơn hàng
-	const orders = await db.orders.findAll({
-		where,
-		include,
-		order: [['createdAt', 'DESC']],
-		transaction,
-	});
+	const [rows, count] = await Promise.all([
+		db.orders.findAll({
+			where: {
+				...where,
+				status: {
+					[Op.not]: 'draft',
+				},
+			},
+			include,
+			order: [['createdAt', 'DESC']],
+			limit: filters.limit,
+			offset: filters.offset,
+			transaction,
+		}),
+		db.orders.count({
+			where: {
+				...where,
+				status: {
+					[Op.not]: 'draft',
+				},
+			},
+			transaction,
+		}),
+	]);
 
-	return orders;
+	return [rows, count];
 };
 
 export const getOrderById = async (id: number, transaction?: Transaction) => {
 	const order = await db.orders.findByPk(id, { transaction });
 	return order;
+};
+
+export const changeStock = async (id: number, transaction?: Transaction) => {
+	const order = await db.orders.findByPk(id, {
+		include: [{ model: db.orderItems }],
+		transaction,
+	});
+	if (!order) throw new Error('Không tìm thấy đơn hàng');
+
+	if (order.status !== 'pending' && order.status !== 'cancelled') return;
+
+	const orderitems = await db.orderItems.findAll({
+		where: [
+			{
+				orderId: id,
+			},
+		],
+		transaction,
+	});
+
+	for (const item of orderitems) {
+		const product = await db.productVariants.findByPk(item.variantId, {
+			transaction,
+		});
+
+		if (!product) continue;
+
+		if (order.status === 'pending') {
+			// Trừ số lượng
+			if (product.stock < item.quantity) {
+				throw new Error(`Sản phẩm ${product.name} không đủ hàng`);
+			}
+			await product.update(
+				{ stock: product.stock - item.quantity },
+				{ transaction },
+			);
+		} else if (order.status === 'cancelled') {
+			// Cộng lại số lượng
+			await product.update(
+				{ stock: product.stock + item.quantity },
+				{ transaction },
+			);
+		}
+	}
 };

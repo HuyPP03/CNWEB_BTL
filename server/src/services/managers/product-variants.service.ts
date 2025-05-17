@@ -44,7 +44,7 @@ export const updateVariant = async (
 		slug: data.name.toLowerCase().replace(/\s+/g, '-'),
 		sku: data.name.toLowerCase().replace(/\s+/g, '-'),
 		price: data.price,
-		stock: data.sock,
+		stock: data.stock,
 	};
 	await variant.update(updateData, { transaction });
 	return variant;

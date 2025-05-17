@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PaymentGateway, PaymentService } from '../services/payments';
 import { db } from '../loaders/database.loader';
+import { changeStock } from '../services/customers/orders.service';
 
 export class PaymentController {
 	/**
@@ -156,6 +157,12 @@ export class PaymentController {
 					{ where: { orderId: orderId } },
 				);
 
+				await db.orders.update(
+					{ status: 'pending' },
+					{ where: { id: orderId } },
+				);
+				changeStock(orderId);
+
 				// Chuyển hướng người dùng về trang thành công
 				res.redirect(
 					`/payment-success?orderId=${vnpParams.vnp_TxnRef}`,
@@ -200,6 +207,12 @@ export class PaymentController {
 					{ status: 'success' },
 					{ where: { orderId: orderId } },
 				);
+
+				await db.orders.update(
+					{ status: 'pending' },
+					{ where: { id: orderId } },
+				);
+				changeStock(orderId);
 
 				// Chuyển hướng người dùng về trang thành công
 				res.redirect(`/payment-success?orderId=${momoParams.orderId}`);
@@ -249,6 +262,12 @@ export class PaymentController {
 					{ status: 'success' },
 					{ where: { orderId: orderId } },
 				);
+
+				await db.orders.update(
+					{ status: 'pending' },
+					{ where: { id: orderId } },
+				);
+				changeStock(orderId);
 
 				// Chuyển hướng người dùng về trang thành công
 				res.redirect(`/payment-success?paymentId=${paymentId}`);
