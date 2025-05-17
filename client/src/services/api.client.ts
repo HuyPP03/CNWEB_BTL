@@ -33,7 +33,18 @@ class ApiClient {
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
-                if (error.response?.status === 401) {
+                // Kiểm tra status code 401 hoặc status code 500 với message 'jwt expired'
+                if (error.response?.status === 401 ||
+                    (error.response?.status === 500 && error.response?.data?.message === 'jwt expired')) {
+
+                    // Tránh vòng lặp vô hạn nếu token refresh cũng lỗi
+                    if (originalRequest._retry) {
+                        localStorage.removeItem('accessToken');
+                        return Promise.reject(error);
+                    }
+
+                    originalRequest._retry = true;
+
                     try {
                         // lấy token mới
                         const refreshResponse = await this.client.post(
@@ -41,7 +52,7 @@ class ApiClient {
                             {},
                         );
 
-                        const { accessToken } = refreshResponse.data.accessToken;
+                        const accessToken = refreshResponse.data.accessToken;
                         localStorage.setItem('accessToken', accessToken);
 
                         originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
@@ -54,30 +65,28 @@ class ApiClient {
                 return Promise.reject(error);
             }
         );
-    }
-
-    // Phương thức GET
+    }    // Phương thức GET
     async get<T>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
-        const response: AxiosResponse<{ data: T }> = await this.client.get(endpoint, config);
-        return response.data.data;
+        const response: AxiosResponse<T> = await this.client.get(endpoint, config);
+        return response.data;
     }
 
     // Phương thức POST
     async post<T>(endpoint: string, data: any, config?: AxiosRequestConfig): Promise<T> {
-        const response: AxiosResponse<{ data: T }> = await this.client.post(endpoint, data, config);
-        return response.data.data;
+        const response: AxiosResponse<T> = await this.client.post(endpoint, data, config);
+        return response.data;
     }
 
     // Phương thức PUT
     async put<T>(endpoint: string, data: any, config?: AxiosRequestConfig): Promise<T> {
-        const response: AxiosResponse<{ data: T }> = await this.client.put(endpoint, data, config);
-        return response.data.data;
+        const response: AxiosResponse<T> = await this.client.put(endpoint, data, config);
+        return response.data;
     }
 
     // Phương thức DELETE
     async delete<T>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
-        const response: AxiosResponse<{ data: T }> = await this.client.delete(endpoint, config);
-        return response.data.data;
+        const response: AxiosResponse<T> = await this.client.delete(endpoint, config);
+        return response.data;
     }
 }
 
