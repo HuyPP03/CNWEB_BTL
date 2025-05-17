@@ -147,6 +147,9 @@ export const deleteAccount = async (id: number, transaction?: Transaction) => {
 	const admin = await db.admins.findByPk(id, { transaction });
 	if (!admin) throw new Error('Tài khoản không tồn tại');
 
+	if (admin.role === 'super_admin')
+		throw new Error('Không thể xóa tài khoản này');
+
 	// Nếu không muốn xóa cứng, có thể dùng admin.update({ isDeleted: true }) thay vì destroy
 	await admin.destroy({ transaction });
 	return { message: 'Tài khoản đã được xóa thành công' };
