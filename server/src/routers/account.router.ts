@@ -31,12 +31,12 @@ router.delete(
 );
 
 // Quản lý account của customers
-router.post(
+router.get(
 	'/customers/',
 	authorization([RoleManager.super_admin, RoleManager.manager]),
 	customerAccount.getCustomer,
 );
-router.delete(
+router.put(
 	'/customers/:id',
 	authorization([RoleManager.super_admin, RoleManager.manager]),
 	customerAccount.blockCustomer,

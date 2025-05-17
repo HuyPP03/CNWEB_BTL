@@ -19,6 +19,7 @@ export const getCustomer = async (
 			phone = '',
 			address = '',
 			isActive,
+			isBlock,
 			page = 1, // Mặc định trang 1
 			limit = 20, // Mặc định số sản phẩm trên mỗi trang là 20
 		} = req.query;
@@ -32,6 +33,10 @@ export const getCustomer = async (
 		if (isActive === 'true') isActiveBool = true;
 		else if (isActive === 'false') isActiveBool = false;
 
+		let isBlockBool: boolean | undefined = undefined;
+		if (isBlock === 'true') isBlockBool = true;
+		else if (isBlock === 'false') isBlockBool = false;
+
 		const filters = {
 			id: id ? Number(id) : undefined,
 			fullName: fullName as string,
@@ -39,6 +44,7 @@ export const getCustomer = async (
 			phone: phone as string,
 			address: address as string,
 			isActive: isActiveBool,
+			isBlock: isBlockBool,
 			offset,
 			page: parseInt(page as string),
 			limit: pageLimit,
@@ -74,16 +80,11 @@ export const blockCustomer = async (
 ) => {
 	const transaction = await db.sequelize.transaction();
 	try {
-		const { customerId, isBlock } = req.body;
-
-		// Kiểm tra dữ liệu đầu vào
-		if (typeof customerId !== 'number' || typeof isBlock !== 'boolean') {
-			throw new Error('Invalid request data');
-		}
+		const customerId = Number(req.params.id);
 
 		const customer = await customerService.blockCustomer(
 			customerId,
-			isBlock,
+			req.body.isBlock,
 			transaction,
 		);
 
@@ -95,6 +96,7 @@ export const blockCustomer = async (
 			req.body,
 			transaction,
 		);
+
 		await transaction.commit();
 		return res
 			.status(200)

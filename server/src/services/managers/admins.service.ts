@@ -1,5 +1,6 @@
 import { Transaction, Op } from 'sequelize';
 import { db } from '../../loaders/database.loader';
+import bcrypt from 'bcryptjs';
 
 export const getAdmin = async (filters: any, transaction?: Transaction) => {
 	const where: any = {};
@@ -33,6 +34,9 @@ export const getAdmin = async (filters: any, transaction?: Transaction) => {
 	const [rows, count] = await Promise.all([
 		db.admins.findAll({
 			where,
+			attributes: {
+				exclude: ['passwordHash'],
+			},
 			limit: filters.limit,
 			offset: filters.offset,
 			transaction,
@@ -81,7 +85,6 @@ export const createAccount = async (data: any, transaction?: Transaction) => {
 	}
 
 	// Mã hóa mật khẩu nếu có sử dụng bcrypt (tùy theo hệ thống)
-	const bcrypt = require('bcrypt');
 	const hashedPassword = await bcrypt.hash(password, 10);
 
 	const newAccount = await db.admins.create(
@@ -96,7 +99,10 @@ export const createAccount = async (data: any, transaction?: Transaction) => {
 		{ transaction },
 	);
 
-	return newAccount;
+	let plainAccount = newAccount.toJSON() as any;
+	delete plainAccount.passwordHash;
+
+	return plainAccount;
 };
 
 // Cập nhật tài khoản admin
@@ -117,6 +123,9 @@ export const updateAccount = async (
 			transaction,
 		});
 		if (exists) throw new Error('Username đã tồn tại');
+	}
+	if (role && admin.role === 'super_admin') {
+		throw new Error('Không thể thay đổi vai trò của tài khoản admin');
 	}
 
 	if (email && email !== admin.email) {
@@ -139,7 +148,11 @@ export const updateAccount = async (
 		{ username, email, phone, fullName, role },
 		{ transaction },
 	);
-	return admin;
+
+	let plainAccount = admin.toJSON() as any;
+	delete plainAccount.passwordHash;
+
+	return plainAccount;
 };
 
 // Xóa tài khoản admin
