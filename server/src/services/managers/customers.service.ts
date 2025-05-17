@@ -27,10 +27,16 @@ export const getCustomer = async (filters: any, transaction?: Transaction) => {
 	if (typeof filters.isActive === 'boolean') {
 		where.isActive = filters.isActive;
 	}
+	if (typeof filters.isBlock === 'boolean') {
+		where.isBlock = filters.isBlock;
+	}
 
 	const [rows, count] = await Promise.all([
 		db.customers.findAll({
 			where,
+			attributes: {
+				exclude: ['passwordHash'],
+			},
 			limit: filters.limit,
 			offset: filters.offset,
 			transaction,
@@ -58,5 +64,8 @@ export const blockCustomer = async (
 	// Cập nhật isBlock
 	await customer.update({ isBlock }, { transaction });
 
-	return customer;
+	let plainAccount = customer.toJSON() as any;
+	delete plainAccount.passwordHash;
+
+	return plainAccount;
 };
