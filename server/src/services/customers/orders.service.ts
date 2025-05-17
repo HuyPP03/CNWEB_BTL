@@ -159,7 +159,7 @@ export const cancelOrder = async (
 	if (!order) throw new Error('Không tìm thấy đơn hàng');
 
 	await order.update({ status: 'cancelled' }, { transaction });
-	changeStock(id, transaction);
+	await changeStock(id, transaction);
 
 	return order;
 };
@@ -210,7 +210,7 @@ export const updateOrderById = async (
 		{ where: { id }, transaction },
 	);
 
-	changeStock(id, transaction);
+	await changeStock(id, transaction);
 
 	const resOrder = await db.orders.findByPk(id, {
 		include: [

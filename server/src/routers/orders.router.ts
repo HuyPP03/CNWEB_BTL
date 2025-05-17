@@ -10,7 +10,7 @@ router.get('/', isManager, verifyToken, order.getOrders); // Lấy tất cả đ
 router.get('/customer', verifyToken, order.getOrders); // Lấy của khách hàng
 
 router.post('/confirm/:id', verifyToken, order.confirmOrder); // Xác nhận đơn hàng
-router.put('/cancel/:id', verifyToken, order.cancelOrder); // Xác nhận đơn hàng
+router.put('/cancel/:id', verifyToken, order.cancelOrder); // hủy đơn hàng
 
 router.post('/', verifyToken, order.createOrder); // Tạo đơn hàng mới
 

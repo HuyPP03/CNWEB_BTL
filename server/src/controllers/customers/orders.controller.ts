@@ -86,6 +86,9 @@ export const cancelOrder = async (
 		const id = parseInt(req.params.id, 10);
 		const customerId = parseInt((req as any).user?.id);
 		const order: any = await ordersService.getOrderById(id, transaction);
+		if (!order) {
+			throw new Error('Không tìm thấy đơn hàng');
+		}
 		if (customerId !== order.customerId) {
 			return res
 				.status(403)
