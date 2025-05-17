@@ -76,6 +76,40 @@ export const confirmOrder = async (
 	}
 };
 
+export const cancelOrder = async (
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => {
+	const transaction = await db.sequelize.transaction();
+	try {
+		const id = parseInt(req.params.id, 10);
+		const customerId = parseInt((req as any).user?.id);
+		const order: any = await ordersService.getOrderById(id, transaction);
+		if (customerId !== order.customerId) {
+			return res
+				.status(403)
+				.json(
+					new ResOk().formatResponse(
+						null,
+						'Bạn không có quyền cập nhật đơn hàng này!',
+					),
+				);
+		}
+		const cancelOrder = await ordersService.cancelOrder(
+			id,
+			customerId,
+			transaction,
+		);
+
+		await transaction.commit();
+		return res.status(200).json(new ResOk().formatResponse(cancelOrder));
+	} catch (error) {
+		await transaction.rollback();
+		next(error);
+	}
+};
+
 // Cập nhật đơn hàng theo ID
 export const updateOrderById = async (
 	req: Request,
@@ -151,8 +185,13 @@ export const getOrders = async (
 			endDate,
 			minTotalAmount,
 			maxTotalAmount,
-			paymentMethod,
+			page = 1, // Mặc định trang 1
+			limit = 20, // Mặc định số sản phẩm trên mỗi trang là 20
 		} = req.query;
+
+		const offset =
+			(parseInt(page as string) - 1) * parseInt(limit as string);
+		const pageLimit = parseInt(limit as string);
 
 		const filters = {
 			id: id ? Number(id) : undefined,
@@ -162,17 +201,26 @@ export const getOrders = async (
 			endDate: endDate as string,
 			minTotalAmount: minTotalAmount ? Number(minTotalAmount) : undefined,
 			maxTotalAmount: maxTotalAmount ? Number(maxTotalAmount) : undefined,
-			paymentMethod: req.query.paymentMethod as string,
+			offset,
+			page: parseInt(page as string),
+			limit: pageLimit,
 		};
 
-		const orders = await ordersService.getOrders(filters, transaction);
+		const [rows, count] = await ordersService.getOrders(
+			filters,
+			transaction,
+		);
 		await transaction.commit();
 		return res
 			.status(200)
 			.json(
 				new ResOk().formatResponse(
-					orders,
-					'Lấy danh sách đơn hàng thành công!',
+					rows,
+					'Products retrieved successfully',
+					200,
+					filters.limit,
+					filters.page,
+					count as any,
 				),
 			);
 	} catch (error) {

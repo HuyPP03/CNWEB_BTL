@@ -8,7 +8,10 @@ const router = express.Router();
 router.get('/', isManager, verifyToken, order.getOrders); // Lấy tất cả đơn hàng
 
 router.get('/customer', verifyToken, order.getOrders); // Lấy của khách hàng
+
 router.post('/confirm/:id', verifyToken, order.confirmOrder); // Xác nhận đơn hàng
+router.put('/cancel/:id', verifyToken, order.cancelOrder); // Xác nhận đơn hàng
+
 router.post('/', verifyToken, order.createOrder); // Tạo đơn hàng mới
 
 router.put('/:id', isManager, verifyToken, order.updateOrderById); // Cập nhật đơn hàng theo ID
