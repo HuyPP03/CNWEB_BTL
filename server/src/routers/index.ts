@@ -14,6 +14,7 @@ import paymentRoute from './payment.router';
 import feedbackRoute from './feedbacks.router';
 import reviewRoute from './reviews.router';
 import promotionRoute from './promotions.router';
+import dashboardRoute from './dashboard.router';
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.use('/payments', paymentRoute);
 router.use('/feedbacks', feedbackRoute);
 router.use('/reviews', reviewRoute);
 router.use('/promotions', promotionRoute);
+router.use('/dashboard', dashboardRoute);
 
 router.use('/health', (req, res) => {
 	return res.send('Server starting');
