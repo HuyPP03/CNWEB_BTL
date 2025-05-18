@@ -38,7 +38,7 @@ export const login = async (
 		const refreshToken = authService.getRefreshToken(user, isAdmin);
 		res.cookie('refreshToken', refreshToken, {
 			httpOnly: true,
-			secure: false,
+			secure: true,
 			sameSite: 'none',
 			maxAge: TimeUtil.parseTimeToMs(env.app.refreshTokenExpiry),
 			path,
@@ -79,7 +79,7 @@ export const refreshToken = async (
 				await authService.refreshAccessToken(oldRefreshToken, isAdmin);
 			res.cookie('refreshToken', refreshToken, {
 				httpOnly: true,
-				secure: false,
+				secure: true,
 				sameSite: 'none',
 				maxAge: TimeUtil.parseTimeToMs(env.app.refreshTokenExpiry),
 				path,
@@ -579,7 +579,7 @@ export const googleCallback = (
 
 				res.cookie('refreshToken', refreshToken, {
 					httpOnly: true,
-					secure: false,
+					secure: true,
 					sameSite: 'none',
 					maxAge: TimeUtil.parseTimeToMs(env.app.refreshTokenExpiry),
 					path,
