@@ -168,7 +168,7 @@ export class PaymentController {
 
 				// Chuyển hướng người dùng về trang thành công
 				res.redirect(
-					`/payment-success?orderId=${vnpParams.vnp_TxnRef}`,
+					`${env.app.client_url}/payment-success?orderId=${vnpParams.vnp_TxnRef}`,
 				);
 			} else {
 				// Cập nhật trong db
@@ -179,11 +179,13 @@ export class PaymentController {
 					{ where: { orderId: orderId } },
 				);
 				// Xử lý thanh toán thất bại
-				res.redirect('/payment-failed');
+				res.redirect(
+					`${env.app.client_url}/payment-failed?orderId=${vnpParams.vnp_TxnRef}`,
+				);
 			}
 		} catch (error) {
 			console.error('VNPay callback error:', error);
-			res.redirect('/payment-failed');
+			res.redirect(`${env.app.client_url}/payment-failed`);
 		}
 	}
 
