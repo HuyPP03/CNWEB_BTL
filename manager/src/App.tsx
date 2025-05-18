@@ -2,19 +2,18 @@ import Header from "./components/Header";
 import AppRoutes from "./routers/routers";
 import Sidebar from "./components/Sidebar";
 import { useState } from 'react';
-import { useLocation } from "react-router-dom";
+import { useAuth } from "./components/AuthContext";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const location = useLocation();
+  const { currentUser } = useAuth();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const isLoginPage = location.pathname === "/login";
 
-  if (isLoginPage) {
+  if (!currentUser) {
     // Nếu đang ở trang login → chỉ render Main
     return (
       <div className="flex flex-col h-screen">

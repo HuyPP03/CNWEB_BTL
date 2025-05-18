@@ -40,6 +40,18 @@ interface Filters {
   [key: string]: string | number;
 }
 
+// Flatten all categories and subCategories into a flat array
+function flattenCategories(categories: any[]): any[] {
+  let result: any[] = [];
+  categories.forEach(cat => {
+    result.push({ id: cat.id, name: cat.name });
+    if (cat.subCategories && cat.subCategories.length > 0) {
+      result = result.concat(flattenCategories(cat.subCategories));
+    }
+  });
+  return result;
+}
+
 const ProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -55,7 +67,7 @@ const ProductManagement = () => {
     limit: 10,
   });
   const [loading, setLoading] = useState(false);
-  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const navigate = useNavigate();
 
@@ -63,7 +75,8 @@ const ProductManagement = () => {
     const fetchCategories = async () => {
       try {
         const res = await api.get("/public/categories");
-        setCategories(res.data.data || []);
+        const allCategories = flattenCategories(res.data.data || []);
+        setCategories(allCategories);
       } catch (err) {
         console.error("Error fetching categories:", err);
       }
@@ -101,10 +114,10 @@ const ProductManagement = () => {
           };
         });
         setProducts(productsWithNames);
-        setTotalPages(Math.ceil((res.data.total || 0) / filters.limit));
+        setTotal(res.data.meta?.total || 0);
       } catch (err) {
         setProducts([]);
-        setTotalPages(1);
+        setTotal(0);
       }
       setLoading(false);
     };
@@ -131,6 +144,8 @@ const ProductManagement = () => {
 
   const paginate = (pageNumber: number) => setFilters({ ...filters, page: pageNumber });
 
+  const totalPages = Math.ceil(total / filters.limit);
+
   const renderPagination = () => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -152,27 +167,6 @@ const ProductManagement = () => {
       </button>
     );
 
-    // Add first page
-    if (startPage > 1) {
-      pages.push(
-        <button
-          key={1}
-          className="mx-1 px-3 py-1 border rounded bg-white text-blue-500 hover:bg-blue-50"
-          onClick={() => paginate(1)}
-        >
-          1
-        </button>
-      );
-      if (startPage > 2) {
-        pages.push(
-          <span key="start-ellipsis" className="mx-1 px-2">
-            ...
-          </span>
-        );
-      }
-    }
-
-    // Add middle pages
     for (let i = startPage; i <= endPage; i++) {
       pages.push(
         <button
@@ -181,26 +175,6 @@ const ProductManagement = () => {
           onClick={() => paginate(i)}
         >
           {i}
-        </button>
-      );
-    }
-
-    // Add last page
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        pages.push(
-          <span key="end-ellipsis" className="mx-1 px-2">
-            ...
-          </span>
-        );
-      }
-      pages.push(
-        <button
-          key={totalPages}
-          className="mx-1 px-3 py-1 border rounded bg-white text-blue-500 hover:bg-blue-50"
-          onClick={() => paginate(totalPages)}
-        >
-          {totalPages}
         </button>
       );
     }

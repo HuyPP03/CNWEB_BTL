@@ -1,92 +1,154 @@
-import { useState } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import ManagementTable from "../components/ManagementTable";
 import { useNavigate } from "react-router-dom";
+import api from "../services/api";
+
+const headers = ["ID", "Tên khách hàng", "Email", "Số điện thoại", "Trạng thái"];
+const columns = ["id", "fullName", "email", "phone", "status"];
+
+interface Customer {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  isActive: boolean;
+  isBlock: boolean;
+}
+
+interface Filters {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  page: number;
+  limit: number;
+  [key: string]: string | number;
+}
 
 const CustomerManagement = () => {
-    const [customers] = useState([
-        { id: 1, name: "Nguyễn Văn A", email: "a@example.com", phone: "0123456789" },
-        { id: 2, name: "Trần Thị B", email: "b@example.com", phone: "0987654321" },
-        { id: 3, name: "Lê Văn C", email: "c@example.com", phone: "0912345678" },
-        { id: 4, name: "Phạm Thị D", email: "d@example.com", phone: "0934567890" },
-        { id: 5, name: "Hoàng Văn E", email: "e@example.com", phone: "0945678901" }
-    ]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    id: "",
+    fullName: "",
+    email: "",
+    phone: "",
+    page: 1,
+    limit: 10,
+  });
+  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
-    const [currentPage, setCurrentPage] = useState(1);
-    const customersPerPage = 10;
-
-    const handleDetail = (id: number) => {
-        console.log("Chi tiết khách hàng", id);
-        navigate(`/qlkhachhang/detail/${id}`);
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      setLoading(true);
+      try {
+        const params: { [key: string]: string | number } = {};
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== "" && value !== null) params[key] = value;
+        });
+        const res = await api.get("/account/customers", { params });
+        setCustomers(res.data.data || []);
+        setTotal(res.data.meta?.total || 0);
+      } catch (err) {
+        setCustomers([]);
+        setTotal(0);
+      }
+      setLoading(false);
     };
+    fetchCustomers();
+  }, [filters]);
 
-    const handleEdit = (id: number) => {
-        console.log("Sửa khách hàng", id);
-        navigate(`/qlkhachhang/edit/${id}`);
-    };
+  const handleFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
+  };
 
-    const handleDelete = (id: number) => {
-        console.log("Xóa khách hàng", id);
-    };
+  const handleDetail = (id: number) => {
+    navigate(`/qlkhachhang/detail/${id}`);
+  };
 
-    const indexOfLastCustomer = currentPage * customersPerPage;
-    const indexOfFirstCustomer = indexOfLastCustomer - customersPerPage;
-    const currentCustomers = customers.slice(indexOfFirstCustomer, indexOfLastCustomer);
+  const paginate = (pageNumber: number) => setFilters({ ...filters, page: pageNumber });
+  const totalPages = Math.ceil(total / filters.limit);
 
-    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-    return (
-        <div className="p-2">
-            <h1 className="text-xl font-bold mb-4">Quản lý khách hàng</h1>
-            <div className="flex gap-2">
-                <input
-                    type="text"
-                    placeholder="Tìm theo id..."
-                    onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-                    className="p-2 border rounded w-1/3"
-                />
-                <input
-                    type="text"
-                    placeholder="Tìm theo tên..."
-                    onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-                    className="p-2 border rounded w-1/3"
-                />
-                <input
-                    type="text"
-                    placeholder="Tìm theo email..."
-                    onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-                    className="p-2 border rounded w-1/3"
-                />
-                <input
-                    type="text"
-                    placeholder="Tìm theo số điện thoại..."
-                    onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-                    className="p-2 border rounded w-1/3"
-                />
-            </div>
-            <div className="p-4">
-                <ManagementTable
-                    data={currentCustomers}
-                    headers={["ID", "Tên khách hàng", "Email", "Số điện thoại"]}
-                    columns={['id', 'name', 'email', 'phone']}
-                    onDetail={handleDetail}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                />
-            </div>
-            <div className="flex justify-center mt-4">
-                {Array.from({ length: Math.ceil(customers.length / customersPerPage) }, (_, index) => (
-                    <button
-                        key={index + 1}
-                        className={`mx-1 px-3 py-1 border rounded ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-white text-blue-500"}`}
-                        onClick={() => paginate(index + 1)}
-                    >
-                        {index + 1}
-                    </button>
-                ))}
-            </div>
+  return (
+    <div className="p-2">
+      <h1 className="text-xl font-bold mb-4">Quản lý khách hàng</h1>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="id">ID khách hàng</label>
+          <input
+            type="text"
+            name="id"
+            id="id"
+            placeholder="Nhập ID..."
+            value={filters.id}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
         </div>
-    );
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="fullName">Tên khách hàng</label>
+          <input
+            type="text"
+            name="fullName"
+            id="fullName"
+            placeholder="Nhập tên..."
+            value={filters.fullName}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="email">Email</label>
+          <input
+            type="text"
+            name="email"
+            id="email"
+            placeholder="Nhập email..."
+            value={filters.email}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="phone">Số điện thoại</label>
+          <input
+            type="text"
+            name="phone"
+            id="phone"
+            placeholder="Nhập số điện thoại..."
+            value={filters.phone}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+      </div>
+      <div className="p-4">
+        <ManagementTable
+          headers={headers}
+          columns={columns}
+          data={customers.map(c => ({
+            ...c,
+            status: c.isBlock ? "Bị khóa" : "Bình thường"
+          }))}
+          onDetail={handleDetail}
+          showActions={true}
+        />
+        {loading && <div>Đang tải dữ liệu...</div>}
+      </div>
+      <div className="flex justify-center mt-4">
+        {Array.from({ length: totalPages }, (_, index) => (
+          <button
+            key={index + 1}
+            className={`mx-1 px-3 py-1 border rounded ${filters.page === index + 1 ? "bg-blue-500 text-white" : "bg-white text-blue-500"}`}
+            onClick={() => paginate(index + 1)}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export default CustomerManagement;

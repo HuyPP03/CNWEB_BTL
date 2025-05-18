@@ -1,95 +1,212 @@
-import { useState } from "react";
-import { FaUserPlus } from "react-icons/fa";
+import { useState, useEffect, ChangeEvent } from "react";
+import { FaUserPlus, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
 import ManagementTable from "../components/ManagementTable";
+import api from "../services/api";
+
+const headers = [
+  "ID",
+  "Tên đăng nhập",
+  "Họ tên",
+  "Email",
+  "Số điện thoại",
+  "Vai trò"
+];
+const columns = [
+  "id",
+  "username",
+  "fullName",
+  "email",
+  "phone",
+  "role"
+];
+
+interface Employee {
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Filters {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  page: number;
+  limit: number;
+  [key: string]: string | number;
+}
 
 const EmployeeManagement = () => {
-  const [employees] = useState([
-    { id: 1, name: "Nguyễn Văn A", position: "Nhân viên" },
-    { id: 2, name: "Trần Thị B", position: "Quản lý" },
-    { id: 3, name: "Lê Văn C", position: "Nhân viên" },
-    { id: 4, name: "Phạm Thị D", position: "Nhân viên" },
-    { id: 5, name: "Hoàng Văn E", position: "Quản lý" },
-    { id: 6, name: "Đặng Thị F", position: "Nhân viên" },
-    { id: 7, name: "Ngô Văn G", position: "Nhân viên" },
-    { id: 8, name: "Bùi Thị H", position: "Nhân viên" },
-  ]);
-  const headers = ["ID", "Tên nhân viên", "Chức vụ"];
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    id: "",
+    username: "",
+    fullName: "",
+    email: "",
+    page: 1,
+    limit: 10,
+  });
+  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
 
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
-  const employeesPerPage = 10;
 
-  const handleDetail = (id: number) => {
-    console.log("Chi tiết nhân viên", id);
-    navigate(`/qlnhanvien/${id}`);
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      setLoading(true);
+      try {
+        const params: { [key: string]: string | number } = {};
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== "" && value !== null) params[key] = value;
+        });
+        const res = await api.get("/account/admin", { params });
+        setEmployees(res.data.data || []);
+        setTotal(res.data.meta?.total || 0);
+      } catch (err) {
+        setEmployees([]);
+        setTotal(0);
+      }
+      setLoading(false);
+    };
+    fetchEmployees();
+  }, [filters]);
+
+  const handleFilterChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
   };
 
-  const handleAdd = () => {
-    console.log("Thêm nhân viên");
-    navigate("/qlnhanvien/add");
+  const handleAdd = () => navigate("/qlnhanvien/add");
+  const handleEdit = (id: number) => navigate(`/qlnhanvien/edit/${id}`);
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa nhân viên này?")) {
+      try {
+        await api.delete(`/account/admin/${id}`);
+        setEmployees(employees.filter(e => e.id !== id));
+      } catch (err) {
+        // Xử lý lỗi nếu cần
+      }
+    }
   };
 
-  const handleEdit = (id: number) => {
-    console.log("Sửa nhân viên", id);
-    navigate(`/qlnhanvien/edit/${id}`);
+  const paginate = (pageNumber: number) => setFilters({ ...filters, page: pageNumber });
+  const totalPages = Math.ceil(total / filters.limit);
+
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, filters.page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    pages.push(
+      <button
+        key="prev"
+        className={`mx-1 px-3 py-1 border rounded flex items-center ${filters.page === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+        onClick={() => filters.page > 1 && paginate(Number(filters.page) - 1)}
+        disabled={filters.page === 1}
+      >
+        <FaChevronLeft className="w-3 h-3" />
+      </button>
+    );
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          className={`mx-1 px-3 py-1 border rounded ${filters.page === i ? "bg-blue-500 text-white" : "bg-white text-blue-500 hover:bg-blue-50"}`}
+          onClick={() => paginate(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+    pages.push(
+      <button
+        key="next"
+        className={`mx-1 px-3 py-1 border rounded flex items-center ${filters.page === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+        onClick={() => filters.page < totalPages && paginate(Number(filters.page) + 1)}
+        disabled={filters.page === totalPages}
+      >
+        <FaChevronRight className="w-3 h-3" />
+      </button>
+    );
+    return pages;
   };
-
-  const handleDelete = (id: number) => {
-    console.log("Xóa nhân viên", id);
-  };
-
-  const indexOfLastEmployee = currentPage * employeesPerPage;
-  const indexOfFirstEmployee = indexOfLastEmployee - employeesPerPage;
-  const currentEmployees = employees.slice(indexOfFirstEmployee, indexOfLastEmployee);
-
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
     <div className="p-2">
-      <h1 className="text-xl font-bold mb-4">Quản lý nhân viên</h1>
+      <h1 className="text-2xl font-bold mb-4">Quản lý nhân viên</h1>
       <AddButton onClick={handleAdd} label="Thêm nhân viên" icon={FaUserPlus} />
-      <div className="flex gap-2 mt-4">
-        <input
-          type="text"
-          placeholder="Tìm theo ID..."
-          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-          className="p-2 border rounded w-1/3"
-        />
-        <input
-          type="text"
-          placeholder="Tìm theo tên..."
-          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-          className="p-2 border rounded w-1/3"
-        />
-        <input
-          type="text"
-          placeholder="Tìm theo chức vụ..."
-          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-          className="p-2 border rounded w-1/3"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="id">ID</label>
+          <input
+            type="text"
+            name="id"
+            id="id"
+            placeholder="Nhập ID..."
+            value={filters.id}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="username">Tên đăng nhập</label>
+          <input
+            type="text"
+            name="username"
+            id="username"
+            placeholder="Nhập username..."
+            value={filters.username}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="fullName">Họ tên</label>
+          <input
+            type="text"
+            name="fullName"
+            id="fullName"
+            placeholder="Nhập họ tên..."
+            value={filters.fullName}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="email">Email</label>
+          <input
+            type="text"
+            name="email"
+            id="email"
+            placeholder="Nhập email..."
+            value={filters.email}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
       </div>
       <div className="p-4">
         <ManagementTable
           headers={headers}
-          columns={['id', 'name', 'position']}
-          data={currentEmployees}
-          onDetail={handleDetail}
+          columns={columns}
+          data={employees}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
+        {loading && <div>Đang tải dữ liệu...</div>}
       </div>
       <div className="flex justify-center mt-4">
-        {Array.from({ length: Math.ceil(employees.length / employeesPerPage) }, (_, index) => (
-          <button
-            key={index + 1}
-            className={`mx-1 px-3 py-1 border rounded ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-white text-blue-500"}`}
-            onClick={() => paginate(index + 1)}
-          >
-            {index + 1}
-          </button>
-        ))}
+        {renderPagination()}
       </div>
     </div>
   );

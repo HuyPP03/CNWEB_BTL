@@ -7,11 +7,20 @@ import api from "../services/api";
 interface Category {
   id: number;
   name: string;
+  subCategories: Category[];
 }
+
 interface Brand {
   id: number;
   name: string;
 }
+
+const formatCurrency = (amount: string | number) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(Number(amount));
+};
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -30,8 +39,27 @@ const AddProduct = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
 
+  // Function to recursively get all leaf categories
+  const getLeafCategories = (categories: Category[]): Category[] => {
+    let leafCategories: Category[] = [];
+    categories.forEach(category => {
+      // Nếu không có subCategories thì coi như là []
+      const subCategories = category.subCategories ?? [];
+      if (subCategories.length === 0) {
+        leafCategories.push(category);
+      } else {
+        leafCategories = [...leafCategories, ...getLeafCategories(subCategories)];
+      }
+    });
+    return leafCategories;
+  };
+
   useEffect(() => {
-    api.get("/public/categories").then(res => setCategories(res.data.data || []));
+    api.get("/public/categories").then(res => {
+      const allCategories = res.data.data || [];
+      const leafCategories = getLeafCategories(allCategories);
+      setCategories(leafCategories);
+    });
     api.get("/public/brands").then(res => setBrands(res.data.data || []));
   }, []);
 
@@ -172,6 +200,11 @@ const AddProduct = () => {
             min={0}
             required
           />
+          {form.basePrice && (
+            <div className="text-sm text-gray-500 mt-1">
+              {formatCurrency(form.basePrice)}
+            </div>
+          )}
         </div>
         <label className="block font-semibold mb-2 text-lg">Ảnh sản phẩm</label>
         <ImageUploader

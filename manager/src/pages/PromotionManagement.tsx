@@ -1,85 +1,227 @@
-import { useState } from "react";
-import { FaUserPlus } from "react-icons/fa";
+import { useState, useEffect, ChangeEvent } from "react";
+import { FaUserPlus, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import AddButton from "../components/AddButton";
 import ManagementTable from "../components/ManagementTable";
+import api from "../services/api";
+
+const headers = ["ID", "Tên chương trình", "% giảm giá", "Mã giảm"]; // columns: id, name, discountPercent, discountCode
+const columns = ["id", "name", "discountPercent", "discountCode"];
+
+interface Promotion {
+  id: number;
+  name: string;
+  discountPercent: string;
+  discountCode: string;
+  [key: string]: any;
+}
+
+interface Filters {
+  id: string;
+  name: string;
+  page: number;
+  limit: number;
+  [key: string]: string | number;
+}
 
 const PromotionManagement = () => {
-  const [employees] = useState([
-    { id: 1, name: "Khuyen mai Black Friday", dateStart: "2023-11-01", dateEnd: "2023-11-30" },
-    { id: 2, name: "Khuyen mai Tet Nguyen Dan", dateStart: "2024-01-01", dateEnd: "2024-01-31" },
-    { id: 3, name: "Khuyen mai mua he", dateStart: "2024-06-01", dateEnd: "2024-08-31" },
-    { id: 4, name: "Khuyen mai Giang Sinh", dateStart: "2023-12-01", dateEnd: "2023-12-31" },
-  ]);
-  const headers = ["ID", "Tên chương trình" , "Ngày bắt đầu", "Ngày kết thúc"];
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    id: "",
+    name: "",
+    page: 1,
+    limit: 10,
+  });
+  const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
 
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
-  const employeesPerPage = 10;
 
-  const handleDetail = (id: number) => {
-    console.log("Chi tiết chương trình", id);
-    navigate(`/qlkhuyenmai/detail/${id}`);
+  useEffect(() => {
+    const fetchPromotions = async () => {
+      setLoading(true);
+      try {
+        const params: { [key: string]: string | number } = {};
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== "" && value !== null) params[key] = value;
+        });
+        // API endpoint: /api/promotions
+        const res = await api.get("/promotions", { params });
+        // API trả về: { data: { promotion: {...} } } hoặc { data: { promotions: [...] } }
+        let data: Promotion[] = [];
+        if (Array.isArray(res.data.data?.promotions)) {
+          data = res.data.data.promotions;
+        } else if (Array.isArray(res.data.data)) {
+          data = res.data.data;
+        } else if (res.data.data?.promotion) {
+          data = [res.data.data.promotion];
+        }
+        setPromotions(data);
+        // Nếu có phân trang, lấy tổng số trang từ res.data.total hoặc res.data.paging
+        if (res.data.total) {
+          setTotalPages(Math.ceil(res.data.total / filters.limit));
+        } else if (res.data.paging && res.data.paging.total) {
+          setTotalPages(Math.ceil(res.data.paging.total / filters.limit));
+        } else {
+          setTotalPages(1);
+        }
+      } catch (err) {
+        setPromotions([]);
+        setTotalPages(1);
+      }
+      setLoading(false);
+    };
+    fetchPromotions();
+  }, [filters]);
+
+  const handleFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
   };
 
-  const handleAdd = () => {
-    console.log("Thêm chương trình");
-    navigate("/qlkhuyenmai/add");
+  const handleDetail = (id: number) => navigate(`/qlkhuyenmai/detail/${id}`);
+  const handleAdd = () => navigate("/qlkhuyenmai/add");
+  const handleEdit = (id: number) => navigate(`/qlkhuyenmai/edit/${id}`);
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa chương trình này?")) {
+      try {
+        await api.delete(`/promotions/${id}`);
+        setPromotions(promotions.filter(p => p.id !== id));
+      } catch (err) {
+        console.error("Error deleting promotion:", err);
+      }
+    }
   };
 
-  const handleEdit = (id: number) => {
-    console.log("Sửa chương trình", id);
-    navigate(`/qlkhuyenmai/edit/${id}`);
+  const paginate = (pageNumber: number) => setFilters({ ...filters, page: pageNumber });
+
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, filters.page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    pages.push(
+      <button
+        key="prev"
+        className={`mx-1 px-3 py-1 border rounded flex items-center ${filters.page === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+        onClick={() => filters.page > 1 && paginate(Number(filters.page) - 1)}
+        disabled={filters.page === 1}
+      >
+        <FaChevronLeft className="w-3 h-3" />
+      </button>
+    );
+
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          className="mx-1 px-3 py-1 border rounded bg-white text-blue-500 hover:bg-blue-50"
+          onClick={() => paginate(1)}
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(
+          <span key="start-ellipsis" className="mx-1 px-2">
+            ...
+          </span>
+        );
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          className={`mx-1 px-3 py-1 border rounded ${filters.page === i ? "bg-blue-500 text-white" : "bg-white text-blue-500 hover:bg-blue-50"}`}
+          onClick={() => paginate(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(
+          <span key="end-ellipsis" className="mx-1 px-2">
+            ...
+          </span>
+        );
+      }
+      pages.push(
+        <button
+          key={totalPages}
+          className="mx-1 px-3 py-1 border rounded bg-white text-blue-500 hover:bg-blue-50"
+          onClick={() => paginate(totalPages)}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    pages.push(
+      <button
+        key="next"
+        className={`mx-1 px-3 py-1 border rounded flex items-center ${filters.page === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-500 hover:bg-blue-50'}`}
+        onClick={() => filters.page < totalPages && paginate(Number(filters.page) + 1)}
+        disabled={filters.page === totalPages}
+      >
+        <FaChevronRight className="w-3 h-3" />
+      </button>
+    );
+
+    return pages;
   };
-
-  const handleDelete = (id: number) => {
-    console.log("Xóa chương trình", id);
-  };
-
-  const indexOfLastEmployee = currentPage * employeesPerPage;
-  const indexOfFirstEmployee = indexOfLastEmployee - employeesPerPage;
-  const currentEmployees = employees.slice(indexOfFirstEmployee, indexOfLastEmployee);
-
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
     <div className="p-2">
       <h1 className="text-xl font-bold mb-4">Quản lý chương trình khuyến mại</h1>
       <AddButton onClick={handleAdd} label="Thêm chương trình" icon={FaUserPlus} />
-      <div className="flex gap-2 mt-4">
-        <input
-          type="text"
-          placeholder="Tìm theo ID..."
-          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-          className="p-2 border rounded w-1/3"
-        />
-        <input
-          type="text"
-          placeholder="Tìm theo tên..."
-          onChange={(e) => console.log("Từ khóa tìm kiếm:", e.target.value)}
-          className="p-2 border rounded w-1/3"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 items-end">
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="id">ID chương trình</label>
+          <input
+            type="text"
+            name="id"
+            id="id"
+            placeholder="Nhập ID..."
+            value={filters.id}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="name">Tên chương trình</label>
+          <input
+            type="text"
+            name="name"
+            id="name"
+            placeholder="Nhập tên..."
+            value={filters.name}
+            onChange={handleFilterChange}
+            className="p-2 border rounded-lg w-full shadow-sm focus:border-blue-400"
+          />
+        </div>
       </div>
       <div className="p-4">
         <ManagementTable
           headers={headers}
-          columns={['id', 'name', 'dateStart', 'dateEnd']}
-          data={currentEmployees}
+          columns={columns}
+          data={promotions}
           onDetail={handleDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
+        {loading && <div>Đang tải dữ liệu...</div>}
       </div>
       <div className="flex justify-center mt-4">
-        {Array.from({ length: Math.ceil(employees.length / employeesPerPage) }, (_, index) => (
-          <button
-            key={index + 1}
-            className={`mx-1 px-3 py-1 border rounded ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-white text-blue-500"}`}
-            onClick={() => paginate(index + 1)}
-          >
-            {index + 1}
-          </button>
-        ))}
+        {renderPagination()}
       </div>
     </div>
   );

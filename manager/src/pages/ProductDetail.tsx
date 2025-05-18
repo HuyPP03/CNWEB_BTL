@@ -39,10 +39,17 @@ interface Brand {
 
 interface ProductVariant {
   id: number;
-  slug: string;
+  name: string;
   price: string;
   stock: number;
 }
+
+const formatCurrency = (amount: string | number) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(Number(amount));
+};
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -82,27 +89,11 @@ const ProductDetail = () => {
   };
 
   const handleViewVariant = (variantId: number) => {
-    // TODO: Implement view variant details
-    console.log("View variant:", variantId);
+    navigate(`/qlsanpham/detail/${id}/variant/${variantId}`);
   };
 
   const handleEditVariant = (variantId: number) => {
-    // TODO: Implement edit variant
-    console.log("Edit variant:", variantId);
-  };
-
-  const handleDeleteVariant = async (variantId: number) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa biến thể này?")) {
-      try {
-        await api.delete(`/product-variants/${variantId}`);
-        // Refresh product data after deletion
-        const res = await api.get(`/products?id=${id}`);
-        setProduct(res.data.data[0]);
-      } catch (error) {
-        console.error("Error deleting variant:", error);
-        alert("Có lỗi xảy ra khi xóa biến thể");
-      }
-    }
+    navigate(`/qlsanpham/detail/${id}/edit-variant/${variantId}`);
   };
 
   const handleAddVariant = () => {
@@ -122,8 +113,8 @@ const ProductDetail = () => {
   const variantColumns = ["id", "name", "price", "stock"];
   const variantData = (product.productVariants || []).map(variant => ({
     id: variant.id,
-    name: variant.slug,
-    price: variant.price,
+    name: variant.name,
+    price: formatCurrency(variant.price),
     stock: variant.stock,
   }));
 
@@ -144,7 +135,7 @@ const ProductDetail = () => {
             </div>
             <div>
               <span className="font-semibold">Giá cơ bản: </span>
-              {product.basePrice}
+              {formatCurrency(product.basePrice)}
             </div>
             <div>
               <span className="font-semibold">Danh mục: </span>
@@ -164,7 +155,7 @@ const ProductDetail = () => {
               {product.productImages.map((img: ProductImage) => (
                 <img
                   key={img.id}
-                  src={`https://cnweb-btl.onrender.com/${img.imageUrl}`}
+                  src={`${img.imageUrl}`}
                   alt={`product-img-${img.id}`}
                   className="w-40 h-40 object-cover rounded-lg border shadow cursor-pointer hover:scale-105 transition"
                   onClick={() => setPreviewImg(img.imageUrl)}
@@ -190,7 +181,6 @@ const ProductDetail = () => {
               showActions={true}
               onDetail={handleViewVariant}
               onEdit={handleEditVariant}
-              onDelete={handleDeleteVariant}
             />
           </div>
         )}

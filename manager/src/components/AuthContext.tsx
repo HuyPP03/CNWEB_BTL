@@ -6,6 +6,7 @@ interface User {
   id: string;
   email: string;
   fullName?: string;
+  role?: any;
 }
 
 // Định nghĩa kiểu decoded token
@@ -43,6 +44,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchUserInfo = async () => {
+    try {
+      const res = await api.get("/manager/me");
+      setCurrentUser({
+        id: res.data.data.id,
+        email: res.data.data.email,
+        fullName: res.data.data.fullName,
+        role: res.data.data.role,
+      });
+    } catch (error) {
+      console.error("Lỗi khi lấy thông tin người dùng:", error);
+    }
+  };
+
   // Hàm kiểm tra token
   const checkToken = async () => {
     try {
@@ -58,24 +73,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Nếu token đã hết hạn hoặc còn hạn dưới 5 phút, thử refresh
       if (decodedToken.exp <= currentTime || decodedToken.exp - currentTime < 300) {
         try {
-          const response = await api.post("/auth/refresh-token");
+          const response = await api.get("/auth/managers/refresh-token");
           const { accessToken } = response.data.data;
           localStorage.setItem("accessToken", accessToken);
+          console.log("refreshthanhcong");
 
-          const newDecodedToken = jwtDecode<DecodedToken>(accessToken);
-          setCurrentUser({
-            id: newDecodedToken.sub,
-            email: newDecodedToken.email,
-          });
+          await fetchUserInfo();
         } catch (err) {
           console.error("Error refreshing token:", err);
           handleLogout();
         }
       } else {
-        setCurrentUser({
-          id: decodedToken.sub,
-          email: decodedToken.email,
-        });
+        await fetchUserInfo();
       }
     } catch (err) {
       console.error("Error checking token:", err);
@@ -114,11 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       localStorage.setItem("accessToken", accessToken);
 
-      const decodedToken = jwtDecode<DecodedToken>(accessToken);
-      setCurrentUser({
-        id: decodedToken.sub,
-        email: decodedToken.email,
-      });
+      await fetchUserInfo();
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.response?.data?.message || "Login failed");

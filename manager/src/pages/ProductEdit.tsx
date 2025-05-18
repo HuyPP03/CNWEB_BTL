@@ -24,6 +24,7 @@ interface Product {
 interface Category {
   id: number;
   name: string;
+  subCategories?: Category[];
 }
 
 interface Brand {
@@ -43,6 +44,21 @@ const ProductEdit = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
+
+  // Hàm đệ quy lấy leaf categories
+  const getLeafCategories = (categories: Category[]): Category[] => {
+    let leafCategories: Category[] = [];
+    categories.forEach(category => {
+      const subCategories = category.subCategories ?? [];
+      if (subCategories.length === 0) {
+        leafCategories.push(category);
+      } else {
+        leafCategories = [...leafCategories, ...getLeafCategories(subCategories)];
+      }
+    });
+    return leafCategories;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,7 +79,10 @@ const ProductEdit = () => {
           api.get("/public/categories"),
           api.get("/public/brands"),
         ]);
-        setCategories(catRes.data.data || []);
+        // Lọc chỉ lấy leaf categories
+        const allCategories = catRes.data.data || [];
+        const leafCategories = getLeafCategories(allCategories);
+        setCategories(leafCategories);
         setBrands(brandRes.data.data || []);
       } catch (err) {
         setError("Không tìm thấy sản phẩm hoặc có lỗi xảy ra.");
@@ -93,6 +112,7 @@ const ProductEdit = () => {
 
   const handleRemoveOldImage = (imgId: number) => {
     setOldImages(oldImages.filter(img => img.id !== imgId));
+    setDeletedImageIds(prev => [...prev, imgId]);
   };
 
   const handleRemoveNewImage = (idx: number) => {
@@ -104,20 +124,25 @@ const ProductEdit = () => {
     setLoading(true);
     setError(null);
     try {
+      // Xóa ảnh cũ đã chọn xóa
+      if (deletedImageIds.length > 0) {
+        await Promise.all(deletedImageIds.map(id => api.delete(`/images/${id}`)));
+      }
+
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("categoryId", String(form.categoryId));
       formData.append("brandId", String(form.brandId));
       formData.append("description", form.description);
       formData.append("basePrice", form.basePrice);
-      // Thêm ảnh mới
-      images.forEach((file, idx) => {
-        formData.append(`image[${idx}]`, file);
-      });
-      // Gửi danh sách id ảnh cũ muốn giữ lại
-      oldImages.forEach(img => {
-        formData.append("oldImageIds[]", String(img.id));
-      });
+
+      // Chỉ thêm ảnh mới khi có ảnh được chọn
+      if (images.length > 0) {
+        images.forEach((file, idx) => {
+          formData.append(`image[${idx}]`, file);
+        });
+      }
+
       await api.put(`/products/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -181,7 +206,7 @@ const ProductEdit = () => {
             <div className="flex flex-wrap gap-4">
               {oldImages.map(img => (
                 <div key={img.id} className="relative">
-                  <img src={`https://cnweb-btl.onrender.com/${img.imageUrl}`} alt="old" className="w-24 h-24 object-cover rounded border" />
+                  <img src={`${img.imageUrl}`} alt="old" className="w-24 h-24 object-cover rounded border" />
                   <button type="button" onClick={() => handleRemoveOldImage(img.id)} className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center">×</button>
                 </div>
               ))}

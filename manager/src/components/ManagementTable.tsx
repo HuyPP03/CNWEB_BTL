@@ -35,11 +35,8 @@ const ManagementTable: React.FC<ManagementTableProps> = ({
 
   const handleDelete = (id: number) => {
     if (onDelete) {
-      const confirmed = window.confirm("Bạn có chắc chắn muốn xóa mục này?");
-      if (confirmed) {
-        onDelete(id);
-        console.log("Xóa mục có ID:", id);
-      }
+      onDelete(id);
+      console.log("Xóa mục có ID:", id);
     }
   };
 
