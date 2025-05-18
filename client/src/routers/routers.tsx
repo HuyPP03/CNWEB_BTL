@@ -1,13 +1,17 @@
 import { Routes, Route } from "react-router-dom";
 import Home from "../pages/Home";
 import NotFound from "../pages/NotFound";
-import ShoppingCart from "../pages/ShoppingCart";
-import ProductDetailPage from "../pages/ProductDetailPage";
 import CategoryPage from "../pages/CategoryPage";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import OrdersPage from "../pages/OrdersPage";
+import OrderDetailPage from "../pages/OrderDetailPage";
 import PrivateRoute from "./PrivateRoute";
+import AccountPage from "../pages/AccountPage";
+import WishlistPage from "../pages/WishlistPage";
+import ProductDetailPage from "../pages/ProductDetailPage";
+import ShoppingCart from "../pages/ShoppingCart";
+import SearchResults from "../pages/SearchResults";
 
 export default function AppRoutes() {
   return (
@@ -16,15 +20,16 @@ export default function AppRoutes() {
 
       {/* Auth routes */}
       <Route path="/auth/login" element={<Login />} />
-      <Route path="/auth/register" element={<Register />} />
-
-      {/* Protected routes - require authentication */}
-      <Route element={<PrivateRoute />}>
-        <Route path="/cart" element={<ShoppingCart />} />
-        <Route path="/account" element={<div className="container mx-auto p-8">Tài khoản của tôi</div>} />
+      <Route path="/auth/register" element={<Register />} />      {/* Protected routes - require authentication */}      <Route element={<PrivateRoute />}>
+        <Route path="/cart" element={<ShoppingCart />} />      <Route path="/account" element={<AccountPage />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders/:id" element={<OrderDetailPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/notifications" element={<div className="container mx-auto p-8">Thông báo của tôi</div>} />
       </Route>
+
+      {/* Search results */}
+      <Route path="/search" element={<SearchResults />} />
 
       {/* Public routes - Category routes */}
       {/* Danh mục chính */}
@@ -82,9 +87,10 @@ export default function AppRoutes() {
       <Route path="/may-tinh-de-ban" element={<CategoryPage />} />
       <Route path="/man-hinh-may-tinh" element={<CategoryPage />} />
       <Route path="/may-choi-game" element={<CategoryPage />} />
+      <Route path="/:categoryId" element={<CategoryPage />} />
 
       {/* Định tuyến cho chi tiết sản phẩm */}
-      <Route path="/:category/:id" element={<ProductDetailPage />} />
+      <Route path="/:category/:slug" element={<ProductDetailPage />} />
 
       {/* Trang 404 */}
       <Route path="*" element={<NotFound />} />

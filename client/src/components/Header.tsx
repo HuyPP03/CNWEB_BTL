@@ -2,15 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, Map, Search, ShoppingCart, User, X, Bell, Menu, LogOut, Heart, ShoppingBag } from 'lucide-react';
 import AddressSelection from './AddressSelection';
-import { mockProducts } from '../data/products';
 import { useAuth } from '../hooks/useAuth';
 import cartService from '../services/cart.service';
+import productService from '../services/product.service';
 import { accessoriesCategories, mainCategories } from '../data/category';
 
-// Mock suggestions type
+// suggestions type
 interface SuggestionProduct {
   id: number;
   name: string;
+  slug: string;
   image: string;
   price: number;
   originalPrice?: number;
@@ -29,7 +30,6 @@ const Header: React.FC = () => {
   const [activeCategoryDropdown, setActiveCategoryDropdown] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestedProducts, setSuggestedProducts] = useState<SuggestionProduct[]>([]);
-  const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [cartItemCount, setCartItemCount] = useState<number>(0);
@@ -78,33 +78,61 @@ const Header: React.FC = () => {
     };
   }, []);
 
+
   useEffect(() => {
     if (searchQuery.length > 0) {
-      // Filter products based on search query
-      const filtered = mockProducts.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      // Use product service to fetch suggestions
+      const fetchSuggestions = async () => {
+        try {
+          const response = await productService.getProducts({
+            name: searchQuery,
+            limit: 5
+          });
 
-      // Get suggested products (limit to 5)
-      setSuggestedProducts(filtered.slice(0, 5).map(product => ({
-        id: product.id,
-        name: product.name,
-        image: product.image,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        discountPercentage: product.originalPrice ?
-          Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : undefined,
-        category: product.category
-      })));
+          if (response && response.data) {
+            setSuggestedProducts(response.data.map(product => {
+              // Use the first variant for price information
+              const mainVariant = product.productVariants && product.productVariants.length > 0
+                ? product.productVariants[0]
+                : null;
 
-      // Get suggested categories based on query
-      const categories = ["Samsung", "Laptop Samsung", "Máy tính bảng Samsung", "Điện thoại Samsung", "Ốp lưng Samsung"];
-      const filteredCategories = categories.filter(cat =>
-        cat.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setSuggestedCategories(filteredCategories);
+              // Get the main product image
+              const mainImage = product.productImages && product.productImages.length > 0
+                ? product.productImages.find(img => img.isPrimary)?.imageUrl || product.productImages[0].imageUrl
+                : '';
 
-      setShowSuggestions(true);
+              // Calculate price information
+              const originalPrice = mainVariant ? parseFloat(mainVariant.price) : 0;
+              const currentPrice = mainVariant && mainVariant.discountPrice
+                ? originalPrice - parseFloat(mainVariant.discountPrice)
+                : originalPrice;
+
+              // Calculate discount percentage
+              const discountPercentage = originalPrice > 0 && currentPrice < originalPrice
+                ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+                : 0;
+
+              return {
+                id: product.id,
+                name: product.name,
+                slug: product.slug,
+                image: mainImage,
+                price: currentPrice,
+                originalPrice: originalPrice,
+                discountPercentage,
+                category: product.categoryId ? product.categoryId.toString() : undefined
+              };
+            }));
+          }
+
+          setShowSuggestions(true);
+        } catch (error) {
+          console.error('Error fetching product suggestions:', error);
+          setSuggestedProducts([]);
+        }
+      };
+
+      fetchSuggestions();
     } else {
       setShowSuggestions(false);
     }
@@ -145,10 +173,18 @@ const Header: React.FC = () => {
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
   };
-
   const clearSearch = () => {
     setSearchQuery('');
     setShowSuggestions(false);
+  };
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (searchQuery.trim()) {
+      navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
+      setShowSuggestions(false);
+    }
   };
 
   const handleOpenAddressModal = (e: React.MouseEvent) => {
@@ -215,7 +251,7 @@ const Header: React.FC = () => {
 
             {/* Search - Updated with suggestions */}
             <div className="flex-grow max-w-xl relative" ref={searchContainerRef}>
-              <div className="flex items-center rounded-full overflow-hidden shadow-md border border-indigo-100">
+              <form onSubmit={handleSearchSubmit} className="flex items-center rounded-full overflow-hidden shadow-md border border-indigo-100">
                 <div className="relative flex-grow">
                   <input
                     type="text"
@@ -227,6 +263,7 @@ const Header: React.FC = () => {
                   />
                   {searchQuery && (
                     <button
+                      type="button"
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                       onClick={clearSearch}
                     >
@@ -234,21 +271,24 @@ const Header: React.FC = () => {
                     </button>
                   )}
                 </div>
-                <button className="bg-gradient-to-r from-[#3B82F6] to-[#6366F1] h-full p-2.5 px-4 hover:opacity-90 transition-opacity">
-                  <Search className="text-white" size={20} />
+                <button
+                  type="submit"
+                  className="bg-[#4F46E5] h-full px-4 text-white flex items-center justify-center hover:bg-[#4338CA] transition-colors"
+                >
+                  <Search size={18} />
                 </button>
-              </div>
+              </form>
 
               {/* Search suggestions dropdown */}
               {showSuggestions && (
                 <div className="absolute top-full left-0 w-full bg-white rounded-lg shadow-xl overflow-hidden mt-2 z-50 border border-gray-100 animate-fadeDown">
                   {/* Suggested text - "Có phải bạn muốn tìm" */}
-                  <div className="p-3 text-sm text-gray-500 border-b bg-gray-50">
+                  {/* <div className="p-3 text-sm text-gray-500 border-b bg-gray-50">
                     <span className="font-medium">Có phải bạn muốn tìm</span>
-                  </div>
+                  </div> */}
 
                   {/* Special link for brand page - shown when searching Samsung */}
-                  {searchQuery.toLowerCase().includes('samsung') && (
+                  {/* {searchQuery.toLowerCase().includes('samsung') && (
                     <Link
                       to="/thuong-hieu/samsung"
                       className="flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 p-3 hover:opacity-95 transition-opacity"
@@ -259,21 +299,21 @@ const Header: React.FC = () => {
                       <span className="text-white">Chuyên trang Samsung</span>
                       <span className="ml-auto bg-white/20 rounded-full px-2 py-0.5 text-xs text-white">Xem ngay</span>
                     </Link>
-                  )}
-
+                  )}                   */}
                   {/* Category suggestions */}
-                  {suggestedCategories.map((category, index) => (
+                  {/* {suggestedCategories.map((category, index) => (
                     <Link
                       key={index}
-                      to={`/search?q=${encodeURIComponent(category)}`}
+                      to={`/search?query=${encodeURIComponent(category)}`}
                       className="block px-4 py-2.5 hover:bg-gray-50 text-blue-600 transition-colors"
+                      onClick={() => setShowSuggestions(false)}
                     >
                       <div className="flex items-center">
                         <Search size={14} className="mr-2 text-gray-400" />
                         <span>{category}</span>
                       </div>
                     </Link>
-                  ))}
+                  ))} */}
 
                   {/* Suggested products section */}
                   {suggestedProducts.length > 0 && (
@@ -282,8 +322,9 @@ const Header: React.FC = () => {
                       {suggestedProducts.map((product) => (
                         <Link
                           key={product.id}
-                          to={`/${product.category}/${product.id}`}
+                          to={`/product/${product.slug}`}
                           className="flex p-3 hover:bg-gray-50 border-b transition-colors"
+                          onClick={() => setShowSuggestions(false)}
                         >
                           <div className="w-12 h-12 flex-shrink-0 bg-gray-100 p-1 rounded-md overflow-hidden">
                             <img
@@ -733,7 +774,9 @@ const Header: React.FC = () => {
         isOpen={isAddressModalOpen}
         onClose={handleCloseAddressModal}
         onAddressSelected={handleAddressSelected}
-      />      {/* Add these styles to your global CSS */}
+      />
+
+      {/* Add these styles to your global CSS */}
       <style>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;

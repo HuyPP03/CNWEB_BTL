@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ProductCard from './ProductCard';
-import { mockProducts } from '../data';
+import brandService from '../services/brand.service';
+import productService from '../services/product.service';
+import { priceRanges } from '../data/price';
+import { sortOptions } from '../data/sort';
+import { ProductV2 } from '../types/product';
 
 // Brand filter button component
 const BrandButton: React.FC<{ brand: string; logo: string; isActive: boolean; onClick: () => void }> = ({
@@ -9,14 +13,15 @@ const BrandButton: React.FC<{ brand: string; logo: string; isActive: boolean; on
     isActive,
     onClick
 }) => {
+    console.log('Brand button clicked:', logo);
     return (
         <button
             className={`flex items-center px-3 py-2 rounded-full border transition-colors ${isActive ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-300 hover:border-blue-300'
                 }`}
             onClick={onClick}
         >
-            {logo && <img src={logo} alt={`${brand} logo`} className="h-5 w-auto mr-1" />}
-            {!logo && <span className="text-sm">{brand}</span>}
+            {/* {logo && <img src={logo} alt={`${brand} logo`} className="h-5 w-auto mr-1" />} */}
+            {<span className="text-sm">{brand}</span>}
         </button>
     );
 };
@@ -38,8 +43,6 @@ const SortOption: React.FC<{ label: string; isActive: boolean; onClick: () => vo
     );
 };
 
-
-
 interface ProductListingProps {
     categoryId?: number;
 }
@@ -47,101 +50,214 @@ interface ProductListingProps {
 const ProductListing: React.FC<ProductListingProps> = ({ categoryId }) => {
     // Brand filtering state
     const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+    const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
 
     // Sorting state
     const [sortOption, setSortOption] = useState<string>('Nổi bật');
 
     // Price filtering state
     const [priceRange, setPriceRange] = useState<string | null>(null);
-
-    // State for visible products count
     const [visibleProducts, setVisibleProducts] = useState<number>(10);
+    const [brands, setBrands] = useState<Array<{ id: number, name: string, logo: string }>>([]);
 
-    // NOTE: In a real implementation, we would call an API with the categoryId
-    // For example: 
-    // useEffect(() => {
-    //     if (categoryId) {
-    //         fetchProductsByCategory(categoryId);
-    //     } else {
-    //         fetchAllProducts();
-    //     }
-    // }, [categoryId]);
+    // Products state
+    const [products, setProducts] = useState<ProductV2[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [totalProducts, setTotalProducts] = useState<number>(0);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [limit] = useState<number>(10);
 
-    const brands = [
-        { name: 'ASUS', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/9f/72/9f72697b78e17090628020cca9cce5e6.png' },
-        { name: 'HP', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/b2/11/b2118350c0f60b9ecb1e8ef65cb2de96.png' },
-        { name: 'Dell', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/c9/ea/c9eac61be9530e9c6c4404ba573086c4.png' },
-        { name: 'Acer', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/6a/6f/6a6f7e4792cdbc7946e58e539d1f05f1.png' },
-        { name: 'MacBook', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/f9/bf/f9bf13ff9843115d6edacf7ba01af389.png' },
-        { name: 'Lenovo', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/0b/90/0b907e4551b7ad8857426905ae627cad.png' },
-        { name: 'MSI', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/44/af/44af0b82dd48675388be5cf873c49393.png' },
-        { name: 'Gigabyte', logo: 'https://cdnv2.tgdd.vn/mwg-static/common/Category/69/6f/696f3b1b67bbe449ff729b25784dfdfb.png' },
-    ];
+    // Fetch products based on filters
+    const fetchProducts = useCallback(async () => {
+        setLoading(true);
+        try {
+            console.log('Fetching products with parameters:', {
+                categoryId,
+                brandId: selectedBrandId,
+                priceRange,
+                page: currentPage,
+                limit
+            });
 
-    const sortOptions = ['Nổi bật', 'Bán chạy', 'Giảm giá', 'Mới', 'Giá'];
+            const params: any = {
+                page: currentPage,
+                limit,
+            };
 
-    // Price range options
-    const priceRanges = [
-        { label: "Dưới 5 triệu", value: "under-5", min: 0, max: 5000000 },
-        { label: "Từ 5 - 10 triệu", value: "5-10", min: 5000000, max: 10000000 },
-        { label: "Từ 10 - 20 triệu", value: "10-20", min: 10000000, max: 20000000 },
-        { label: "Từ 20 - 30 triệu", value: "20-30", min: 20000000, max: 30000000 },
-        { label: "Trên 30 triệu", value: "over-30", min: 30000000, max: Infinity }
-    ];    // First filter by category ID if provided (using the mock data structure for now)
-    // In a real implementation, this would be an API call using categoryId
-    const categoryFilteredProducts = categoryId
-        ? mockProducts.filter(product => {
-            // This is a mock implementation - in reality, products would have categoryId property
-            // For now, we're mapping from the category string to an assumed ID based on our mappings
-            const productCategoryId = product.category === 'smartphone' ? 1 :
-                product.category === 'laptop' ? 2 :
-                    product.category === 'smartwatch' ? 4 :
-                        product.category === 'tablet' ? 6 :
-                            product.category === 'audio' ? 48 : 0;
+            // Add category filter if provided
+            if (categoryId) {
+                params.categoryId = categoryId;
+            }
 
-            return productCategoryId === categoryId;
-        })
-        : mockProducts;
+            // Add brand filter if selected
+            if (selectedBrandId) {
+                params.brandId = selectedBrandId;
+                console.log('Selected brand ID:', selectedBrandId);
+            }
 
-    // Then filter by selected brand
-    let filteredProducts = selectedBrand
-        ? categoryFilteredProducts.filter(product => product.brand === selectedBrand)
-        : categoryFilteredProducts;
+            // Add price range if selected
+            if (priceRange) {
+                const selectedPriceRange = priceRanges.find(range => range.value === priceRange);
+                if (selectedPriceRange) {
+                    params.min = selectedPriceRange.min;
+                    params.max = selectedPriceRange.max;
+                    console.log('Price range:', selectedPriceRange.min, '-', selectedPriceRange.max);
+                }
+            }
 
-    // Apply price filter if selected
-    if (priceRange) {
-        const selectedPriceRange = priceRanges.find(range => range.value === priceRange);
-        if (selectedPriceRange) {
-            filteredProducts = filteredProducts.filter(product =>
-                product.price >= selectedPriceRange.min &&
-                product.price <= selectedPriceRange.max
-            );
+            console.log('API Request parameters:', params);
+            const response = await productService.getProducts(params);
+            console.log('API Response:', response);
+
+            if (response && response.data) {
+                // For subsequent pages, add to existing products
+                if (currentPage > 1) {
+                    setProducts(prev => {
+                        // Get existing product IDs
+                        const existingIds = new Set(prev.map(p => p.id));
+                        // Filter out new products that already exist in the list
+                        const newProducts = response.data.filter(p => !existingIds.has(p.id));
+                        // Return combined list
+                        return [...prev, ...newProducts];
+                    });
+                } else {
+                    // For first page or filter changes, replace products
+                    setProducts(response.data);
+                }
+                setTotalProducts(response.meta?.total || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        } finally {
+            setLoading(false);
         }
-    }
+    }, [categoryId, currentPage, limit, priceRange, selectedBrandId]);
 
-    // Sort products based on selected option
-    const sortedProducts = [...filteredProducts].sort((a, b) => {
-        switch (sortOption) {
-            case 'Giảm giá':
-                return b.discountPercentage - a.discountPercentage;
-            case 'Giá':
-                return a.price - b.price;
-            case 'Bán chạy':
-                return b.reviews - a.reviews;
-            case 'Mới':
-                return a.isNew ? -1 : b.isNew ? 1 : 0;
-            default: // Nổi bật
-                return (b.rating * 1000 + b.reviews) - (a.rating * 1000 + a.reviews);
+    // Fetch brands by category ID when the component mounts or categoryId changes
+    useEffect(() => {
+        const fetchBrands = async () => {
+            if (categoryId) {
+                try {
+                    const brandsData = await brandService.getBrandsByCategoryId(categoryId);
+                    console.log('Fetched brands:', brandsData);
+
+                    // Map API data to the format expected by our components
+                    const formattedBrands = brandsData.map(brand => ({
+                        id: brand.id,
+                        name: brand.name,
+                        // Use logoUrl from API, if it doesn't start with http, assume it's a relative path
+                        logo: brand.logoUrl
+                    }));
+                    setBrands(formattedBrands);
+                } catch (error) {
+                    console.error('Error fetching brands:', error);
+                    // Fallback to default brands if API fails
+                    setBrands([]);
+                }
+            } else {
+                // Default brands when no categoryId is provided
+                setBrands([]);
+            }
+        };
+
+        fetchBrands();
+
+        // Reset products, filters and pagination when category changes
+        setProducts([]);
+        setSelectedBrand(null);
+        setSelectedBrandId(null);
+        setPriceRange(null);
+        setCurrentPage(1);
+        setVisibleProducts(10);
+
+        // Fetch products with the initial parameters
+        fetchProducts();
+    }, [categoryId]);  // Remove fetchProducts dependency to avoid double fetching    
+
+    // // Fetch products when filters change (separate from the main useEffect to avoid double fetching)
+    useEffect(() => {
+        console.log('Filter changed, fetching products again');
+        // Only reset products and page if we're changing filters, not when component mounts
+        if (selectedBrandId !== null || priceRange !== null) {
+            setProducts([]);
+            setCurrentPage(1);
         }
-    });
+        fetchProducts();
+    }, [selectedBrandId, priceRange, fetchProducts]);
 
-    // Only show the number of products based on visibleProducts state
-    const displayedProducts = sortedProducts.slice(0, visibleProducts);
+    // Handle brand selection
+    const handleBrandSelect = (brandName: string, brandId: number) => {
+        if (selectedBrand === brandName) {
+            setSelectedBrand(null);
+            setSelectedBrandId(null);
+        } else {
+            setSelectedBrand(brandName);
+            setSelectedBrandId(brandId);
+        }
+    };
+
+    // Handle price range selection
+    const handlePriceRangeSelect = (range: string) => {
+        if (priceRange === range) {
+            setPriceRange(null);
+        } else {
+            setPriceRange(range);
+        }
+    };
 
     // Handle "Xem thêm" button click
     const handleLoadMore = () => {
-        setVisibleProducts(prevCount => prevCount + 10);
+        setCurrentPage(prev => prev + 1);
+    };    // Sort products based on selected option
+    const getSortedProducts = () => {
+        if (!products.length) return [];
+
+        console.log('Sorting products with option:', sortOption);
+        console.log('Number of products before sorting:', products.length);
+
+        const getVariantPrice = (product: ProductV2) => {
+            const variant = product.productVariants && product.productVariants.length > 0
+                ? product.productVariants[0]
+                : null;
+            return variant ? Number(variant.discountPrice || variant.price) : 0;
+        };
+
+        const getDiscountPercentage = (product: ProductV2) => {
+            const variant = product.productVariants && product.productVariants.length > 0
+                ? product.productVariants[0]
+                : null;
+            if (!variant || !variant.discountPrice) return 0;
+
+            const price = Number(variant.price);
+            const discountPrice = Number(variant.discountPrice);
+            if (price === 0) return 0;
+
+            return Math.round(((price - discountPrice) / price) * 100);
+        };
+
+        return [...products].sort((a, b) => {
+            switch (sortOption) {
+                case 'Giảm giá':
+                    return getDiscountPercentage(b) - getDiscountPercentage(a);
+                case 'Giá':
+                    return getVariantPrice(a) - getVariantPrice(b);
+                case 'Bán chạy':
+                    // Mock data for sales count - in real implementation, this would come from the API
+                    return Math.floor(Math.random() * 1000) - Math.floor(Math.random() * 1000);
+                case 'Mới':
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                default: { // Nổi bật
+                    // Mock data for rating - in real implementation, this would come from the API
+                    const aRating = (Math.random() * 2) + 3; // Random between 3 and 5
+                    const bRating = (Math.random() * 2) + 3;
+                    return (bRating * 1000) - (aRating * 1000);
+                }
+            }
+        });
     };
+
+    const sortedProducts = getSortedProducts();
+    const displayedProducts = sortedProducts.slice(0, visibleProducts);
 
     return (
         <div className="bg-gray-100 min-h-screen">
@@ -150,35 +266,20 @@ const ProductListing: React.FC<ProductListingProps> = ({ categoryId }) => {
                 <div className="bg-white p-3 rounded-lg shadow-sm mb-4">
                     <div className="flex items-center mb-2">
                         <button className="flex items-center text-gray-600 mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                            </svg>
-                            <span>Lọc</span>
+                            <span className="text-sm">Hãng:</span>
                         </button>
 
                         <div className="overflow-x-auto flex-grow">
-                            <div className="flex gap-2 pb-1">
+                            <div className="flex space-x-2">
                                 {brands.map(brand => (
                                     <BrandButton
-                                        key={brand.name}
+                                        key={brand.id}
                                         brand={brand.name}
                                         logo={brand.logo}
                                         isActive={selectedBrand === brand.name}
-                                        onClick={() => setSelectedBrand(selectedBrand === brand.name ? null : brand.name)}
+                                        onClick={() => handleBrandSelect(brand.name, brand.id)}
                                     />
                                 ))}
-                                <BrandButton
-                                    brand="Laptop AI"
-                                    logo=""
-                                    isActive={selectedBrand === "Laptop AI"}
-                                    onClick={() => setSelectedBrand(selectedBrand === "Laptop AI" ? null : "Laptop AI")}
-                                />
-                                <BrandButton
-                                    brand="Laptop Gaming"
-                                    logo=""
-                                    isActive={selectedBrand === "Laptop Gaming"}
-                                    onClick={() => setSelectedBrand(selectedBrand === "Laptop Gaming" ? null : "Laptop Gaming")}
-                                />
                             </div>
                         </div>
                     </div>
@@ -187,22 +288,24 @@ const ProductListing: React.FC<ProductListingProps> = ({ categoryId }) => {
                     <div className="flex items-center mb-2 mt-3">
                         <span className="text-sm text-gray-600 mr-3">Khoảng giá: </span>
                         <div className="overflow-x-auto flex-grow">
-                            <div className="flex gap-2 pb-1">
-                                {priceRanges.map((range) => (
+                            <div className="flex space-x-2">
+                                {priceRanges.map(range => (
                                     <button
                                         key={range.value}
-                                        className={`px-3 py-1.5 rounded-full border transition-colors text-sm ${priceRange === range.value
+                                        className={`px-3 py-1 text-sm rounded-full border transition-colors ${priceRange === range.value
                                             ? 'border-blue-500 bg-blue-50 text-blue-600'
-                                            : 'border-gray-200 hover:border-blue-300'
+                                            : 'border-gray-300 hover:border-blue-300'
                                             }`}
-                                        onClick={() => setPriceRange(priceRange === range.value ? null : range.value)}
+                                        onClick={() => handlePriceRangeSelect(range.value)}
                                     >
                                         {range.label}
                                     </button>
                                 ))}
                             </div>
                         </div>
-                    </div>                    {/* Sort options */}
+                    </div>
+
+                    {/* Sort options */}
                     <div className="flex items-center text-sm text-gray-600 mt-3">
                         <span className="mr-2">Sắp xếp theo:</span>
                         <div className="flex gap-2">
@@ -220,64 +323,70 @@ const ProductListing: React.FC<ProductListingProps> = ({ categoryId }) => {
                     {/* Active filters */}
                     {(selectedBrand || priceRange) && (
                         <div className="flex flex-wrap items-center mt-3 pt-3 border-t border-gray-100">
-                            <span className="text-sm text-gray-600 mr-2">Bộ lọc đã chọn:</span>
+                            <span className="text-sm text-gray-600 mr-2">Bộ lọc: </span>
 
                             {selectedBrand && (
-                                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-xs mr-2 mb-1">
-                                    <span>Thương hiệu: {selectedBrand}</span>
+                                <div className="flex items-center bg-blue-50 text-blue-600 text-xs rounded-full px-3 py-1 mr-2">
+                                    <span>{selectedBrand}</span>
                                     <button
-                                        className="ml-2 text-blue-500 hover:text-blue-700"
-                                        onClick={() => setSelectedBrand(null)}
+                                        className="ml-1 text-gray-500 hover:text-gray-700"
+                                        onClick={() => { setSelectedBrand(null); setSelectedBrandId(null); }}
                                     >
-                                        ×
+                                        ✕
                                     </button>
                                 </div>
                             )}
 
                             {priceRange && (
-                                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-xs mr-2 mb-1">
-                                    <span>Giá: {priceRanges.find(r => r.value === priceRange)?.label}</span>
+                                <div className="flex items-center bg-blue-50 text-blue-600 text-xs rounded-full px-3 py-1">
+                                    <span>{priceRanges.find(range => range.value === priceRange)?.label}</span>
                                     <button
-                                        className="ml-2 text-blue-500 hover:text-blue-700"
+                                        className="ml-1 text-gray-500 hover:text-gray-700"
                                         onClick={() => setPriceRange(null)}
                                     >
-                                        ×
+                                        ✕
                                     </button>
                                 </div>
                             )}
-
-                            <button
-                                className="text-xs text-blue-600 hover:text-blue-800 ml-auto underline"
-                                onClick={() => {
-                                    setSelectedBrand(null);
-                                    setPriceRange(null);
-                                }}
-                            >
-                                Xóa tất cả
-                            </button>
                         </div>
                     )}
                 </div>
 
-                {/* Products Grid */}
+                {/* Loading state */}
+                {loading && products.length === 0 && (
+                    <div className="flex justify-center items-center py-10">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+                    </div>
+                )}
+
+                {/* No products found */}
+                {!loading && products.length === 0 && (
+                    <div className="bg-white p-10 rounded-lg shadow-sm text-center">
+                        <p className="text-gray-600">Không tìm thấy sản phẩm nào phù hợp với bộ lọc</p>
+                    </div>
+                )}                {/* Products Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {displayedProducts.map(product => (
-                        <ProductCard key={product.id} product={product} />
+                    {displayedProducts.map((product, index) => (
+                        <ProductCard key={`${product.id}-${index}`} product={product} />
                     ))}
                 </div>
 
                 {/* Load More Button - show only if there are more products to display */}
-                {visibleProducts < sortedProducts.length && (
+                {!loading && products.length > 0 && products.length < totalProducts && (
                     <div className="flex justify-center mt-8">
                         <button
+                            className="px-5 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
                             onClick={handleLoadMore}
-                            className="px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors shadow-md flex items-center"
                         >
-                            <span>Xem thêm sản phẩm</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
+                            Xem thêm
                         </button>
+                    </div>
+                )}
+
+                {/* Loading more indicator */}
+                {loading && products.length > 0 && (
+                    <div className="flex justify-center mt-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
                     </div>
                 )}
             </div>

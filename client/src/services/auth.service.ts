@@ -13,7 +13,7 @@ const authService = {
     register: async (userData: RegisterData): Promise<void> => {
         try {
             console.log('Calling register API with:', userData);
-            const response = await apiClient.post('/auth/register', {
+            const response = await apiClient.post<{ statusCode: number, message: string, data: null }>('/auth/register', {
                 fullName: userData.fullName,
                 email: userData.email,
                 password: userData.password,
@@ -29,13 +29,14 @@ const authService = {
     login: async (email: string, password: string): Promise<{ accessToken: string }> => {
         try {
             console.log('Calling login API with:', { email, password });
-            const response = await apiClient.post<{ accessToken: string }>('/auth/customers/login', {
+            const response = await apiClient.post<{ statusCode: number, message: string, data: any }>('/auth/customers/login', {
                 email,
                 password
             });
-            console.log('Login API response token:', response.accessToken);
+            console.log('Login API response:', response);
 
-            return response;
+            // Trả về access token từ trường data của response
+            return { accessToken: response.data.accessToken };
         } catch (error: any) {
             console.error('Login API error: ', error);
             if (error.response) {
@@ -48,15 +49,15 @@ const authService = {
     },
 
     verifyToken: async (token: string, email: string): Promise<void> => {
-        await apiClient.post<null>('/auth/verify', {
+        await apiClient.post<{ statusCode: number, message: string, data: null }>('/auth/verify', {
             token,
             email
         });
     },
 
     refreshToken: async (): Promise<{ accessToken: string }> => {
-        const response = await apiClient.post<{ accessToken: string }>('/auth/customers/refresh-token', {});
-        return response;
+        const response = await apiClient.post<{ statusCode: number, message: string, data: string }>('/auth/customers/refresh-token', {});
+        return { accessToken: response.data };
     },
 
 }

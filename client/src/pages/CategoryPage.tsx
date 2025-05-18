@@ -13,6 +13,7 @@ function CategoryPage() {
 
     // Get category ID from slug (for API calls)
     const categoryId = getIdFromSlug(currentPath);
+    console.log('Category ID:', categoryId);
 
     // activeCategory is used for UI/filtering and is set to the slug
 

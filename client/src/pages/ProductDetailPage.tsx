@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { mockProducts } from '../data/products';
 import {
-    ChevronRight, ChevronDown, Star, Check, Heart, Phone,
+    ChevronRight, Star, Check, Heart, Phone,
     ShoppingCart, ShoppingBag, Gift, Shield, Truck
 } from 'lucide-react';
 import { Product } from '../types';
+import productService from '../services/product.service';
+import { ProductV2, ProductVariant, AttributeType } from '../types/product';
+import ProductReviews from '../components/ProductReviews';
+import wishlistService from '../services/wishlist.service';
+import cartService from '../services/cart.service';
+import { useAuth } from '../hooks/useAuth';
+import { toast } from 'react-toastify';
 
 // Types
 interface ProductImage {
@@ -30,12 +37,10 @@ interface ProductWarranty {
     description: string;
 }
 
-// Định nghĩa kiểu dữ liệu chính xác cho specs
-type SpecCategories = 'cấu hình chi tiết' | 'thiết kế & trọng lượng' | 'pin & sạc';
-
+// Định nghĩa kiểu dữ liệu cho specs với các category động từ API
 interface DetailedProductInfo {
     images: ProductImage[];
-    specs: Record<SpecCategories, ProductSpec[]>;
+    specs: Record<string, ProductSpec[]>;
     promotions: ProductPromotion[];
     warranty: ProductWarranty;
     inStock: boolean;
@@ -112,47 +117,541 @@ const sampleDetailedInfo: DetailedProductInfo = {
 };
 
 const ProductDetailPage: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+    const { slug } = useParams<{ slug: string }>();
     const [product, setProduct] = useState<Product | null>(null);
+    const [apiProduct, setApiProduct] = useState<ProductV2 | null>(null);
+    const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const [activeSpecTab, setActiveSpecTab] = useState<SpecCategories>("cấu hình chi tiết");
-    const [activeTab, setActiveTab] = useState<'mô tả' | 'thông số' | 'đánh giá'>('mô tả');
-    const [isSpecCollapsed, setIsSpecCollapsed] = useState(true);
+    const [activeTab, setActiveTab] = useState<'mô tả' | 'đánh giá' | 'thông số'>('mô tả');
+    const [variantLoading, setVariantLoading] = useState<boolean>(false);
+    const [attributeTypes, setAttributeTypes] = useState<AttributeType[]>([]);
+    const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
+    const [relatedProducts, setRelatedProducts] = useState<ProductV2[]>([]);
+    const [relatedProductsLoading, setRelatedProductsLoading] = useState<boolean>(false);
+    const [inWishlist, setInWishlist] = useState<boolean>(false);
+    const [wishlistId, setWishlistId] = useState<number | undefined>(undefined);
+    const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
+    const { isAuthenticated } = useAuth();
 
-    // Fetch product based on ID
+    // Fetch product from API based on slug
     useEffect(() => {
-        if (id) {
-            const productId = parseInt(id, 10);
-            const foundProduct = mockProducts.find(p => p.id === productId);
-            if (foundProduct) {
-                setProduct(foundProduct);
+        const fetchProduct = async () => {
+            if (slug) {
+                try {
+                    setLoading(true);
+                    const response = await productService.getProductBySlug(slug);
+                    console.log('API response:', response);
+
+                    if (response.data && response.data.length > 0) {
+                        const productData = response.data[0];
+                        setApiProduct(productData);
+
+                        // Set default selected variant to the first one
+                        if (productData.productVariants && productData.productVariants.length > 0) {
+                            setSelectedVariant(productData.productVariants[0]);
+                        }
+
+                        // Also set fallback product for existing UI components
+                        const mockProductData = mockProducts.find(p => p.id === 1) || mockProducts[0];
+                        setProduct(mockProductData);
+                        // Fetch attribute types for this product's category
+                        if (productData.categoryId) {
+                            fetchAttributeTypes(productData.categoryId, productData.productVariants[0]?.id);
+                        }
+                    } else {
+                        setError('Không tìm thấy sản phẩm');
+                    }
+                } catch (err) {
+                    console.error('Error fetching product:', err);
+                    setError('Có lỗi xảy ra khi tải sản phẩm');
+
+                    // Fallback to mock data
+                    const mockProductData = mockProducts.find(p => p.id === 1) || mockProducts[0];
+                    setProduct(mockProductData);
+                } finally {
+                    setLoading(false);
+                }
             }
-        }
-    }, [id]);
+        };
 
-    // Fallback product for when no ID is provided
-    useEffect(() => {
-        if (!id && mockProducts.length > 0) {
-            setProduct(mockProducts[0]);
-        }
-    }, [id]);
+        fetchProduct();
+    }, [slug]);
 
-    const formatCurrency = (amount: number): string => {
-        return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+    // Fetch attribute types for the product category
+    const fetchAttributeTypes = async (categoryId: number, variantId?: number) => {
+        try {
+            setAttributesLoading(true);
+            const response = await productService.getAttributeTypesByCategoryId(categoryId, variantId);
+            console.log('Attribute types response:', response);
+
+            if (response.data) {
+                setAttributeTypes(response.data);
+            }
+        } catch (err) {
+            console.error('Error fetching attribute types:', err);
+        } finally {
+            setAttributesLoading(false);
+        }
     };
 
-    // Related products (can be of the same category or brand)
-    const relatedProducts = mockProducts
-        .filter(p => product ? (p.category === product.category && p.id !== product.id) : true)
-        .slice(0, 5);
 
-    if (!product) {
+    // Fetch related products with the same category
+    useEffect(() => {
+        const fetchRelatedProducts = async (categoryId: number, currentProductId: number) => {
+            try {
+                setRelatedProductsLoading(true);
+                const response = await productService.getProducts({
+                    categoryId: categoryId,
+                    limit: 5
+                });
+
+                if (response.data) {
+                    // Filter out the current product and limit to 5 items
+                    const filteredProducts = response.data
+                        .filter(p => p.id !== currentProductId)
+                        .slice(0, 5);
+
+                    setRelatedProducts(filteredProducts);
+                }
+            } catch (err) {
+                console.error('Error fetching related products:', err);
+                // Fallback to empty array
+                setRelatedProducts([]);
+            } finally {
+                setRelatedProductsLoading(false);
+            }
+        };
+
+        fetchRelatedProducts(apiProduct?.categoryId || 0, apiProduct?.id || 0);
+    }, [apiProduct?.categoryId, apiProduct?.id]);
+
+    // Check if product is in wishlist when component mounts
+    useEffect(() => {
+        const checkWishlistStatus = async () => {
+            if (!isAuthenticated || !apiProduct?.id) return;
+
+            try {
+                setWishlistLoading(true);
+                const result = await wishlistService.checkInWishlist(apiProduct.id);
+                setInWishlist(result.inWishlist);
+                setWishlistId(result.wishlistId);
+            } catch (error) {
+                console.error('Error checking wishlist status:', error);
+            } finally {
+                setWishlistLoading(false);
+            }
+        };
+
+        checkWishlistStatus();
+    }, [apiProduct?.id, isAuthenticated]);
+
+    // Toggle wishlist function
+    const handleToggleWishlist = async () => {
+        if (!isAuthenticated) {
+            // Show notification to login
+            toast.error('Vui lòng đăng nhập để thêm sản phẩm vào danh sách yêu thích', {
+                position: 'top-right',
+                autoClose: 3000
+            });
+            return;
+        }
+
+        if (!apiProduct?.id) return;
+
+        try {
+            setWishlistLoading(true);
+
+            if (inWishlist && wishlistId) {
+                // Remove from wishlist
+                await wishlistService.removeFromWishlist(wishlistId);
+                setInWishlist(false);
+                setWishlistId(undefined);
+                toast.success('Đã xóa sản phẩm khỏi danh sách yêu thích', {
+                    position: 'top-right',
+                    autoClose: 2000
+                });
+            } else {
+                // Add to wishlist
+                const result = await wishlistService.addToWishlist(apiProduct.id);
+                setInWishlist(true);
+                setWishlistId(result.id);
+                toast.success('Đã thêm sản phẩm vào danh sách yêu thích', {
+                    position: 'top-right',
+                    autoClose: 2000
+                });
+            }
+        } catch (error) {
+            console.error('Error toggling wishlist:', error);
+            toast.error('Có lỗi xảy ra, vui lòng thử lại sau', {
+                position: 'top-right',
+                autoClose: 3000
+            });
+        } finally {
+            setWishlistLoading(false);
+        }
+    };
+
+    // Fetch detailed variant information when a variant is selected
+    useEffect(() => {
+        const fetchVariantDetails = async () => {
+            if (selectedVariant?.id) {
+                try {
+                    setVariantLoading(true);
+                    const response = await productService.getProductVariants({ id: selectedVariant.id });
+                    console.log('Variant details response:', response);
+
+                    if (response.data && response.data.length > 0) {
+                        // Update the selected variant with more detailed information
+                        setSelectedVariant(response.data[0]);
+
+                        // Also refresh attribute types with the selected variant ID
+                        if (apiProduct?.categoryId) {
+                            fetchAttributeTypes(apiProduct.categoryId, selectedVariant.id);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error fetching variant details:', err);
+                } finally {
+                    setVariantLoading(false);
+                }
+            }
+        };
+
+        fetchVariantDetails();
+    }, [selectedVariant?.id, apiProduct?.categoryId]);
+
+    const formatCurrency = (amount: number | string): string => {
+        const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        return new Intl.NumberFormat('vi-VN').format(numericAmount) + '₫';
+    };
+
+    // Add to cart function
+    const handleAddToCart = async () => {
+        if (!isAuthenticated) {
+            toast.error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng', {
+                position: 'top-right',
+                autoClose: 3000
+            });
+            return;
+        }
+
+        if (!selectedVariant?.id) {
+            toast.error('Vui lòng chọn phiên bản sản phẩm', {
+                position: 'top-right',
+                autoClose: 3000
+            });
+            return;
+        }
+
+        try {
+            const response = await cartService.addToCart({
+                variantId: selectedVariant.id,
+                quantity: 1
+            });
+
+            console.log('Added to cart:', response);
+            toast.success('Đã thêm sản phẩm vào giỏ hàng', {
+                position: 'top-right',
+                autoClose: 2000
+            });
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            toast.error('Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng', {
+                position: 'top-right',
+                autoClose: 3000
+            });
+        }
+    };
+
+    // Generate spec data from variant attributes using attribute types
+    const getSpecsFromVariant = (variant: ProductVariant | null): Record<string, ProductSpec[]> => {
+        // Default specs from sample data
+        const defaultSpecs = sampleDetailedInfo.specs;
+
+        if (!variant || !variant.variantAttributes) {
+            return defaultSpecs;
+        }
+
+        // Create mapping structures for attributeTypes
+        const categorizedSpecs: Record<string, ProductSpec[]> = {};
+
+        // Maps for parent-child relationships
+        const parentAttributeMap: Record<number, string> = {};  // Maps parent ID to category name
+        const subAttributeMap: Record<number, number> = {};     // Maps sub-attribute ID to parent ID
+        const attributeTypeNameMap: Record<number, string> = {}; // Maps attribute type ID to its name
+
+        // Build the maps from attributeTypes structure
+        if (attributeTypes.length > 0) {
+            attributeTypes.forEach(parentAttr => {
+                // Store the parent attribute's name by its ID
+                parentAttributeMap[parentAttr.id] = parentAttr.name;
+
+                // Initialize the category in the result object
+                categorizedSpecs[parentAttr.name] = [];
+
+                // Process sub-attributes
+                if (parentAttr.subAttributes) {
+                    parentAttr.subAttributes.forEach(subAttr => {
+                        // Map each sub-attribute to its parent
+                        subAttributeMap[subAttr.id] = parentAttr.id;
+                        // Also store the sub-attribute name for lookup
+                        attributeTypeNameMap[subAttr.id] = subAttr.name;
+                    });
+                }
+            });
+        }
+
+        // Process variant attributes and categorize them
+        if (variant.variantAttributes.length > 0) {
+            variant.variantAttributes.forEach(attr => {
+                // Create a spec object from the attribute
+                const attrSpec = { name: attr.name, value: attr.attributeValue.value };
+                let placed = false;
+
+                // Try to find the attribute's category through its attribute type ID
+                const parentAttributeId = subAttributeMap[attr.attributeTypeId];
+
+                if (parentAttributeId && parentAttributeMap[parentAttributeId]) {
+                    // We found the parent category for this attribute
+                    const categoryName = parentAttributeMap[parentAttributeId];
+
+                    // Make sure the category array exists
+                    if (!categorizedSpecs[categoryName]) {
+                        categorizedSpecs[categoryName] = [];
+                    }
+
+                    // Add the spec to its category
+                    categorizedSpecs[categoryName].push(attrSpec);
+                    placed = true;
+                } else {
+                    // Alternative approach: Try to match by attribute names
+                    const attrNameLower = attr.name.toLowerCase();
+
+                    // Try to place attribute by its name matching possible parent categories
+                    for (const parentId in parentAttributeMap) {
+                        const parentName = parentAttributeMap[parentId].toLowerCase();
+
+                        // Check if the attribute name contains any part of the parent category name
+                        if (attrNameLower.includes(parentName) ||
+                            // Special case matches based on common terms
+                            (parentName.includes('cấu hình') && (
+                                attrNameLower.includes('cpu') ||
+                                attrNameLower.includes('ram') ||
+                                attrNameLower.includes('bộ nhớ')
+                            )) ||
+                            (parentName.includes('thiết kế') && (
+                                attrNameLower.includes('chất liệu') ||
+                                attrNameLower.includes('kích thước') ||
+                                attrNameLower.includes('trọng lượng')
+                            )) ||
+                            (parentName.includes('pin') && (
+                                attrNameLower.includes('sạc') ||
+                                attrNameLower.includes('battery')
+                            )) ||
+                            (parentName.includes('kết nối') && (
+                                attrNameLower.includes('wifi') ||
+                                attrNameLower.includes('bluetooth') ||
+                                attrNameLower.includes('cổng')
+                            )) ||
+                            (parentName.includes('màn hình') && (
+                                attrNameLower.includes('display') ||
+                                attrNameLower.includes('độ phân giải')
+                            ))
+                        ) {
+                            const categoryName = parentAttributeMap[parentId];
+
+                            // Make sure the category array exists
+                            if (!categorizedSpecs[categoryName]) {
+                                categorizedSpecs[categoryName] = [];
+                            }
+
+                            // Add the spec to its category
+                            categorizedSpecs[categoryName].push(attrSpec);
+                            placed = true;
+                            break;
+                        }
+                    }
+
+                    // If still not placed, try to match with standard categories
+                    if (!placed) {
+                        const attrNameLower = attr.name.toLowerCase();
+
+                        if (attrNameLower.includes('cpu') ||
+                            attrNameLower.includes('chip') ||
+                            attrNameLower.includes('ram') ||
+                            attrNameLower.includes('bộ nhớ') ||
+                            attrNameLower.includes('ổ cứng') ||
+                            attrNameLower.includes('gpu') ||
+                            attrNameLower.includes('đồ họa') ||
+                            attrNameLower.includes('hệ điều hành') ||
+                            attrNameLower.includes('os')) {
+
+                            if (!categorizedSpecs["Cấu hình chi tiết"]) {
+                                categorizedSpecs["Cấu hình chi tiết"] = [];
+                            }
+                            categorizedSpecs["Cấu hình chi tiết"].push(attrSpec);
+                            placed = true;
+                        }
+                        else if (attrNameLower.includes('thiết kế') ||
+                            attrNameLower.includes('chất liệu') ||
+                            attrNameLower.includes('kích thước') ||
+                            attrNameLower.includes('trọng lượng') ||
+                            attrNameLower.includes('màu sắc')) {
+
+                            if (!categorizedSpecs["Thiết kế & trọng lượng"]) {
+                                categorizedSpecs["Thiết kế & trọng lượng"] = [];
+                            }
+                            categorizedSpecs["Thiết kế & trọng lượng"].push(attrSpec);
+                            placed = true;
+                        }
+                        else if (attrNameLower.includes('pin') ||
+                            attrNameLower.includes('battery') ||
+                            attrNameLower.includes('sạc') ||
+                            attrNameLower.includes('charging')) {
+
+                            if (!categorizedSpecs["Pin & sạc"]) {
+                                categorizedSpecs["Pin & sạc"] = [];
+                            }
+                            categorizedSpecs["Pin & sạc"].push(attrSpec);
+                            placed = true;
+                        }
+                    }
+                }
+
+                // If we couldn't categorize the attribute, put it in a default "Khác" category
+                if (!placed) {
+                    if (!categorizedSpecs["Khác"]) {
+                        categorizedSpecs["Khác"] = [];
+                    }
+                    categorizedSpecs["Khác"].push(attrSpec);
+                }
+            });
+        }
+
+        // If any of the categories are empty, check if we can populate from default specs
+        if (Object.keys(categorizedSpecs).length === 0 ||
+            (categorizedSpecs["Cấu hình chi tiết"]?.length === 0 &&
+                categorizedSpecs["Thiết kế & trọng lượng"]?.length === 0 &&
+                categorizedSpecs["Pin & sạc"]?.length === 0)) {
+            return defaultSpecs;
+        }
+
+        // Sort specs in each category by name
+        for (const category in categorizedSpecs) {
+            categorizedSpecs[category].sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        // Prioritize key specs to be first in their categories
+        const keySpecOrder = ['cpu', 'ram', 'storage', 'screen', 'os', 'gpu', 'pin'];
+
+        // Move important specs to the beginning of their respective categories
+        Object.keys(categorizedSpecs).forEach(category => {
+            categorizedSpecs[category].sort((a, b) => {
+                const aNameLower = a.name.toLowerCase();
+                const bNameLower = b.name.toLowerCase();
+
+                // Give priority to key specs
+                const aKeywordIndex = keySpecOrder.findIndex(keyword => aNameLower.includes(keyword));
+                const bKeywordIndex = keySpecOrder.findIndex(keyword => bNameLower.includes(keyword));
+
+                if (aKeywordIndex !== -1 && bKeywordIndex !== -1) {
+                    return aKeywordIndex - bKeywordIndex;
+                } else if (aKeywordIndex !== -1) {
+                    return -1;
+                } else if (bKeywordIndex !== -1) {
+                    return 1;
+                }
+
+                // Alphabetical order for other specs
+                return aNameLower.localeCompare(bNameLower);
+            });
+        });
+
+        return categorizedSpecs;
+    };
+
+    // Get variant specific specs
+    const variantSpecs = getSpecsFromVariant(selectedVariant);
+
+    // State for related products    
+    // Fetch related products when the apiProduct changes
+    useEffect(() => {
+        const getRelatedProducts = async () => {
+            if (apiProduct?.categoryId && apiProduct.id) {
+                try {
+                    setRelatedProductsLoading(true);
+                    const response = await productService.getProducts({
+                        categoryId: apiProduct.categoryId,
+                        limit: 10 // Fetch more to allow filtering
+                    });
+
+                    if (response.data) {
+                        // Filter out the current product and limit to 5 items
+                        const filteredProducts = response.data
+                            .filter(p => p.id !== apiProduct.id)
+                            .slice(0, 5);
+
+                        setRelatedProducts(filteredProducts);
+                    }
+                } catch (err) {
+                    console.error('Error fetching related products:', err);
+                    // Fallback to empty array
+                    setRelatedProducts([]);
+                } finally {
+                    setRelatedProductsLoading(false);
+                }
+            }
+        };
+
+        getRelatedProducts();
+    }, [apiProduct?.categoryId, apiProduct?.id]);
+
+    if (loading) {
         return (
             <div className="flex justify-center items-center h-screen">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
             </div>
         );
     }
+
+    if (error) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-red-500 text-xl">{error}</div>
+            </div>
+        );
+    }
+
+    if (!apiProduct) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-gray-500 text-xl">Không tìm thấy sản phẩm</div>
+            </div>
+        );
+    }
+
+    // Extract API data
+    const productName = selectedVariant?.name || apiProduct.name || '';
+    const productPrice = selectedVariant?.price ? parseFloat(selectedVariant.price) : (apiProduct.basePrice ? parseFloat(apiProduct.basePrice) : 0);
+    const productDescription = apiProduct.description || sampleDetailedInfo.description;
+    const productImages = apiProduct.productImages?.length ?
+        apiProduct.productImages.map((img, index) => ({
+            id: img.id,
+            url: img.imageUrl,
+            alt: `${productName} - Hình ${index + 1}`
+        })) : sampleDetailedInfo.images;
+    // pussh all images from product variants 
+    productImages.push(...(selectedVariant?.productImages || []).map((img, index) => ({
+        id: img.id,
+        url: img.imageUrl,
+        alt: `${productName} - Hình ${index + 1}`
+    })));
+
+    // Use product category and brand from API if available
+    const productCategory = product?.category || 'other';  // Fallback to mock data
+    // const productBrand = product?.brand || '';  // Fallback to mock data
 
     return (
         <div className="bg-gray-100 pb-10">
@@ -162,130 +661,108 @@ const ProductDetailPage: React.FC = () => {
                     <nav className="flex items-center text-sm text-gray-500">
                         <Link to="/" className="hover:text-blue-600">Trang chủ</Link>
                         <ChevronRight className="mx-1" size={14} />
-                        <Link to={`/category/${product.category}`} className="hover:text-blue-600">
-                            {product.category === 'laptop' ? 'Laptop' :
-                                product.category === 'smartphone' ? 'Điện thoại' :
-                                    product.category === 'smartwatch' ? 'Đồng hồ thông minh' :
-                                        product.category === 'audio' ? 'Tai nghe' :
-                                            product.category}
+                        <Link to={`/${productCategory}`} className="hover:text-blue-600">
+                            {productCategory === 'laptop' ? 'Laptop' :
+                                productCategory === 'smartphone' ? 'Điện thoại' :
+                                    productCategory === 'smartwatch' ? 'Đồng hồ thông minh' :
+                                        productCategory === 'audio' ? 'Tai nghe' :
+                                            productCategory}
                         </Link>
+                        {/* <ChevronRight className="mx-1" size={14} /> */}
+                        {/* <Link to={`/brand/${productBrand.toLowerCase()}`} className="hover:text-blue-600">{productBrand}</Link> */}
                         <ChevronRight className="mx-1" size={14} />
-                        <Link to={`/brand/${product.brand.toLowerCase()}`} className="hover:text-blue-600">{product.brand}</Link>
-                        <ChevronRight className="mx-1" size={14} />
-                        <span className="text-gray-900 truncate max-w-xs">{product.name}</span>
+                        <span className="text-gray-900 truncate max-w-xs">{productName}</span>
                     </nav>
                 </div>
             </div>
 
             <div className="container mx-auto px-4 max-w-7xl">
                 {/* Product title - Mobile view */}
-                <h1 className="text-xl font-bold text-gray-900 mb-2 md:hidden">{product.name}</h1>
+                <h1 className="text-xl font-bold text-gray-900 mb-2 md:hidden">{productName}</h1>
 
                 <div className="lg:grid lg:grid-cols-12 lg:gap-x-8">
                     {/* Left column - Image gallery - Now 8/12 instead of 5/12 */}
                     <div className="lg:col-span-8">
                         <div className="bg-white rounded-lg p-4 mb-4">
                             {/* Product title - Desktop view */}
-                            <h1 className="text-2xl font-bold text-gray-900 mb-4 hidden md:block">{product.name}</h1>
+                            <h1 className="text-2xl font-bold text-gray-900 mb-4 hidden md:block">{productName}</h1>
 
                             <div className="relative bg-white rounded-lg overflow-hidden mb-4">
                                 <div className="aspect-w-1 aspect-h-1">
                                     <img
-                                        src={sampleDetailedInfo.images[selectedImageIndex].url}
-                                        alt={sampleDetailedInfo.images[selectedImageIndex].alt}
+                                        src={productImages[selectedImageIndex].url}
+                                        alt={productImages[selectedImageIndex].alt}
                                         className="w-full h-auto object-contain"
                                     />
-                                </div>
-
-                                {/* Discount badge */}
-                                {product.originalPrice > product.price && (
-                                    <div className="absolute top-4 left-4 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
-                                        Giảm {formatCurrency(product.originalPrice - product.price)}
-                                    </div>
-                                )}
+                                </div>                                {/* Discount badge */}
+                                {(selectedVariant?.discountPrice &&
+                                    parseFloat(selectedVariant.discountPrice) > 0) && (
+                                        <div className="absolute top-4 left-4 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-bold">
+                                            Giảm giá
+                                        </div>
+                                    )}
                             </div>
 
                             {/* Image thumbnails */}
                             <div className="grid grid-cols-5 gap-2">
-                                {sampleDetailedInfo.images.map((image, idx) => (
+                                {productImages.map((image, idx) => (
                                     <button
                                         key={image.id}
                                         onClick={() => setSelectedImageIndex(idx)}
-                                        className={`border rounded-md overflow-hidden ${selectedImageIndex === idx ? 'border-blue-500' : 'border-gray-200'}`}
+                                        className={`border rounded-md p-1 transition-all ${selectedImageIndex === idx ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'}`}
                                     >
                                         <img
                                             src={image.url}
-                                            alt={`Thumbnail ${idx + 1}`}
-                                            className="w-full h-full object-cover"
+                                            alt={image.alt}
+                                            className="w-full h-auto object-contain aspect-square"
                                         />
                                     </button>
                                 ))}
                             </div>
                         </div>
-
                         {/* Specifications overview - Mobile only */}
                         <div className="bg-white rounded-lg p-4 mb-4 lg:hidden">
                             <div className="flex justify-between items-center mb-3">
                                 <h3 className="font-bold text-lg">Thông số kỹ thuật</h3>
                                 <button
-                                    onClick={() => setIsSpecCollapsed(!isSpecCollapsed)}
+                                    onClick={() => setActiveTab('thông số')}
                                     className="text-blue-500 flex items-center text-sm"
                                 >
-                                    {isSpecCollapsed ? 'Xem cấu hình chi tiết' : 'Thu gọn'}
-                                    <ChevronDown className={`ml-1 transition-transform ${isSpecCollapsed ? '' : 'rotate-180'}`} size={18} />
+                                    Xem tất cả
+                                    <ChevronRight className="ml-1" size={16} />
                                 </button>
                             </div>
 
-                            <div className="space-y-2">
-                                <div className="flex">
-                                    <span className="text-gray-500 w-32">CPU:</span>
-                                    <span className="text-gray-900 font-medium">{product.specs.processor}</span>
+                            {attributesLoading || variantLoading ? (
+                                <div className="flex justify-center py-4">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
                                 </div>
-                                <div className="flex">
-                                    <span className="text-gray-500 w-32">RAM:</span>
-                                    <span className="text-gray-900 font-medium">{product.specs.ram}</span>
+                            ) : (
+                                <div className="space-y-3">
+                                    {/* Display a few key specs from the first available category */}
+                                    {Object.keys(variantSpecs).length > 0 && (
+                                        <>
+                                            {/* Get the first category (usually most important config specs) */}
+                                            {(() => {
+                                                const firstCategory = Object.keys(variantSpecs)[0];
+                                                const specs = variantSpecs[firstCategory];
+
+                                                return (
+                                                    <>
+                                                        {/* Show first 4 specs as a preview */}
+                                                        {specs.slice(0, 4).map((spec, idx) => (
+                                                            <div key={idx} className="flex">
+                                                                <span className="text-gray-500 w-32">{spec.name}:</span>
+                                                                <span className="text-gray-900 font-medium">{spec.value}</span>
+                                                            </div>
+                                                        ))}
+                                                    </>
+                                                );
+                                            })()}
+                                        </>
+                                    )}
                                 </div>
-                                <div className="flex">
-                                    <span className="text-gray-500 w-32">Ổ cứng:</span>
-                                    <span className="text-gray-900 font-medium">{product.specs.storage}</span>
-                                </div>
-
-                                {/* Only shown when expanded */}
-                                {!isSpecCollapsed && (
-                                    <div className="pt-2 border-t border-gray-100">
-                                        {sampleDetailedInfo.specs['cấu hình chi tiết'].slice(3).map((spec, idx) => (
-                                            <div key={idx} className="flex py-1">
-                                                <span className="text-gray-500 w-32">{spec.name}:</span>
-                                                <span className="text-gray-900 font-medium">{spec.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Technical specs - Desktop only - Moved from right column to left for better layout */}
-                        <div className="bg-white rounded-lg p-4 mb-4 hidden lg:block">
-                            <div className="flex justify-between items-center mb-3">
-                                <h3 className="font-bold text-lg">Thông số kỹ thuật</h3>
-                                <button
-                                    onClick={() => setIsSpecCollapsed(!isSpecCollapsed)}
-                                    className="text-blue-500 flex items-center text-sm"
-                                >
-                                    {isSpecCollapsed ? 'Xem cấu hình chi tiết' : 'Thu gọn'}
-                                    <ChevronDown className={`ml-1 transition-transform ${isSpecCollapsed ? '' : 'rotate-180'}`} size={18} />
-                                </button>
-                            </div>
-
-                            <div className="space-y-3">
-                                {/* Always visible specs */}
-                                {sampleDetailedInfo.specs['cấu hình chi tiết'].slice(0, isSpecCollapsed ? 5 : undefined).map((spec, idx) => (
-                                    <div key={idx} className={`flex ${idx % 2 === 0 ? 'bg-gray-50' : ''} py-2 px-3 rounded`}>
-                                        <span className="text-gray-500 w-1/3">{spec.name}:</span>
-                                        <span className="text-gray-900 font-medium">{spec.value}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            )}
                         </div>
                     </div>
 
@@ -295,35 +772,50 @@ const ProductDetailPage: React.FC = () => {
                             {/* Price */}
                             <div className="mb-4">
                                 <div className="flex items-end">
-                                    <h2 className="text-3xl font-bold text-red-600">{formatCurrency(product.price)}</h2>
-                                    {product.originalPrice > product.price && (
+                                    <h2 className="text-3xl font-bold text-red-600">{formatCurrency(productPrice)}</h2>                                    {selectedVariant?.discountPrice && parseFloat(selectedVariant.discountPrice) > 0 && (
                                         <div className="flex items-center ml-3">
-                                            <p className="text-gray-500 line-through">{formatCurrency(product.originalPrice)}</p>
+                                            <p className="text-gray-500 line-through">{formatCurrency(selectedVariant.discountPrice)}</p>
                                             <span className="ml-2 bg-red-100 text-red-600 text-xs font-medium px-1.5 py-0.5 rounded">
-                                                -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                                                -{Math.round(((parseFloat(selectedVariant.discountPrice) - parseFloat(selectedVariant.price)) / parseFloat(selectedVariant.discountPrice)) * 100)}%
                                             </span>
                                         </div>
                                     )}
-                                </div>
-
-                                {/* Rating */}
+                                </div>                                {/* Rating */}
                                 <div className="flex items-center mt-2">
-                                    <div className="flex">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <Star
-                                                key={star}
-                                                size={16}
-                                                fill={star <= product.rating ? "#FFC107" : "none"}
-                                                color={star <= product.rating ? "#FFC107" : "#E5E7EB"}
-                                            />
-                                        ))}
+                                    <div className="flex">                                        {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                            key={star}
+                                            size={16}
+                                            fill={star <= 4 ? "#FFC107" : "none"}
+                                            color={star <= 4 ? "#FFC107" : "#E5E7EB"}
+                                        />
+                                    ))}
                                     </div>
-                                    <span className="text-sm text-gray-500 ml-2">{product.reviews} đánh giá</span>
+                                    <span className="text-sm text-gray-500 ml-2">0 đánh giá</span>
                                 </div>
                             </div>
 
+                            {/* Product variants */}
+                            {apiProduct?.productVariants && apiProduct.productVariants.length > 1 && (
+                                <div className="mb-6">
+                                    <h3 className="font-medium text-gray-700 mb-2">Phiên bản</h3>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {apiProduct.productVariants.map((variant) => (
+                                            <button
+                                                key={variant.id}
+                                                onClick={() => setSelectedVariant(variant)}
+                                                className={`border-2 py-2 px-3 rounded-lg text-gray-700 text-sm font-medium flex flex-col items-center ${selectedVariant?.id === variant.id ? 'border-blue-500' : 'border-gray-200'}`}
+                                            >
+                                                <span>{variant.slug}</span>
+                                                <span className="font-bold">{formatCurrency(variant.price)}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Color options */}
-                            {product.category === 'smartphone' || product.category === 'laptop' && (
+                            {/* {(apiProduct.categoryId === 1 || apiProduct.categoryId === 2) && (
                                 <div className="mb-6">
                                     <h3 className="font-medium text-gray-700 mb-2">Màu sắc</h3>
                                     <div className="flex space-x-2">
@@ -338,32 +830,30 @@ const ProductDetailPage: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-                            )}
-
-                            {/* Storage options - for applicable products */}
-                            {(product.category === 'smartphone' || product.category === 'laptop') && (
-                                <div className="mb-6">
-                                    <h3 className="font-medium text-gray-700 mb-2">Cấu hình</h3>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button className="border-2 border-blue-500 py-2 px-3 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium flex flex-col items-center">
-                                            <span>{product.specs.storage}</span>
-                                            <span className="font-bold">{formatCurrency(product.price)}</span>
-                                        </button>
-                                        <button className="border-2 border-gray-200 py-2 px-3 rounded-lg text-gray-700 text-sm font-medium flex flex-col items-center">
-                                            <span>{product.category === 'smartphone' ? '512 GB' : 'SSD 1 TB'}</span>
-                                            <span className="font-bold">
-                                                {formatCurrency(Math.round(product.price * 1.2))}
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                            )} */}
 
                             {/* Promotions */}
                             <div className="mb-6">
                                 <h3 className="font-medium text-gray-700 mb-2">Khuyến mãi</h3>
                                 <div className="bg-red-50 border border-red-100 rounded-lg p-3">
                                     <ul className="space-y-3">
+                                        {/* Use API promotions if available */}
+                                        {apiProduct?.productPromotions && apiProduct.productPromotions.length > 0 ? (
+                                            apiProduct.productPromotions.map((promo, idx) => (
+                                                <li key={promo.promotionId} className="flex">
+                                                    <span className="flex-shrink-0 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-white text-xs mr-2 mt-0.5">
+                                                        {idx + 1}
+                                                    </span>
+                                                    <span className="text-sm text-gray-800">
+                                                        {promo.promotion.name}
+                                                        {promo.promotion.discountCode && (
+                                                            <span className="font-medium text-blue-600 ml-1">{promo.promotion.discountCode}</span>
+                                                        )}
+                                                    </span>
+                                                </li>
+                                            ))
+                                        ) : null}
+                                        {/* Fallback to sample promotions */}
                                         {sampleDetailedInfo.promotions.map(promo => (
                                             <li key={promo.id} className="flex">
                                                 <span className="flex-shrink-0 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-white text-xs mr-2 mt-0.5">
@@ -379,25 +869,33 @@ const ProductDetailPage: React.FC = () => {
                                         ))}
                                     </ul>
                                 </div>
-                            </div>
-
-                            {/* Call to action */}
+                            </div>                            {/* Call to action */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                <button className="bg-red-600 text-white font-medium py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center">
+                                <button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md flex items-center justify-center">
                                     <ShoppingBag size={20} className="mr-2" />
                                     MUA NGAY
                                 </button>
-                                <button className="border-2 border-blue-500 text-blue-600 font-medium py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center">
-                                    <ShoppingCart size={20} className="mr-2" />
-                                    THÊM VÀO GIỎ HÀNG
+                                <button
+                                    onClick={handleAddToCart}
+                                    className="border-2 border-blue-500 text-blue-600 font-medium py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center text-sm">
+                                    <ShoppingCart size={20} className="mr-1" />
+                                    GIỎ HÀNG
                                 </button>
-                            </div>
-
-                            {/* Extra purchase options */}
+                            </div>                            {/* Extra purchase options */}
                             <div className="grid grid-cols-2 gap-3 mb-6">
-                                <button className="border border-blue-500 text-blue-600 py-2 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center text-sm">
-                                    <Heart size={18} className="mr-1" />
-                                    YÊU THÍCH
+                                <button
+                                    className={`border py-2 rounded-lg transition-colors flex items-center justify-center text-sm ${inWishlist
+                                        ? 'border-red-500 text-red-600 bg-red-50 hover:bg-red-100'
+                                        : 'border-blue-500 text-blue-600 hover:bg-blue-50'
+                                        }`}
+                                    onClick={handleToggleWishlist}
+                                    disabled={wishlistLoading}
+                                >
+                                    <Heart
+                                        size={18}
+                                        className={`mr-1 ${inWishlist ? 'fill-red-500' : ''}`}
+                                    />
+                                    {wishlistLoading ? 'ĐANG XỬ LÝ...' : inWishlist ? 'ĐÃ YÊU THÍCH' : 'YÊU THÍCH'}
                                 </button>
                                 <button className="border border-blue-500 text-blue-600 py-2 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center text-sm">
                                     <Phone size={18} className="mr-1" />
@@ -459,9 +957,8 @@ const ProductDetailPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Content tabs - Description, Specs, Reviews */}
-                <div className="bg-white rounded-lg overflow-hidden mb-6">
-                    {/* Tab headers */}
+                {/* Content tabs - Description and Reviews */}
+                <div className="bg-white rounded-lg overflow-hidden mb-6">                    {/* Tab headers */}
                     <div className="flex border-b">
                         <button
                             className={`px-6 py-3 font-medium text-sm ${activeTab === 'mô tả' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-600'}`}
@@ -474,197 +971,54 @@ const ProductDetailPage: React.FC = () => {
                             onClick={() => setActiveTab('thông số')}
                         >
                             Thông số kỹ thuật
-                        </button>
-                        <button
+                        </button>                        <button
                             className={`px-6 py-3 font-medium text-sm ${activeTab === 'đánh giá' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-600'}`}
                             onClick={() => setActiveTab('đánh giá')}
                         >
-                            Đánh giá ({product.reviews})
+                            Đánh giá
                         </button>
-                    </div>
-
-                    {/* Tab content */}
+                    </div>                    {/* Tab content */}
                     <div className="p-4">
                         {/* Description tab */}
                         {activeTab === 'mô tả' && (
                             <div className="prose max-w-none">
-                                <div dangerouslySetInnerHTML={{ __html: sampleDetailedInfo.description }} />
+                                {productDescription ? (
+                                    <div dangerouslySetInnerHTML={{ __html: productDescription }} />
+                                ) : (
+                                    <div dangerouslySetInnerHTML={{ __html: sampleDetailedInfo.description }} />
+                                )}
                             </div>
                         )}
 
-                        {/* Specs tab */}
+                        {/* Technical specs tab */}
                         {activeTab === 'thông số' && (
                             <div>
-                                {/* Spec tab navigation */}
-                                <div className="border-b border-gray-200 mb-4">
-                                    <nav className="flex space-x-8 overflow-x-auto">
-                                        {Object.keys(sampleDetailedInfo.specs).map((category) => (
-                                            <button
-                                                key={category}
-                                                onClick={() => setActiveSpecTab(category as SpecCategories)}
-                                                className={`py-2 px-1 text-center border-b-2 font-medium text-sm whitespace-nowrap ${activeSpecTab === category
-                                                    ? 'border-blue-500 text-blue-600'
-                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                                    }`}
-                                            >
-                                                {category.charAt(0).toUpperCase() + category.slice(1)}
-                                            </button>
+                                {attributesLoading || variantLoading ? (
+                                    <div className="flex justify-center py-4">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {Object.entries(variantSpecs).map(([category, specs]) => (
+                                            <div key={category} className="mb-6">
+                                                <h3 className="font-medium text-gray-900 mb-3 capitalize border-b pb-2">{category}</h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {specs.map((spec, idx) => (
+                                                        <div key={idx} className={`flex ${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} p-3 rounded-lg`}>
+                                                            <span className="text-gray-500 w-1/2">{spec.name}:</span>
+                                                            <span className="text-gray-900 font-medium">{spec.value}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         ))}
-                                    </nav>
-                                </div>
-
-                                {/* Spec list */}
-                                <div className="space-y-1">
-                                    {sampleDetailedInfo.specs[activeSpecTab].map((spec, idx) => (
-                                        <div key={idx} className={`flex ${idx % 2 === 0 ? 'bg-gray-50' : ''} py-3 px-4 rounded`}>
-                                            <span className="text-gray-600 w-1/3">{spec.name}:</span>
-                                            <span className="text-gray-900 font-medium">{spec.value}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                )}
                             </div>
-                        )}
-
-                        {/* Reviews tab */}
+                        )}                        {/* Reviews tab */}
                         {activeTab === 'đánh giá' && (
                             <div>
-                                <div className="flex flex-col md:flex-row gap-8">
-                                    {/* Rating overview */}
-                                    <div className="md:w-1/3 bg-gray-50 p-4 rounded-lg flex items-center md:flex-col">
-                                        <div className="text-center mb-2">
-                                            <div className="text-5xl font-bold text-blue-600">
-                                                {product.rating.toFixed(1)}
-                                                <span className="text-xl text-gray-500">/5</span>
-                                            </div>
-
-                                            <div className="flex justify-center mt-2">
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <Star
-                                                        key={star}
-                                                        size={20}
-                                                        fill={star <= product.rating ? "#FFC107" : "none"}
-                                                        color={star <= product.rating ? "#FFC107" : "#E5E7EB"}
-                                                    />
-                                                ))}
-                                            </div>
-
-                                            <div className="text-sm text-gray-500 mt-1">
-                                                {product.reviews} đánh giá
-                                            </div>
-                                        </div>
-
-                                        <div className="w-full">
-                                            {/* Rating distribution */}
-                                            <div className="space-y-2 mt-4">
-                                                {[5, 4, 3, 2, 1].map((rating) => {
-                                                    // Calculate percentage based on rating
-                                                    const percentage = rating === 5 ? 85 :
-                                                        rating === 4 ? 12 :
-                                                            rating === 3 ? 2 :
-                                                                rating === 2 ? 1 : 0;
-
-                                                    return (
-                                                        <div key={rating} className="flex items-center">
-                                                            <div className="flex items-center w-10">
-                                                                <span>{rating}</span>
-                                                                <Star size={12} fill="#FFC107" color="#FFC107" className="ml-0.5" />
-                                                            </div>
-                                                            <div className="flex-1 h-2 mx-2 bg-gray-200 rounded-full overflow-hidden">
-                                                                <div
-                                                                    className="h-full bg-blue-500 rounded-full"
-                                                                    style={{ width: `${percentage}%` }}
-                                                                ></div>
-                                                            </div>
-                                                            <span className="text-sm text-gray-500 w-8">{percentage}%</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            <button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2.5 px-4 w-full mt-4 font-medium">
-                                                Viết đánh giá
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Review list */}
-                                    <div className="md:w-2/3">
-                                        <div className="border-b pb-4 mb-4">
-                                            <div className="flex justify-between">
-                                                <div>
-                                                    <div className="font-medium">Anh Minh</div>
-                                                    <div className="text-gray-500 text-sm">20/04/2025</div>
-                                                </div>
-                                                <div className="flex">
-                                                    {[1, 2, 3, 4, 5].map((star) => (
-                                                        <Star
-                                                            key={star}
-                                                            size={16}
-                                                            fill="#FFC107"
-                                                            color="#FFC107"
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <p className="mt-2 text-gray-700">
-                                                Sản phẩm rất tốt, hiệu năng mạnh mẽ. Chạy mượt mà các ứng dụng đồ họa và chỉnh sửa video 4K. Pin cũng rất tốt, dùng cả ngày không lo hết pin.
-                                            </p>
-                                            <div className="mt-1 flex space-x-2">
-                                                <img src="https://cdn.tgdd.vn/Products/Images/44/331568/macbook-pro-14-inch-m4-pro-den-1-1.jpg" alt="User review image" className="w-20 h-20 object-cover rounded" />
-                                            </div>
-                                        </div>
-
-                                        <div className="border-b pb-4 mb-4">
-                                            <div className="flex justify-between">
-                                                <div>
-                                                    <div className="font-medium">Chị Hương</div>
-                                                    <div className="text-gray-500 text-sm">18/04/2025</div>
-                                                </div>
-                                                <div className="flex">
-                                                    {[1, 2, 3, 4, 5].map((star) => (
-                                                        <Star
-                                                            key={star}
-                                                            size={16}
-                                                            fill={star <= 4 ? "#FFC107" : "none"}
-                                                            color={star <= 4 ? "#FFC107" : "#E5E7EB"}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <p className="mt-2 text-gray-700">
-                                                Máy đẹp, cấu hình mạnh, màn hình hiển thị sắc nét. Chỉ tiếc là hơi nặng một chút so với mong đợi.
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <div className="flex justify-between">
-                                                <div>
-                                                    <div className="font-medium">Anh Tuấn</div>
-                                                    <div className="text-gray-500 text-sm">15/04/2025</div>
-                                                </div>
-                                                <div className="flex">
-                                                    {[1, 2, 3, 4, 5].map((star) => (
-                                                        <Star
-                                                            key={star}
-                                                            size={16}
-                                                            fill="#FFC107"
-                                                            color="#FFC107"
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <p className="mt-2 text-gray-700">
-                                                Tuyệt vời! Đó là từ duy nhất để miêu tả sản phẩm này. Hiệu năng vượt trội, màn hình sắc nét, thời lượng pin ấn tượng. Đúng là đáng đồng tiền bát gạo.
-                                            </p>
-                                        </div>
-
-                                        <div className="mt-6 flex justify-center">
-                                            <button className="border border-blue-500 text-blue-600 hover:bg-blue-50 font-medium rounded-lg px-6 py-2">
-                                                Xem thêm đánh giá
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                {apiProduct && <ProductReviews productId={apiProduct.id} />}
                             </div>
                         )}
                     </div>
@@ -674,38 +1028,55 @@ const ProductDetailPage: React.FC = () => {
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold">Sản phẩm tương tự</h2>
-                        <Link to={`/category/${product.category}`} className="text-blue-600 text-sm">
+                        <Link to={`/${apiProduct.categoryId}`} className="text-blue-600 text-sm">
                             Xem tất cả
                         </Link>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                        {relatedProducts.map((relatedProduct) => (
-                            <Link
-                                key={relatedProduct.id}
-                                to={`/product/${relatedProduct.id}`}
-                                className="bg-white p-3 rounded-lg hover:shadow-md transition-shadow group"
-                            >
-                                <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-100 mb-3">
-                                    <img
-                                        src={relatedProduct.image}
-                                        alt={relatedProduct.name}
-                                        className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform"
-                                    />
-                                </div>
-                                <h3 className="text-sm text-gray-700 font-medium truncate">{relatedProduct.name}</h3>
-                                <div className="mt-1 text-sm font-bold text-red-600">{formatCurrency(relatedProduct.price)}</div>
+                    {relatedProductsLoading ? (
+                        <div className="flex justify-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            {relatedProducts.length > 0 ? (
+                                relatedProducts.map((relatedProduct) => (
+                                    <Link
+                                        key={relatedProduct.id}
+                                        to={`/product/${relatedProduct.slug}`}
+                                        className="bg-white p-3 rounded-lg hover:shadow-md transition-shadow group"
+                                    >
+                                        <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-100 mb-3">
+                                            {relatedProduct.productImages && relatedProduct.productImages.length > 0 ? (
+                                                <img
+                                                    src={relatedProduct.productImages[0].imageUrl}
+                                                    alt={relatedProduct.name}
+                                                    className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                                    <span className="text-gray-400">No image</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <h3 className="text-sm text-gray-700 font-medium truncate">{relatedProduct.name}</h3>
+                                        <div className="mt-1 text-sm font-bold text-red-600">
+                                            {formatCurrency(relatedProduct.basePrice || 0)}
+                                        </div>
 
-                                {relatedProduct.originalPrice > relatedProduct.price && (
-                                    <div className="flex items-center text-xs space-x-1 text-gray-500">
-                                        <span className="line-through">{formatCurrency(relatedProduct.originalPrice)}</span>
-                                        <span className="text-red-500">
-                                            -{Math.round(((relatedProduct.originalPrice - relatedProduct.price) / relatedProduct.originalPrice) * 100)}%
-                                        </span>
-                                    </div>
-                                )}
-                            </Link>
-                        ))}
-                    </div>
+                                        {relatedProduct.productVariants && relatedProduct.productVariants.length > 0 && (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                {relatedProduct.productVariants.length} phiên bản
+                                            </div>
+                                        )}
+                                    </Link>
+                                ))
+                            ) : (
+                                <div className="col-span-5 py-8 text-center text-gray-500">
+                                    Không tìm thấy sản phẩm tương tự
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
