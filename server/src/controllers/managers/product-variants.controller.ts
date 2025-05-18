@@ -107,41 +107,14 @@ export const updateVariant = async (
 			return res.status(404).json({ message: 'Variant not found' });
 		}
 
-		// Xử lý ảnh
-		const keepImageIds: number[] = req.body.keepImageIds || [];
-		const primaryImageId: number | null = req.body.primaryImageId || null;
+		const files = req.files as Express.Multer.File[];
 
-		// 1. Xoá các ảnh không được giữ lại
-		const existingImages = await productImageService.getProductImages(
-			(updatedVariant as any)?.id,
+		await productImageService.createProductImages(
+			files,
+			updatedVariant.productId,
+			updatedVariant.id,
 			transaction,
 		);
-		const imagesToDelete = existingImages.filter(
-			(img) => !keepImageIds.includes(img.id),
-		);
-
-		for (const img of imagesToDelete) {
-			await productImageService.deleteProductImage(img.id);
-		}
-
-		// 2. Tải ảnh mới nếu có
-		if (req.files && Array.isArray(req.files)) {
-			await productImageService.createProductImages(
-				req.files,
-				(updatedVariant as any)?.productId,
-				(updatedVariant as any)?.id,
-				transaction,
-			);
-		}
-
-		// 3. Cập nhật ảnh chính nếu có
-		if (primaryImageId) {
-			await productImageService.setPrimaryImage(
-				(updatedVariant as any)?.id,
-				primaryImageId,
-				transaction,
-			);
-		}
 
 		const parseAttributes = (body: any) => {
 			const attributes: any[] = [];

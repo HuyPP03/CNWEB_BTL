@@ -40,6 +40,14 @@ export const getVariants = async (filters: any, transaction?: Transaction) => {
 		if (filters.priceRange.max)
 			where.price[Op.lte] = filters.priceRange.max;
 	}
+	// Điều kiện lọc theo khoảng giá khuyến mãi
+	if (filters.discountPriceRange.min || filters.discountPriceRange.max) {
+		where.discountPrice = {};
+		if (filters.discountPriceRange.min)
+			where.discountPrice[Op.gte] = filters.discountPriceRange.min;
+		if (filters.discountPriceRange.max)
+			where.discountPrice[Op.lte] = filters.discountPriceRange.max;
+	}
 
 	// Lấy dữ liệu từ cơ sở dữ liệu với phân trang
 	const [rows, count] = await Promise.all([

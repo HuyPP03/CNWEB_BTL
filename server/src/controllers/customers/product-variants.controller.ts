@@ -16,6 +16,8 @@ export const getVariants = async (
 			productId,
 			min = 0,
 			max,
+			minDiscount = 0,
+			maxDiscount,
 			stock = 0,
 			include = '',
 			page = 1, // Mặc định trang 1
@@ -34,6 +36,12 @@ export const getVariants = async (
 			priceRange: {
 				min: parseFloat(min as string),
 				max: max ? parseFloat(max as string) : Number.MAX_SAFE_INTEGER,
+			},
+			discountPriceRange: {
+				min: parseFloat(minDiscount as string),
+				max: maxDiscount
+					? parseFloat(maxDiscount as string)
+					: Number.MAX_SAFE_INTEGER,
 			},
 			stock: stock ? Number(stock) : undefined,
 			include: (include as string)?.split(','),

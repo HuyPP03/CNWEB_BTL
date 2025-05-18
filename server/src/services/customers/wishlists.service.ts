@@ -23,6 +23,13 @@ export const createWishlist = async (
 	}
 
 	const data = { customerId, productId };
+	const existingWishlist = await db.wishlists.findOne({
+		where: data,
+		transaction,
+	});
+	if (existingWishlist) {
+		throw new Error('Product already in wishlist');
+	}
 	const wish = await db.wishlists.create(data, { transaction });
 
 	return await db.wishlists.findByPk(wish.id, {

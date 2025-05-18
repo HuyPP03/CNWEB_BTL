@@ -8,7 +8,7 @@ import { upload } from '../utility/cloudinary.util';
 const router = express.Router();
 
 // Route để lấy danh sách ảnh của sản phẩm
-router.get('/:productId', imageController.getProductImagesController);
+router.get('/:productId', imageController.getProductImages);
 
 router.use(isManager);
 router.use(verifyToken);
@@ -17,22 +17,15 @@ router.use(verifyToken);
 router.post(
 	'/:productId',
 	authorization([RoleManager.manager, RoleManager.staff]),
-	upload.single('image'),
-	imageController.uploadProductImageController,
+	upload.any(),
+	imageController.uploadProductImage,
 );
 
 // Route để xóa ảnh sản phẩm
 router.delete(
-	'/image/:id',
+	'/:id',
 	authorization([RoleManager.manager, RoleManager.staff]),
-	imageController.deleteProductImageController,
-);
-
-// Route để thiết lập ảnh chính cho sản phẩm
-router.put(
-	'/:productId/image/:imageId/primary',
-	authorization([RoleManager.manager, RoleManager.staff]),
-	imageController.setPrimaryImageController,
+	imageController.deleteProductImage,
 );
 
 export default router;

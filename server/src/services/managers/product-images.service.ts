@@ -117,19 +117,14 @@ export const createProductImages = async (
 	transaction?: Transaction,
 ) => {
 	try {
-		const fileCreates = files.map((file, indx) => ({
+		const fileCreates = files.map((file) => ({
 			productId,
 			variantId,
 			publicId: file.publicId || file.public_id || '',
 			imageUrl: file.path || file.secure_url || '',
-			isPrimary: indx === 0,
+			isPrimary: false, // luôn để false, sau này có thể set bằng API riêng
 		}));
 
-		files.forEach((file, i) => {
-			console.log(
-				`File ${i}: public_id=${file.public_id}, path=${file.path}`,
-			);
-		});
 		return await db.productImages.bulkCreate(fileCreates, {
 			returning: true,
 			transaction,
@@ -146,20 +141,27 @@ export const uploadProductImage = async (
 	res: any,
 	transaction?: Transaction,
 ) => {
-	const { productId } = req.params;
+	const { productId, variantId } = req.body;
 	const file = req.file;
+	const isPrimary =
+		req.body.isPrimary === 'true' || req.body.isPrimary === true;
 
-	if (!file) {
-		return res.status(400).json({ error: 'No image file uploaded' });
+	if (!file || !file.public_id || !file.path) {
+		return res.status(400).json({ error: 'Invalid image file uploaded' });
+	}
+
+	if (!productId) {
+		return res.status(400).json({ error: 'Missing productId' });
 	}
 
 	try {
 		const productImage = await db.productImages.create(
 			{
 				productId,
+				variantId: variantId || null,
 				publicId: file.public_id,
 				imageUrl: file.path,
-				isPrimary: false,
+				isPrimary,
 			},
 			{ transaction },
 		);
@@ -176,11 +178,15 @@ export const uploadProductImage = async (
 // Lấy ảnh sản phẩm theo productId
 export const getProductImages = async (
 	productId: number,
+	variantId?: number,
 	transaction?: Transaction,
 ) => {
 	try {
+		const whereClause: any = { productId };
+		if (variantId !== undefined) whereClause.variantId = variantId;
+
 		return await db.productImages.findAll({
-			where: { productId },
+			where: whereClause,
 			transaction,
 		});
 	} catch (error) {
@@ -189,77 +195,51 @@ export const getProductImages = async (
 	}
 };
 
-// Xóa ảnh trên cloudinary
+// Xóa ảnh sản phẩm cả trên Cloudinary và DB
 export const deleteProductImage = async (
 	id: number,
 	transaction?: Transaction,
 ) => {
 	try {
+		// Tìm ảnh cần xóa
 		const productImage = await db.productImages.findByPk(id, {
 			transaction,
 		});
 
 		if (!productImage) {
-			console.warn(`Product image with id=${id} not found`);
+			console.warn(`Image with id=${id} not found`);
 			return null;
 		}
 
-		// Xóa ảnh trên Cloudinary nếu có publicId hợp lệ
+		// Xóa ảnh trên Cloudinary nếu có publicId
 		if (productImage.publicId) {
 			try {
 				const result = await cloudinary.uploader.destroy(
 					productImage.publicId,
 				);
+
 				if (result.result !== 'ok' && result.result !== 'not found') {
 					console.warn(
-						`Cloudinary delete returned: ${result.result} for publicId: ${productImage.publicId}`,
+						`Cloudinary delete failed: ${result.result} (publicId=${productImage.publicId})`,
 					);
 				}
-			} catch (err) {
-				console.error('Error deleting image from Cloudinary:', err);
+			} catch (cloudError) {
+				console.error('Error deleting from Cloudinary:', cloudError);
+				// không throw tại đây để tiếp tục xóa DB
 			}
 		} else {
 			console.warn(
-				'No publicId found for product image, skipping Cloudinary delete',
+				`Image id=${id} has no publicId, skipping Cloudinary delete`,
 			);
 		}
 
-		// Xóa bản ghi trong DB
+		// Xóa bản ghi trong database
 		await productImage.destroy({ transaction });
 
+		console.log(`Image id=${id} deleted from DB`);
 		return productImage;
 	} catch (error) {
-		console.error('Error deleting product image:', error);
-		throw new Error('Error deleting product image');
-	}
-};
-
-// Đặt ảnh chính cho sản phẩm
-export const setPrimaryImage = async (
-	productId: number,
-	imageId: number,
-	transaction?: Transaction,
-) => {
-	try {
-		// Reset tất cả ảnh thành không phải chính
-		await db.productImages.update(
-			{ isPrimary: false },
-			{ where: { productId }, transaction },
-		);
-
-		// Cập nhật ảnh được chọn thành chính
-		const [count, updated] = await db.productImages.update(
-			{ isPrimary: true },
-			{ where: { id: imageId, productId }, returning: true, transaction },
-		);
-
-		if (count === 0) {
-			throw new Error('Image not found or update failed');
-		}
-
-		return updated[0];
-	} catch (error) {
-		console.error('Error updating primary image:', error);
-		throw new Error('Error updating primary image');
+		console.error('Error in deleteProductImage:', error);
+		throw new Error('Failed to delete product image');
 	}
 };

@@ -89,6 +89,20 @@ export const cancelOrder = async (
 		if (!order) {
 			throw new Error('Không tìm thấy đơn hàng');
 		}
+		if (
+			order.status === 'cancelled' ||
+			order.status === 'delivered' ||
+			order.status === 'draft'
+		) {
+			return res
+				.status(400)
+				.json(
+					new ResOk().formatResponse(
+						null,
+						'Bạn khong thể hủy đơn hàng này!',
+					),
+				);
+		}
 		if (customerId !== order.customerId) {
 			return res
 				.status(403)

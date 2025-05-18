@@ -24,7 +24,7 @@ router.use('/products', product);
 router.use('/product-variant', productVariant);
 router.use('/carts', carts);
 router.use('/orders', orders);
-router.use('/product-images', productImages);
+router.use('/images', productImages);
 router.use('/manager', managerRoute);
 router.use('/customer', customerRoute);
 router.use('/payments', paymentRoute);

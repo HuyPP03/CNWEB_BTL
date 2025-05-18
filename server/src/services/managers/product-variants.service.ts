@@ -11,6 +11,7 @@ export const createVariant = (data: any, transaction?: Transaction) => {
 		slug: data.name.toLowerCase().replace(/\s+/g, '-'),
 		sku: data.name.toLowerCase().replace(/\s+/g, '-'),
 		price: data.price,
+		discountPrice: data.discountPrice,
 		stock: data.stock,
 	};
 	return db.productVariants.create(variant, { transaction });
@@ -35,6 +36,9 @@ export const updateVariant = async (
 					},
 				],
 			},
+			{
+				model: db.productImages,
+			},
 		],
 		transaction,
 	});
@@ -44,6 +48,7 @@ export const updateVariant = async (
 		slug: data.name.toLowerCase().replace(/\s+/g, '-'),
 		sku: data.name.toLowerCase().replace(/\s+/g, '-'),
 		price: data.price,
+		discountPrice: data.discountPrice,
 		stock: data.stock,
 	};
 	await variant.update(updateData, { transaction });
