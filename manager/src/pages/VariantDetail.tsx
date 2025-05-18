@@ -127,6 +127,12 @@ export default function VariantDetail() {
                             <div className="p-3 bg-gray-50 rounded border text-lg">{formatCurrency(variant.price)}</div>
                         </div>
                         <div>
+                            <label className="block font-semibold mb-2 text-lg">Giá giảm</label>
+                            <div className="p-3 bg-gray-50 rounded border text-lg">
+                                {variant.discountPrice ? formatCurrency(variant.discountPrice) : "Không có"}
+                            </div>
+                        </div>
+                        <div>
                             <label className="block font-semibold mb-2 text-lg">Số lượng</label>
                             <div className="p-3 bg-gray-50 rounded border text-lg">{variant.stock}</div>
                         </div>
