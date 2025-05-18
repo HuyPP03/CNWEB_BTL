@@ -17,7 +17,7 @@ function App() {
     // Nếu đang ở trang login → chỉ render Main
     return (
       <div className="flex flex-col h-screen">
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto">
           <AppRoutes />
         </div>
       </div>
