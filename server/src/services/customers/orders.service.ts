@@ -298,8 +298,12 @@ export const getOrders = async (filters: any, transaction?: Transaction) => {
 	}
 
 	// Điều kiện lọc theo trạng thái đơn hàng
-	if (filters.status && filters.status !== 'draft') {
-		where.status = filters.status;
+	if (filters.status) {
+		where.status =
+			filters.status !== 'draft' ? filters.status : { [Op.not]: 'draft' };
+	} else {
+		// Nếu không truyền filters.status thì mặc định loại 'draft'
+		where.status = { [Op.not]: 'draft' };
 	}
 
 	// Điều kiện lọc theo khoảng thời gian tạo đơn hàng
