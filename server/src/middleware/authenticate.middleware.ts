@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { PERMISSION_ERROR } from '../constants/constants';
+import { BAD_REQUEST, PERMISSION_ERROR } from '../constants/constants';
 import { AppError } from '../utility/appError.util';
 import env from '../../env';
 import { db } from '../loaders/database.loader';
+import { Customers } from '../models/customers.model';
 
 export const isManager = async (
 	req: any,
@@ -44,6 +45,9 @@ export const verifyToken = async (
 			  });
 		if (!user || !user.isActive) {
 			throw new AppError(PERMISSION_ERROR, 'Unauthenticated!');
+		}
+		if (!isAdmin && (user as Customers).isBlock) {
+			throw new AppError(BAD_REQUEST, 'User is blocked');
 		}
 		(req as any).user = user;
 		next();
