@@ -2,7 +2,10 @@ import { db } from '../../loaders/database.loader';
 import { Transaction } from 'sequelize';
 
 export const getAllFeedbacks = async (transaction?: Transaction) => {
-	return await db.feedbacks.findAll({ transaction });
+	return await db.feedbacks.findAll({
+		include: [{ model: db.customers }],
+		transaction,
+	});
 };
 
 export const createFeedback = async (
