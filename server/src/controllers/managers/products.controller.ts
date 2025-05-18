@@ -107,29 +107,20 @@ export const deleteProduct = async (
 	const transaction = await db.sequelize.transaction();
 	try {
 		const productId = req.params.id;
-		const productImages = await db.productImages.findAll({
-			where: { productId },
+		const product = await db.products.findByPk(productId, {
 			transaction,
 		});
 
-		for (const image of productImages) {
-			await productImageService.deleteProductImage(image.id, transaction);
-		}
-
-		const deletedCount = await productService.deleteProduct(
-			req.params.id,
-			transaction,
-		);
-
-		if (!deletedCount) {
-			await transaction.rollback();
+		if (!product) {
 			return res.status(404).json({ message: 'Product not found' });
 		}
 
-		// Ghi adminlog
+		product.isHidden = true;
+		await product.save({ transaction });
+
 		await adminLogService.CreateAdminLog(
 			(req.user as Admins).id,
-			'Delete',
+			'Hidden',
 			parseInt(req.params.id),
 			'Product',
 			{ deleted: true },

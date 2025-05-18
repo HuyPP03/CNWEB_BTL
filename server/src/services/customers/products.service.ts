@@ -2,7 +2,9 @@ import { Op, Transaction } from 'sequelize';
 import { db } from '../../loaders/database.loader';
 
 export const getProducts = async (filters: any, transaction?: Transaction) => {
-	const where: any = {};
+	const where: any = {
+		isHidden: false,
+	};
 	const include: any[] = [
 		{ model: db.productVariants, include: [{ model: db.productImages }] },
 		{ model: db.productImages },

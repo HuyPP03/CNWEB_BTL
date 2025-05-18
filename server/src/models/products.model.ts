@@ -11,6 +11,7 @@ export class Products extends Model<
 	InferCreationAttributes<Products>
 > {
 	declare id: CreationOptional<number>;
+	declare isHidden: CreationOptional<boolean>;
 	declare name: string;
 	declare slug: string;
 	declare categoryId: number;
@@ -27,6 +28,10 @@ export class Products extends Model<
 					type: DataTypes.INTEGER,
 					primaryKey: true,
 					autoIncrement: true,
+				},
+				isHidden: {
+					type: DataTypes.BOOLEAN,
+					defaultValue: false,
 				},
 				name: { type: DataTypes.STRING(255), allowNull: false },
 				slug: {

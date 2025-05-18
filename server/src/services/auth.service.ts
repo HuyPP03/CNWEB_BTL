@@ -24,6 +24,9 @@ export async function authenticate(
 	if (!user.isActive) {
 		throw new AppError(CONFLICT_ERROR, 'User is not active');
 	}
+	if (!isAdmin && (user as Customers).isBlock) {
+		throw new AppError(CONFLICT_ERROR, 'User is blocked');
+	}
 	const isMatch = await EncUtil.comparePassword(password, user.passwordHash);
 
 	if (!isMatch) {
@@ -54,11 +57,15 @@ export function getAccessToken(
 	expiresIn: any,
 	isAdmin = false,
 ): string {
+	let payload: any = {
+		id: user.id,
+		email: user.email,
+	};
+	if (!isAdmin) {
+		payload.isBlock = (user as Customers).isBlock;
+	}
 	return jwt.sign(
-		{
-			id: user.id,
-			email: user.email,
-		},
+		payload,
 		isAdmin ? env.app.jwtSecretManager : (env.app.jwtSecret as any),
 		{
 			expiresIn,

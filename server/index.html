@@ -179,7 +179,7 @@
 					console.log('Response data:', response.data);
 
 					if (response.status === 200) {
-						accessToken = response.data.data;
+						accessToken = response.data.data.accessToken;
 						updateTokenDisplay();
 						showResult('Token Refresh Success', {
 							accessToken,

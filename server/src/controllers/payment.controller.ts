@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { PaymentGateway, PaymentService } from '../services/payments';
 import { db } from '../loaders/database.loader';
 import { changeStock } from '../services/customers/orders.service';
-
+import env from '../../env';
 export class PaymentController {
 	/**
 	 * Tạo yêu cầu thanh toán
@@ -143,10 +143,13 @@ export class PaymentController {
 	): Promise<void> {
 		try {
 			const vnpParams = req.query;
+
 			const isValid = PaymentService.verifyPayment(
 				PaymentGateway.VNPAY,
 				vnpParams,
 			);
+
+			console.log('VNPay callback is valid:', isValid);
 
 			if (isValid) {
 				// Xử lý thanh toán thành công tại đây (cập nhật DB, ...)
@@ -270,7 +273,9 @@ export class PaymentController {
 				changeStock(orderId);
 
 				// Chuyển hướng người dùng về trang thành công
-				res.redirect(`/payment-success?paymentId=${paymentId}`);
+				res.redirect(
+					`${env.app.client_url}/payment-success?paymentId=${paymentId}`,
+				);
 			} else {
 				const orderId = Number(paymentId);
 
@@ -279,11 +284,13 @@ export class PaymentController {
 					{ where: { orderId: orderId } },
 				);
 
-				res.redirect('/payment-failed');
+				res.redirect(
+					`${env.app.client_url}/payment-failed?paymentId=${paymentId}`,
+				);
 			}
 		} catch (error) {
 			console.error('PayPal callback error:', error);
-			res.redirect('/payment-failed');
+			res.redirect(`${env.app.client_url}/payment-failed}`);
 		}
 	}
 

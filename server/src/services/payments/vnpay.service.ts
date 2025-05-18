@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as crypto from 'crypto';
-import * as qs from 'querystring';
+import * as qs from 'qs';
+import moment from 'moment';
 import env from '../../../env';
 
 export interface VNPayConfig {
@@ -16,6 +17,7 @@ export interface VNPayPaymentParams {
 	orderInfo: string;
 	ipAddr: string;
 	locale?: 'vn' | 'en';
+	bankCode?: string;
 }
 
 export interface VNPayRefundParams {
@@ -24,6 +26,7 @@ export interface VNPayRefundParams {
 	transDate: string;
 	transType?: string;
 	user: string;
+	ipAddr?: string;
 }
 
 export class VNPayService {
@@ -38,60 +41,87 @@ export class VNPayService {
 		};
 	}
 
-	private createSignature(data: Record<string, string | number>): string {
-		const sortedParams = Object.keys(data)
-			.sort()
-			.reduce((acc, key) => {
-				acc[key] = data[key];
-				return acc;
-			}, {} as Record<string, string | number>);
+	/**
+	 * Sắp xếp object theo đúng định dạng VNPay yêu cầu
+	 */
+	private sortObject(obj: any): any {
+		let sorted: any = {};
+		let str: string[] = [];
+		let key: string | number;
 
-		const signData = qs.stringify(sortedParams, { encode: false } as any);
-		return crypto
-			.createHmac('sha512', this.config.secretKey)
-			.update(signData)
-			.digest('hex');
+		// Lấy tất cả các key và mã hóa URI
+		for (key in obj) {
+			if (obj.hasOwnProperty(key)) {
+				str.push(encodeURIComponent(key));
+			}
+		}
+
+		// Sắp xếp các key
+		str.sort();
+
+		// Tạo object với các key đã sắp xếp và mã hóa giá trị
+		for (key = 0; key < str.length; key++) {
+			sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(
+				/%20/g,
+				'+',
+			);
+		}
+
+		return sorted;
 	}
 
 	/**
 	 * Tạo URL thanh toán VNPay
 	 */
 	public createPaymentUrl(params: VNPayPaymentParams): string {
-		const date = new Date();
-		const createDate = `${date.getFullYear()}${(date.getMonth() + 1)
-			.toString()
-			.padStart(2, '0')}${date
-			.getDate()
-			.toString()
-			.padStart(2, '0')}${date
-			.getHours()
-			.toString()
-			.padStart(2, '0')}${date
-			.getMinutes()
-			.toString()
-			.padStart(2, '0')}${date.getSeconds().toString().padStart(2, '0')}`;
+		// Đặt múi giờ cho việc tạo thời gian
+		process.env.TZ = 'Asia/Ho_Chi_Minh';
 
-		const vnpParams: Record<string, string | number> = {
-			vnp_Version: '2.1.0',
-			vnp_Command: 'pay',
-			vnp_TmnCode: this.config.tmnCode,
-			vnp_Locale: params.locale || 'vn',
-			vnp_CurrCode: 'VND',
-			vnp_TxnRef: params.orderId,
-			vnp_OrderInfo: params.orderInfo,
-			vnp_OrderType: 'other',
-			vnp_Amount: params.amount * 100, // Số tiền * 100
-			vnp_ReturnUrl: this.config.returnUrl,
-			vnp_IpAddr: params.ipAddr,
-			vnp_CreateDate: createDate,
-		};
+		// Tạo ngày thanh toán theo định dạng yyyyMMddHHmmss
+		const date = new Date();
+		const createDate = moment(date).format('YYYYMMDDHHmmss');
+
+		// Tạo các tham số thanh toán
+		let vnp_Params: any = {};
+		vnp_Params['vnp_Version'] = '2.1.0';
+		vnp_Params['vnp_Command'] = 'pay';
+		vnp_Params['vnp_TmnCode'] = this.config.tmnCode;
+		vnp_Params['vnp_Locale'] = params.locale || 'vn';
+		vnp_Params['vnp_CurrCode'] = 'VND';
+		vnp_Params['vnp_TxnRef'] = params.orderId;
+		vnp_Params['vnp_OrderInfo'] = params.orderInfo;
+		vnp_Params['vnp_OrderType'] = 'other';
+		vnp_Params['vnp_Amount'] = params.amount * 100; // Số tiền * 100
+		vnp_Params['vnp_ReturnUrl'] = this.config.returnUrl;
+		vnp_Params['vnp_IpAddr'] = params.ipAddr;
+		vnp_Params['vnp_CreateDate'] = createDate;
+
+		// Thêm mã ngân hàng nếu có
+		if (params.bankCode) {
+			vnp_Params['vnp_BankCode'] = params.bankCode;
+		}
+
+		// Sắp xếp tham số theo thứ tự a-z và mã hóa các giá trị
+		vnp_Params = this.sortObject(vnp_Params);
+
+		// Tạo chuỗi dữ liệu để tạo chữ ký
+		const signData = qs.stringify(vnp_Params, { encode: false });
 
 		// Tạo chữ ký
-		const signature = this.createSignature(vnpParams);
-		vnpParams.vnp_SecureHash = signature;
+		const hmac = crypto.createHmac('sha512', this.config.secretKey);
+		const signed = hmac
+			.update(Buffer.from(signData, 'utf-8'))
+			.digest('hex');
+
+		// Thêm chữ ký vào tham số
+		vnp_Params['vnp_SecureHash'] = signed;
 
 		// Tạo URL thanh toán
-		const paymentUrl = `${this.config.vnpUrl}?${qs.stringify(vnpParams)}`;
+		const paymentUrl =
+			this.config.vnpUrl +
+			'?' +
+			qs.stringify(vnp_Params, { encode: false });
+
 		return paymentUrl;
 	}
 
@@ -101,60 +131,112 @@ export class VNPayService {
 	public verifyReturnUrl(
 		vnpParams: Record<string, string | number>,
 	): boolean {
+		// Lấy chữ ký từ dữ liệu trả về
 		const secureHash = vnpParams.vnp_SecureHash as string;
-		delete vnpParams.vnp_SecureHash;
-		delete vnpParams.vnp_SecureHashType;
 
-		// Tính toán lại chữ ký để xác nhận
-		const calculatedHash = this.createSignature(vnpParams);
-		return calculatedHash === secureHash;
+		// Tạo bản sao của tham số và loại bỏ các trường chữ ký
+		const verifyParams: any = { ...vnpParams };
+		delete verifyParams.vnp_SecureHash;
+		delete verifyParams.vnp_SecureHashType;
+
+		// Sắp xếp các tham số theo thứ tự a-z và mã hóa
+		const sortedParams = this.sortObject(verifyParams);
+
+		// Tạo chuỗi dữ liệu để tính toán chữ ký
+		const signData = qs.stringify(sortedParams, { encode: false });
+
+		// Tính toán lại chữ ký
+		const hmac = crypto.createHmac('sha512', this.config.secretKey);
+		const calculated = hmac
+			.update(Buffer.from(signData, 'utf-8'))
+			.digest('hex');
+
+		// So sánh chữ ký tính toán với chữ ký nhận được
+		return calculated === secureHash;
 	}
 
 	/**
 	 * Hoàn tiền qua VNPay
 	 */
 	public async refund(params: VNPayRefundParams): Promise<any> {
-		const date = new Date();
-		const createDate = `${date.getFullYear()}${(date.getMonth() + 1)
-			.toString()
-			.padStart(2, '0')}${date
-			.getDate()
-			.toString()
-			.padStart(2, '0')}${date
-			.getHours()
-			.toString()
-			.padStart(2, '0')}${date
-			.getMinutes()
-			.toString()
-			.padStart(2, '0')}${date.getSeconds().toString().padStart(2, '0')}`;
+		// Đặt múi giờ
+		process.env.TZ = 'Asia/Ho_Chi_Minh';
 
-		const refundParams: Record<string, string | number> = {
+		// Tạo ngày giờ theo định dạng YYYYMMDDHHmmss
+		const date = new Date();
+		const createDate = moment(date).format('YYYYMMDDHHmmss');
+		const requestId = moment(date).format('HHmmss');
+
+		// TransactionNo mặc định là 0 cho refund
+		const transactionNo = '0';
+
+		// Tạo thông tin order
+		const orderInfo = 'Hoan tien GD ma:' + params.orderId;
+
+		// Tạo chuỗi dữ liệu để ký
+		const data =
+			requestId +
+			'|' +
+			'2.1.0' +
+			'|' +
+			'refund' +
+			'|' +
+			this.config.tmnCode +
+			'|' +
+			(params.transType || '02') +
+			'|' +
+			params.orderId +
+			'|' +
+			params.amount * 100 +
+			'|' +
+			transactionNo +
+			'|' +
+			params.transDate +
+			'|' +
+			params.user +
+			'|' +
+			createDate +
+			'|' +
+			(params.ipAddr || '127.0.0.1') +
+			'|' +
+			orderInfo;
+
+		// Tạo chữ ký
+		const hmac = crypto.createHmac('sha512', this.config.secretKey);
+		const secureHash = hmac
+			.update(Buffer.from(data, 'utf-8'))
+			.digest('hex');
+
+		// Tạo object dữ liệu để gửi đi
+		const refundParams = {
+			vnp_RequestId: requestId,
 			vnp_Version: '2.1.0',
 			vnp_Command: 'refund',
 			vnp_TmnCode: this.config.tmnCode,
-			vnp_TransactionType: params.transType || '02', // 02: Hoàn toàn phần
+			vnp_TransactionType: params.transType || '02',
 			vnp_TxnRef: params.orderId,
 			vnp_Amount: params.amount * 100,
+			vnp_TransactionNo: transactionNo,
 			vnp_TransactionDate: params.transDate,
 			vnp_CreateBy: params.user,
 			vnp_CreateDate: createDate,
-			vnp_IpAddr: '127.0.0.1',
+			vnp_IpAddr: params.ipAddr || '127.0.0.1',
+			vnp_OrderInfo: orderInfo,
+			vnp_SecureHash: secureHash,
 		};
 
-		// Tạo chữ ký
-		const signature = this.createSignature(refundParams);
-		refundParams.vnp_SecureHash = signature;
-
 		try {
-			const response = await axios.post(
-				`${this.config.vnpUrl}`,
-				qs.stringify(refundParams),
-				{
-					headers: {
-						'Content-Type': 'application/x-www-form-urlencoded',
-					},
+			// URL API của VNPay
+			const apiUrl =
+				'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction';
+
+			// Gửi yêu cầu hoàn tiền
+			const response = await axios.post(apiUrl, refundParams, {
+				headers: {
+					'Content-Type': 'application/json',
 				},
-			);
+			});
+
 			return response.data;
 		} catch (error) {
 			throw new Error(`VNPay refund error: ${error}`);

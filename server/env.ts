@@ -68,7 +68,8 @@ export default {
 	payment: {
 		// VNPay
 		VNPAY_TMN_CODE: process.env.VNPAY_TMN_CODE || '',
-		VNPAY_SECRET_KEY: process.env.VNPAY_SECRET_KEY || '',
+		VNPAY_SECRET_KEY:
+			process.env.VNPAY_SECRET_KEY || 'WL10DVN5EE3R76SZ9DVUF9AK4P9IJR15',
 		VNPAY_URL:
 			process.env.VNPAY_URL ||
 			'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
