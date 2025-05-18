@@ -16,7 +16,7 @@ export const getVariants = async (
 			productId,
 			min = 0,
 			max,
-			minĐiscount = 0,
+			minDiscount = 0,
 			maxDiscount,
 			stock = 0,
 			include = '',
@@ -38,7 +38,7 @@ export const getVariants = async (
 				max: max ? parseFloat(max as string) : Number.MAX_SAFE_INTEGER,
 			},
 			discountPriceRange: {
-				min: parseFloat(minĐiscount as string),
+				min: parseFloat(minDiscount as string),
 				max: maxDiscount
 					? parseFloat(maxDiscount as string)
 					: Number.MAX_SAFE_INTEGER,
