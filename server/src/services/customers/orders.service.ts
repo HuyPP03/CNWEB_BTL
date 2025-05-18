@@ -298,7 +298,7 @@ export const getOrders = async (filters: any, transaction?: Transaction) => {
 	}
 
 	// Điều kiện lọc theo trạng thái đơn hàng
-	if (filters.status || filters.status !== 'draft') {
+	if (filters.status && filters.status !== 'draft') {
 		where.status = filters.status;
 	}
 
