@@ -7,7 +7,14 @@ export const createProduct = async (data: any, transaction?: Transaction) => {
 			...data,
 			categoryId: parseInt(data.categoryId, 10),
 			brandId: parseInt(data.brandId, 10),
-			slug: data.slug || data.name.replace(/\s+/g, '-').toLowerCase(),
+			slug:
+				data.slug ||
+				data.name
+					.toLowerCase()
+					.replace(/\s+/g, '-') // Thay khoảng trắng bằng dấu gạch ngang
+					.replace(/[^a-z0-9-]/g, '') // Loại bỏ ký tự đặc biệt (chỉ giữ a-z, 0-9 và -)
+					.replace(/-+/g, '-') // Gộp nhiều dấu "-" liên tiếp thành một
+					.replace(/^-+|-+$/g, ''),
 		},
 		{ transaction },
 	);
@@ -39,8 +46,16 @@ export const updateProduct = async (
 	const product = await db.products.findByPk(id, { transaction });
 	if (!product) return null;
 
+	const slug =
+		data.slug ||
+		data.name
+			.toLowerCase()
+			.replace(/\s+/g, '-')
+			.replace(/[^a-z0-9-]/g, '')
+			.replace(/-+/g, '-')
+			.replace(/^-+|-+$/g, '');
 	// Cập nhật thông tin sản phẩm
-	await product.update(data, { transaction });
+	await product.update({ ...data, slug }, { transaction });
 	return product;
 };
 
