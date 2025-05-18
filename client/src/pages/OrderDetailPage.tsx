@@ -463,8 +463,8 @@ const OrderDetailPage: React.FC = () => {
                                     <p className="text-gray-600">
                                         <span className="font-medium block text-gray-700">Trạng thái:</span>
                                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium inline-block mt-1 
-                      ${order.payments[0].status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                            {order.payments[0].status === 'completed' ? 'Đã thanh toán' : 'Chờ thanh toán'}
+                      ${order.payments[0].status === 'success' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                            {order.payments[0].status === 'success' ? 'Đã thanh toán' : 'Chờ thanh toán'}
                                         </span>
                                     </p>
                                     <p className="text-gray-600">

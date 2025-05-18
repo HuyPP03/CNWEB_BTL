@@ -1,9 +1,8 @@
-// filepath: d:\User2\project\cnw\CNWEB_BTL\client\src\pages\OrdersPage.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, User, X, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import { Order, OrderStatus, OrderSummary } from '../types/order';
 import { useAuth } from '../hooks/useAuth';
-import orderService from '../services/order.service';
+import orderService, { OrderFilterParams } from '../services/order.service';
 import { Link } from 'react-router-dom';
 import { EnhancedOrderItem, fetchProductDetailsForOrderItems } from '../utils/orderEnhancer';
 
@@ -19,7 +18,14 @@ const formatCurrency = (amount: string): string => {
 
 // Format date
 const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('vi-VN');
+  const date = new Date(dateString);
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 // Status badge component
@@ -59,7 +65,7 @@ const StatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {
   };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
       {getStatusText(status)}
     </span>
   );
@@ -67,7 +73,6 @@ const StatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {
 
 const OrdersPage: React.FC = () => {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<EnhancedOrder[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<EnhancedOrder[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +109,27 @@ const OrdersPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await orderService.getOrders();
+      // Create filter parameters based on current selections
+      const filters: OrderFilterParams = {};
+
+      // Add status filter if not set to 'all'
+      if (selectedStatus !== 'all') {
+        filters.status = selectedStatus;
+      }
+
+      // Add date range filters
+      if (dateRange.start) {
+        filters.startDate = dateRange.start.toISOString().split('T')[0];
+      }
+      if (dateRange.end) {
+        // Set end date to end of the day for inclusive filtering
+        const endDate = new Date(dateRange.end);
+        endDate.setHours(23, 59, 59, 999);
+        filters.endDate = endDate.toISOString().split('T')[0];
+      }
+
+      // Call API with filters
+      const response = await orderService.getOrders(filters);
 
       if (response) {
         // Process each order to include full product details for each order item
@@ -118,11 +143,9 @@ const OrdersPage: React.FC = () => {
             orderItems: enhancedItems
           } as EnhancedOrder;
         });
-
         // Wait for all order enhancement promises to resolve
         const enhancedOrders = await Promise.all(enhancedOrdersPromises);
 
-        setOrders(enhancedOrders);
         setFilteredOrders(enhancedOrders);
 
         // Calculate order summary
@@ -139,29 +162,12 @@ const OrdersPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
-  // Fetch orders from API
+  }, [user, selectedStatus, dateRange]);
+
+  // Fetch orders from API when filter parameters change
   useEffect(() => {
     fetchOrders();
-  }, [user, fetchOrders]);
-
-  // Filter orders by status and date range
-  useEffect(() => {
-    let filtered = [...orders];
-
-    // Filter by status if not "all"
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter(order => order.status === selectedStatus);
-    }
-
-    // Filter by date range
-    filtered = filtered.filter(order => {
-      const orderDate = new Date(order.createdAt);
-      return orderDate >= dateRange.start && orderDate <= dateRange.end;
-    });
-
-    setFilteredOrders(filtered);
-  }, [orders, selectedStatus, dateRange]);
+  }, [user, selectedStatus, dateRange, fetchOrders]);
 
   // Format date range for display
   const formatDateRange = () => {

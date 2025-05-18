@@ -13,6 +13,7 @@ import WishlistPage from "../pages/WishlistPage";
 import ProductDetailPage from "../pages/ProductDetailPage";
 import ShoppingCart from "../pages/ShoppingCart";
 import SearchResults from "../pages/SearchResults";
+import PaymentCallback from "../pages/PaymentCallback";
 
 export default function AppRoutes() {
   return (
@@ -24,13 +25,15 @@ export default function AppRoutes() {
       <Route path="/auth/register" element={<Register />} />
       <Route path="/login/success" element={<GoogleCallback />} />
 
-      {/* Protected routes - require authentication */}
-      <Route element={<PrivateRoute />}>
+      {/* Protected routes - require authentication */}      <Route element={<PrivateRoute />}>
         <Route path="/cart" element={<ShoppingCart />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/payment/callback" element={<PaymentCallback />} />
+        <Route path="/payment-success" element={<PaymentCallback />} />
+        <Route path="/payment-failed" element={<PaymentCallback />} />
         <Route path="/notifications" element={<div className="container mx-auto p-8">Thông báo của tôi</div>} />
       </Route>
 

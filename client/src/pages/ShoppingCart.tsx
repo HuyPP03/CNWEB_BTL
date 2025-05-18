@@ -6,6 +6,7 @@ import { CartItemV2, RecommendedProduct } from '../types/cart';
 import cartService, { UpdateCartItemParams } from '../services/cart.service';
 import productService from '../services/product.service';
 import orderService, { CreateOrderParams, ConfirmOrderParams } from '../services/order.service';
+import { paymentService } from '../services/payment.service';
 
 const ShoppingCart: React.FC = () => {
     const navigate = useNavigate();
@@ -30,6 +31,9 @@ const ShoppingCart: React.FC = () => {
 
     // Delivery method
     const [deliveryMethod, setDeliveryMethod] = useState<'store' | 'delivery'>('store');
+    
+    // Payment method
+    const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VNPAY'>('COD');
 
     // Hàm để lấy thông tin chi tiết của các biến thể sản phẩm
     const enrichCartItems = async (cartItems: CartItemV2[]) => {
@@ -368,9 +372,7 @@ const ShoppingCart: React.FC = () => {
             ward: address.ward
         }));
         setIsAddressModalOpen(false);
-    };
-
-    // Handle form submission
+    };    // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -396,13 +398,18 @@ const ShoppingCart: React.FC = () => {
                 alert('Vui lòng nhập địa chỉ cụ thể');
                 return;
             }
-        }
-
-        try {
+        }        try {
             setLoading(true);
+            setError(null); // Reset any previous errors
 
             // 1. Get the cart item IDs to create the order
             const itemIds = cartItems.map(item => item.id);
+            
+            if (itemIds.length === 0) {
+                setError('Giỏ hàng của bạn đang trống');
+                setLoading(false);
+                return;
+            }
 
             // 2. Create a new order with the cart items
             const createOrderParams: CreateOrderParams = {
@@ -410,6 +417,11 @@ const ShoppingCart: React.FC = () => {
             };
 
             const orderResponse = await orderService.createOrder(createOrderParams);
+            
+            if (!orderResponse || !orderResponse.data || !orderResponse.data.id) {
+                throw new Error('Không thể tạo đơn hàng');
+            }
+            
             const orderId = orderResponse.data.id;
 
             // 3. Prepare shipping information
@@ -427,14 +439,47 @@ const ShoppingCart: React.FC = () => {
                 email: customerInfo.email,
                 phone: customerInfo.phone,
                 shippingAddress: shippingAddress,
-                paymentMethod: 'COD' // Default to Cash on Delivery for now
+                paymentMethod: paymentMethod // Using the selected payment method
             };
 
             // 5. Confirm the order with shipping and payment details
-            await orderService.confirmOrder(orderId, confirmOrderParams);
+            await orderService.confirmOrder(orderId, confirmOrderParams);            // 6. Handle payment method specific actions
+            if (paymentMethod === 'VNPAY') {
+                try {                    // Create VNPay payment
+                    const { total } = calculateTotals();
+                    const paymentRequest = {
+                        gateway: 'vnpay' as const,
+                        amount: Math.round(total), // VNPay expects amount in VND (whole number)
+                        orderId: orderId,
+                        orderInfo: `Thanh toan don hang ${orderId}`,
+                        ipAddr: paymentService.getClientIpAddress(),
+                        returnUrl: `${window.location.origin}/payment-success?orderId=${orderId}`, // New success URL format
+                        cancelUrl: `${window.location.origin}/payment-failed?orderId=${orderId}` // New failure URL format
+                    };
 
-            // 6. Navigate to the order details page
-            navigate(`/orders/${orderId}`);
+                    const paymentResponse = await paymentService.createPayment(paymentRequest);
+                    
+                    // Redirect to VNPay payment page
+                    if (paymentResponse.success && paymentResponse.data?.redirectUrl) {
+                        paymentService.redirectToPaymentGateway(paymentResponse.data.redirectUrl);
+                        return; // Stop execution since we're redirecting
+                    } else {
+                        throw new Error('Không thể khởi tạo thanh toán VNPay');
+                    }
+                } catch (paymentError) {
+                    console.error('Payment error:', paymentError);
+                    setError('Lỗi khi tạo thanh toán VNPay. Vui lòng thử lại sau.');
+                    
+                    // Navigate to order details page even on payment error
+                    // The order has been created but payment failed
+                    setTimeout(() => {
+                        navigate(`/orders/${orderId}`);
+                    }, 3000);
+                }
+            } else {
+                // 7. For COD, navigate to the order details page
+                navigate(`/orders/${orderId}`);
+            }
 
         } catch (error) {
             console.error('Error during order submission:', error);
@@ -835,7 +880,8 @@ const ShoppingCart: React.FC = () => {
                                     <input
                                         type="radio"
                                         name="payment"
-                                        defaultChecked
+                                        checked={paymentMethod === 'COD'}
+                                        onChange={() => setPaymentMethod('COD')}
                                         className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
                                     />
                                     <div className="ml-3">
@@ -848,15 +894,17 @@ const ShoppingCart: React.FC = () => {
                                     <input
                                         type="radio"
                                         name="payment"
+                                        checked={paymentMethod === 'VNPAY'}
+                                        onChange={() => setPaymentMethod('VNPAY')}
                                         className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
                                     />
                                     <div className="ml-3">
                                         <div className="font-medium">Chuyển khoản ngân hàng</div>
-                                        <div className="text-sm text-gray-500">Thanh toán trực tiếp vào tài khoản ngân hàng</div>
+                                        <div className="text-sm text-gray-500">Thanh toán qua VNPay</div>
                                     </div>
                                 </label>
 
-                                <label className="flex items-center p-4 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                                {/* <label className="flex items-center p-4 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
                                     <input
                                         type="radio"
                                         name="payment"
@@ -866,7 +914,7 @@ const ShoppingCart: React.FC = () => {
                                         <div className="font-medium">Thẻ ATM/Internet Banking</div>
                                         <div className="text-sm text-gray-500">Hỗ trợ nhiều ngân hàng trong nước</div>
                                     </div>
-                                </label>
+                                </label> */}
                             </div>
 
                             {/* Error message */}

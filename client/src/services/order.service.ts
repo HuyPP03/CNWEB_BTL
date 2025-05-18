@@ -101,19 +101,7 @@ const orderService = {
      */
     async getOrders(filters?: OrderFilterParams): Promise<Order[]> {
         try {
-            // Build query parameters
-            const queryParams: Record<string, string> = {};
-
-            if (filters) {
-                if (filters.id) queryParams.id = filters.id.toString();
-                if (filters.status) queryParams.status = filters.status;
-                if (filters.startDate) queryParams.startDate = filters.startDate;
-                if (filters.endDate) queryParams.endDate = filters.endDate;
-                if (filters.minTotalAmount) queryParams.minTotalAmount = filters.minTotalAmount.toString();
-                if (filters.maxTotalAmount) queryParams.maxTotalAmount = filters.maxTotalAmount.toString();
-            }
-
-            const response = await apiClient.get<{ message: string, data: Order[] }>('/orders/customer', { params: queryParams });
+            const response = await apiClient.get<{ message: string, data: Order[] }>('/orders/customer', { params: filters });
             return response.data;
         } catch (error) {
             console.error('Error fetching orders:', error);
