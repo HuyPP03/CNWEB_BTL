@@ -14,6 +14,7 @@ import ProductDetailPage from "../pages/ProductDetailPage";
 import ShoppingCart from "../pages/ShoppingCart";
 import SearchResults from "../pages/SearchResults";
 import PaymentCallback from "../pages/PaymentCallback";
+import FeedbackPage from "../pages/FeedbackPage";
 
 export default function AppRoutes() {
   return (
@@ -87,8 +88,10 @@ export default function AppRoutes() {
       <Route path="/chuot-may-tinh" element={<CategoryPage />} />
       <Route path="/ban-phim" element={<CategoryPage />} />
       <Route path="/router-thiet-bi-mang" element={<CategoryPage />} />
-      <Route path="/balo-tui-chong-soc" element={<CategoryPage />} />
-      <Route path="/phan-mem" element={<CategoryPage />} />
+      <Route path="/balo-tui-chong-soc" element={<CategoryPage />} />      <Route path="/phan-mem" element={<CategoryPage />} />
+
+      {/* Trang phản hồi */}
+      <Route path="/feedback" element={<FeedbackPage />} />
 
       {/* PC và Màn hình */}
       <Route path="/pc-man-hinh" element={<CategoryPage />} />

@@ -23,11 +23,10 @@ const Footer: React.FC = () => {
       ]
     },
     {
-      title: "Về công ty",
-      links: [
+      title: "Về công ty",      links: [
         { text: "Giới thiệu công ty (MWG.vn)", url: "#" },
         { text: "Tuyển dụng", url: "#" },
-        { text: "Gửi góp ý, khiếu nại", url: "#" },
+        { text: "Gửi góp ý, khiếu nại", url: "/feedback" },
         { text: "Tìm siêu thị (2.960 shop)", url: "#" }
       ]
     },

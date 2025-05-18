@@ -438,9 +438,21 @@ const Header: React.FC = () => {
                           onClick={() => setShowUserDropdown(false)}
                         >
                           <div className="w-8 h-8 flex items-center justify-center bg-purple-100 rounded-full mr-3 text-purple-600">
-                            <Bell size={15} />
-                          </div>
+                            <Bell size={15} />                          </div>
                           <span>Thông báo</span>
+                        </Link>
+
+                        <Link
+                          to="/feedback"
+                          className="flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => setShowUserDropdown(false)}
+                        >
+                          <div className="w-8 h-8 flex items-center justify-center bg-green-100 rounded-full mr-3 text-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                          </div>
+                          <span>Gửi phản hồi</span>
                         </Link>
                       </div>
 
