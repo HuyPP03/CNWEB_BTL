@@ -9,7 +9,43 @@ interface RegisterData {
     birthDate?: string;
 }
 
+// Base URL for API calls
+const API_URL = 'https://cnweb-btl.onrender.com';
+
 const authService = {
+    // Initiate Google OAuth flow
+    loginWithGoogle: (): void => {
+        // Redirect to the Google OAuth endpoint
+        window.location.href = `${API_URL}/api/auth/google`;
+    },
+
+    // Handle the OAuth callback and token
+    handleGoogleCallback: (accessToken: string): { accessToken: string } => {
+        if (!accessToken) {
+            throw new Error('Access token not provided');
+        }
+
+        // Log details about the token for debugging
+        try {
+            // Ensure token is saved to localStorage
+            localStorage.setItem('accessToken', accessToken);
+            console.log('Token saved to localStorage in auth service');
+
+            // Check that token was actually saved
+            const storedToken = localStorage.getItem('accessToken');
+            if (!storedToken) {
+                console.warn('Token not found in localStorage after saving, trying again');
+                localStorage.setItem('accessToken', accessToken);
+            }
+        } catch (e) {
+            console.error('Error handling token in auth service:', e);
+            // Still save the token even if there's an error parsing it
+            localStorage.setItem('accessToken', accessToken);
+        }
+
+        return { accessToken };
+    },
+
     register: async (userData: RegisterData): Promise<void> => {
         try {
             console.log('Calling register API with:', userData);

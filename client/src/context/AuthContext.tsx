@@ -17,6 +17,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
+  loginWithGoogle: () => void;
+  handleGoogleCallback: (accessToken: string) => Promise<boolean>;
   logout: () => void;
   error: string | null;
   clearError: () => void;
@@ -38,6 +40,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: async () => false,
   register: async () => false,
+  loginWithGoogle: () => { },
+  handleGoogleCallback: async () => false,
   logout: () => { },
   error: null,
   clearError: () => { },
@@ -165,6 +169,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
+
+
   const register = async (userData: RegisterData): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
@@ -207,9 +213,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
     setUser(null);
   };
-
   const clearError = () => {
     setError(null);
+  };
+
+  // Google authentication methods
+  const loginWithGoogle = () => {
+    // Call the service method to redirect to Google OAuth
+    authService.loginWithGoogle();
+  };
+
+  const handleGoogleCallback = async (accessToken: string): Promise<boolean> => {
+    // Skip processing if already authenticated with a user
+    if (user) {
+      console.log('User already authenticated, skipping Google callback processing');
+      return true;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (!accessToken) {
+        setError('Không thể đăng nhập với Google. Vui lòng thử lại.');
+        return false;
+      }
+
+      // Process the token from Google OAuth
+      console.log('Processing Google OAuth token:', accessToken);
+
+      // Ensure the token is stored first before processing
+      localStorage.setItem('accessToken', accessToken);
+      console.log('Token stored in localStorage in AuthContext');
+
+      // Process the token with the auth service
+      try {
+        authService.handleGoogleCallback(accessToken);
+      } catch (serviceErr) {
+        console.warn('Auth service token handling error:', serviceErr);
+        // Continue anyway as we already saved the token directly
+      }
+
+      // Parse JWT token to get user info
+      const tokenData = parseJwt(accessToken);
+      console.log('Google token data:', tokenData);
+
+      if (tokenData) {
+        // Create user from token data - handle different token structures
+        const userId = tokenData.id || tokenData.sub || tokenData.user_id || '';
+        const userEmail = tokenData.email || '';
+        const userName = tokenData.fullName || tokenData.name || userEmail.split('@')[0] || 'User';
+
+        const user: User = {
+          id: userId.toString(),
+          fullName: userName,
+          phone: tokenData.phone || '',
+          email: userEmail,
+          role: tokenData.role || 'user',
+          createdAt: new Date(),
+        };
+
+        console.log('Created user object from token:', user);
+
+        // Save user info to localStorage for persistent login
+        localStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
+
+        // Double-check that token was saved
+        const storedToken = localStorage.getItem('accessToken');
+        if (!storedToken) {
+          console.warn('Token not found in localStorage after saving, trying again');
+          localStorage.setItem('accessToken', accessToken);
+        }
+
+        return true;
+      } else {
+        setError('Không thể đăng nhập với Google. Vui lòng thử lại.');
+        return false;
+      }
+    } catch (err: any) {
+      console.error('Google auth error:', err);
+      setError('Đăng nhập Google thất bại. Vui lòng thử lại sau.');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -220,6 +308,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        loginWithGoogle,
+        handleGoogleCallback,
         logout,
         error,
         clearError,

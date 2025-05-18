@@ -4,6 +4,7 @@ import NotFound from "../pages/NotFound";
 import CategoryPage from "../pages/CategoryPage";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import GoogleCallback from "../pages/auth/GoogleCallback";
 import OrdersPage from "../pages/OrdersPage";
 import OrderDetailPage from "../pages/OrderDetailPage";
 import PrivateRoute from "./PrivateRoute";
@@ -20,8 +21,13 @@ export default function AppRoutes() {
 
       {/* Auth routes */}
       <Route path="/auth/login" element={<Login />} />
-      <Route path="/auth/register" element={<Register />} />      {/* Protected routes - require authentication */}      <Route element={<PrivateRoute />}>
-        <Route path="/cart" element={<ShoppingCart />} />      <Route path="/account" element={<AccountPage />} />
+      <Route path="/auth/register" element={<Register />} />
+      <Route path="/login/success" element={<GoogleCallback />} />
+
+      {/* Protected routes - require authentication */}
+      <Route element={<PrivateRoute />}>
+        <Route path="/cart" element={<ShoppingCart />} />
+        <Route path="/account" element={<AccountPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />

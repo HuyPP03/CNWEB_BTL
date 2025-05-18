@@ -9,5 +9,12 @@ export default defineConfig({
     port: 3001,
     open: true,
     host: true,
+    proxy: {
+      '/api': {
+        target: 'https://cnweb-btl.onrender.com',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
 });
