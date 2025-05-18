@@ -86,6 +86,9 @@ export const idToSlugMap: Record<number, string> = Object.entries(slugToIdMap).r
  * @returns ID của danh mục nếu tồn tại, undefined nếu không tìm thấy
  */
 export function getIdFromSlug(slug: string): number | undefined {
+    if (parseInt(slug)) {
+        return parseInt(slug);
+    }
     return slugToIdMap[slug];
 }
 

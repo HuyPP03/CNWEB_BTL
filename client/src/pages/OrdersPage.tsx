@@ -1,12 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, User, X, Calendar } from 'lucide-react';
-import { mockOrders, orderSummary } from '../data';
-import { Order, OrderStatus } from '../types';
+// filepath: d:\User2\project\cnw\CNWEB_BTL\client\src\pages\OrdersPage.tsx
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronDown, User, X, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
+import { Order, OrderStatus, OrderSummary } from '../types/order';
 import { useAuth } from '../hooks/useAuth';
+import orderService from '../services/order.service';
+import { Link } from 'react-router-dom';
+import { EnhancedOrderItem, fetchProductDetailsForOrderItems } from '../utils/orderEnhancer';
+
+// Enhanced order interface with enhanced order items
+interface EnhancedOrder extends Omit<Order, 'orderItems'> {
+  orderItems: EnhancedOrderItem[];
+}
 
 // Format currency
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+const formatCurrency = (amount: string): string => {
+  return new Intl.NumberFormat('vi-VN').format(parseFloat(amount)) + '₫';
 };
 
 // Format date
@@ -20,13 +28,13 @@ const StatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed':
+      case 'processing':
         return 'bg-blue-100 text-blue-800';
-      case 'shipping':
+      case 'shipped':
         return 'bg-purple-100 text-purple-800';
       case 'delivered':
         return 'bg-green-100 text-green-800';
-      case 'canceled':
+      case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -37,13 +45,13 @@ const StatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {
     switch (status) {
       case 'pending':
         return 'Chờ xác nhận';
-      case 'confirmed':
+      case 'processing':
         return 'Đã xác nhận';
-      case 'shipping':
+      case 'shipped':
         return 'Đang vận chuyển';
       case 'delivered':
         return 'Đã giao hàng';
-      case 'canceled':
+      case 'cancelled':
         return 'Đã hủy';
       default:
         return status;
@@ -59,13 +67,19 @@ const StatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {
 
 const OrdersPage: React.FC = () => {
   const { user } = useAuth();
-  const [orders] = useState<Order[]>(mockOrders);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>(mockOrders);
+  const [orders, setOrders] = useState<EnhancedOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<EnhancedOrder[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'all'>('all');
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dateRange, setDateRange] = useState({
     start: new Date('2025-01-01'),
     end: new Date()
+  });
+  const [orderSummary, setOrderSummary] = useState<OrderSummary>({
+    totalOrders: 0,
+    totalSpent: 0
   });
   const datePickerRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +97,54 @@ const OrdersPage: React.FC = () => {
     };
   }, []);
 
+  // Fetch enhanced orders data with product details
+  const fetchOrders = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await orderService.getOrders();
+
+      if (response) {
+        // Process each order to include full product details for each order item
+        const enhancedOrdersPromises = response.map(async (order) => {
+          // Use the utility function to enhance order items with product details
+          const enhancedItems = await fetchProductDetailsForOrderItems(order.orderItems);
+
+          // Return the enhanced order with detailed items
+          return {
+            ...order,
+            orderItems: enhancedItems
+          } as EnhancedOrder;
+        });
+
+        // Wait for all order enhancement promises to resolve
+        const enhancedOrders = await Promise.all(enhancedOrdersPromises);
+
+        setOrders(enhancedOrders);
+        setFilteredOrders(enhancedOrders);
+
+        // Calculate order summary
+        if (enhancedOrders.length > 0) {
+          setOrderSummary({
+            totalOrders: enhancedOrders.length,
+            totalSpent: enhancedOrders.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0)
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Không thể tải dữ liệu đơn hàng. Vui lòng thử lại sau.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+  // Fetch orders from API
+  useEffect(() => {
+    fetchOrders();
+  }, [user, fetchOrders]);
+
   // Filter orders by status and date range
   useEffect(() => {
     let filtered = [...orders];
@@ -94,7 +156,7 @@ const OrdersPage: React.FC = () => {
 
     // Filter by date range
     filtered = filtered.filter(order => {
-      const orderDate = new Date(order.date);
+      const orderDate = new Date(order.createdAt);
       return orderDate >= dateRange.start && orderDate <= dateRange.end;
     });
 
@@ -106,6 +168,11 @@ const OrdersPage: React.FC = () => {
     return `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`;
   };
 
+  // Refresh orders
+  const refreshOrders = async () => {
+    fetchOrders();
+  };
+
   // Handle date range selection
   const handleDateRangeChange = (start: Date, end: Date) => {
     setDateRange({ start, end });
@@ -115,13 +182,15 @@ const OrdersPage: React.FC = () => {
   // Quick date range selections
   const quickDateRanges = [
     {
-      label: 'Hôm nay', action: () => {
+      label: 'Hôm nay',
+      action: () => {
         const today = new Date();
         handleDateRangeChange(today, today);
       }
     },
     {
-      label: '7 ngày qua', action: () => {
+      label: '7 ngày qua',
+      action: () => {
         const end = new Date();
         const start = new Date();
         start.setDate(start.getDate() - 7);
@@ -129,7 +198,8 @@ const OrdersPage: React.FC = () => {
       }
     },
     {
-      label: '30 ngày qua', action: () => {
+      label: '30 ngày qua',
+      action: () => {
         const end = new Date();
         const start = new Date();
         start.setDate(start.getDate() - 30);
@@ -137,7 +207,8 @@ const OrdersPage: React.FC = () => {
       }
     },
     {
-      label: 'Tháng này', action: () => {
+      label: 'Tháng này',
+      action: () => {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
         const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -145,7 +216,8 @@ const OrdersPage: React.FC = () => {
       }
     },
     {
-      label: '3 tháng gần đây', action: () => {
+      label: '3 tháng gần đây',
+      action: () => {
         const end = new Date();
         const start = new Date();
         start.setMonth(start.getMonth() - 3);
@@ -178,8 +250,8 @@ const OrdersPage: React.FC = () => {
                 <p className="text-gray-600 text-sm">đơn hàng</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 text-center min-w-[160px]">
-                <p className="text-2xl font-bold text-blue-600">{formatCurrency(orderSummary.totalSpent)}</p>
-                <p className="text-gray-600 text-sm">Tổng tiền tích lũy từ 01/01/2024</p>
+                <p className="text-2xl font-bold text-blue-600">{formatCurrency(orderSummary.totalSpent.toString())}</p>
+                <p className="text-gray-600 text-sm">Tổng tiền tích lũy từ 01/01/2025</p>
               </div>
             </div>
           </div>
@@ -269,6 +341,18 @@ const OrdersPage: React.FC = () => {
               )}
             </div>
 
+            <div className="flex items-center gap-2">
+              {/* Refresh button */}
+              <button
+                className="flex items-center border border-gray-300 rounded-lg px-4 py-2.5 text-sm hover:bg-gray-50 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-300"
+                onClick={refreshOrders}
+                disabled={isLoading}
+              >
+                <RefreshCw size={16} className={`mr-2 text-blue-500 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="font-medium">Làm mới</span>
+              </button>
+            </div>
+
             {/* Status filter tabs */}
             <div className="flex overflow-x-auto gap-2 md:gap-3 pb-1 scrollbar-hide">
               <button
@@ -288,18 +372,18 @@ const OrdersPage: React.FC = () => {
                 Chờ xác nhận
               </button>
               <button
-                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'confirmed'
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'processing'
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'border border-gray-200 hover:bg-gray-50'}`}
-                onClick={() => setSelectedStatus('confirmed')}
+                onClick={() => setSelectedStatus('processing')}
               >
                 Đã xác nhận
               </button>
               <button
-                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'shipping'
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'shipped'
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'border border-gray-200 hover:bg-gray-50'}`}
-                onClick={() => setSelectedStatus('shipping')}
+                onClick={() => setSelectedStatus('shipped')}
               >
                 Đang vận chuyển
               </button>
@@ -312,10 +396,10 @@ const OrdersPage: React.FC = () => {
                 Đã giao hàng
               </button>
               <button
-                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'canceled'
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${selectedStatus === 'cancelled'
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'border border-gray-200 hover:bg-gray-50'}`}
-                onClick={() => setSelectedStatus('canceled')}
+                onClick={() => setSelectedStatus('cancelled')}
               >
                 Đã hủy
               </button>
@@ -324,7 +408,24 @@ const OrdersPage: React.FC = () => {
         </div>
 
         {/* Orders list */}
-        {filteredOrders.length > 0 ? (
+        {isLoading ? (
+          <div className="bg-white rounded-lg shadow-sm p-12 flex flex-col items-center justify-center">
+            <RefreshCw size={36} className="text-blue-600 animate-spin mb-4" />
+            <p className="text-gray-600">Đang tải dữ liệu đơn hàng...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-lg shadow-sm p-12 flex flex-col items-center justify-center">
+            <AlertCircle size={36} className="text-red-500 mb-4" />
+            <h2 className="text-xl font-bold text-gray-700 mb-2">Đã xảy ra lỗi</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => window.location.reload()}
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : filteredOrders.length > 0 ? (
           <div className="space-y-4">
             {filteredOrders.map((order) => (
               <div key={order.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -332,45 +433,88 @@ const OrdersPage: React.FC = () => {
                 <div className="flex items-center justify-between border-b border-gray-100 p-4">
                   <div>
                     <p className="text-sm text-gray-500">Mã đơn hàng: <span className="font-medium text-gray-900">{order.id}</span></p>
-                    <p className="text-sm text-gray-500 mt-1">Ngày đặt: {formatDate(order.date)}</p>
+                    <p className="text-sm text-gray-500 mt-1">Ngày đặt: {formatDate(order.createdAt)}</p>
                   </div>
                   <StatusBadge status={order.status} />
                 </div>
 
                 {/* Order items */}
                 <div className="p-4">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="flex py-3">
-                      <div className="w-16 h-16 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+                  {order.orderItems.map((item) => (
+                    <div key={item.id} className="flex items-start py-3 first:pt-0 last:pb-0 border-b last:border-0 border-gray-100">
+                      <div className="w-16 h-16 rounded-md border border-gray-200 overflow-hidden flex-shrink-0 mr-4">
+                        {item.productVariant && (
+                          <img
+                            src={
+                              // Use product image if available, otherwise use slug-based image
+                              item.fullProduct && item.fullProduct.productImages && item.fullProduct.productImages.length > 0
+                                ? item.fullProduct.productImages[0].imageUrl
+                                : `https://cnweb-btl.onrender.com/images/products/${item.productVariant.slug}.jpg`
+                            }
+                            alt={item.productVariant.name || item.productVariant.slug}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "https://cdn.tgdd.vn/Products/Images/42/299033/iphone-15-pro-max-blue-titanium-600x600.jpg";
+                            }}
+                          />
+                        )}
                       </div>
-                      <div className="ml-4 flex-grow">
-                        <h3 className="font-medium text-gray-900">{item.name}</h3>
+                      <div className="flex-grow">
+                        <p className="font-medium text-gray-900">{item.productVariant?.name || item.productVariant?.slug}</p>
+                        <p className="text-blue-600 font-medium mt-1">{formatCurrency(item.priceAtTime)}</p>
                         <p className="text-gray-500 text-sm mt-1">SL: {item.quantity}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-gray-900">{formatCurrency(item.price * item.quantity)}</p>
+                        {item.fullProduct && (
+                          <Link to={`/product/${item.fullProduct.slug}`} className="text-sm text-blue-500 hover:underline mt-1 inline-block">
+                            Xem sản phẩm
+                          </Link>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
 
+                {/* Shipping information (if available) */}
+                {order.shipping && (
+                  <div className="p-4 border-t border-gray-100 bg-gray-50">
+                    <h3 className="font-medium text-gray-700 mb-2">Thông tin giao hàng</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <p className="text-sm text-gray-600">Người nhận: <span className="font-medium">{order.shipping.name}</span></p>
+                      <p className="text-sm text-gray-600">Số điện thoại: <span className="font-medium">{order.shipping.phone}</span></p>
+                      <p className="text-sm text-gray-600">Email: <span className="font-medium">{order.shipping.email}</span></p>
+                      <p className="text-sm text-gray-600">Địa chỉ: <span className="font-medium">{order.shipping.shippingAddress}</span></p>
+                      {order.shipping.trackingNumber && (
+                        <p className="text-sm text-gray-600">Mã vận đơn: <span className="font-medium">{order.shipping.trackingNumber}</span></p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Order footer */}
                 <div className="bg-gray-50 p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Phương thức thanh toán: <span className="font-medium">{order.paymentMethod}</span></p>
+                    <p className="text-sm text-gray-600">
+                      Phương thức thanh toán:
+                      <span className="font-medium">
+                        {order.payments && order.payments.length > 0
+                          ? ` ${order.payments[0].paymentMethod}`
+                          : ' Chưa thanh toán'}
+                      </span>
+                    </p>
                   </div>
                   <div className="flex items-center">
                     <p className="text-sm text-gray-600 mr-2">Tổng tiền:</p>
-                    <p className="text-lg font-bold text-blue-600">{formatCurrency(order.total)}</p>
+                    <p className="text-lg font-bold text-blue-600">{formatCurrency(order.totalAmount)}</p>
                   </div>
-                </div>
-
-                {/* Order actions */}
+                </div>                {/* Order actions */}
                 <div className="p-4 flex justify-end border-t border-gray-100">
-                  <button className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <Link
+                    to={`/orders/${order.id}`}
+                    className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                  >
                     Xem chi tiết
-                  </button>
+                    <ChevronDown size={16} className="ml-1 transform rotate-270" />
+                  </Link>
                 </div>
               </div>
             ))}
@@ -388,7 +532,10 @@ const OrdersPage: React.FC = () => {
             />
             <h2 className="text-xl font-bold text-gray-700">Không có đơn hàng nào thỏa mãn!</h2>
             <p className="text-gray-500 mt-2 mb-6">Có vẻ như bạn chưa có đơn hàng nào trong khoảng thời gian này</p>
-            <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => window.location.href = '/'}
+            >
               Tiếp tục mua sắm
             </button>
           </div>

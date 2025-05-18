@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronDown, Map, Search, ShoppingCart, User, X, Bell, Menu, LogOut } from 'lucide-react';
+import { ChevronDown, Map, Search, ShoppingCart, User, X, Bell, Menu, LogOut, Heart, ShoppingBag } from 'lucide-react';
 import AddressSelection from './AddressSelection';
 import { mockProducts } from '../data/products';
 import { useAuth } from '../hooks/useAuth';
+import cartService from '../services/cart.service';
+import { accessoriesCategories, mainCategories } from '../data/category';
 
 // Mock suggestions type
 interface SuggestionProduct {
@@ -30,82 +32,10 @@ const Header: React.FC = () => {
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState<number>(0);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
-  const mainCategories = [
-    { name: 'Điện thoại', path: '/smartphone', icon: 'phone' },
-    { name: 'Laptop', path: '/laptop', icon: 'laptop' },
-    { name: 'Phụ kiện', path: '/phu-kien', icon: 'accessories', hasDropdown: true },
-    { name: 'Smartwatch', path: '/smartwatch', icon: 'watch' },
-    { name: 'Đồng hồ', path: '/dong-ho', icon: 'clock' },
-    { name: 'Tablet', path: '/tablet', icon: 'tablet' },
-    { name: 'Màn hình, Máy in', path: '/man-hinh-may-in', icon: 'monitor', hasDropdown: true },
-    { name: 'Camera', path: '/camera', icon: 'camera' },
-    { name: 'Thiết bị giám sát', path: '/thiet-bi-giam-sat', icon: 'cctv' },
-    { name: 'Máy in', path: '/may-in', icon: 'printer' },
-  ];
-  const accessoriesCategories = [
-    {
-      title: 'Phụ kiện di động',
-      items: [
-        { name: 'Sạc dự phòng', path: '/sac-du-phong', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/99/61/9961578164909f8a9ee7678dc95feeb0.png' },
-        { name: 'Sạc, cáp', path: '/sac-cap', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/6b/64/6b646ec5f1e9a726933ee31b86a32524.png' },
-        { name: 'Ốp lưng điện thoại', path: '/op-lung-dien-thoai', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/34/02/3402dd9ba3457b84482572d10bcae84e.png' },
-        { name: 'Ốp lưng máy tính bảng', path: '/op-lung-may-tinh-bang', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/83/60/836050bcf5e1c92dd8d9899bef9f039d.png' },
-        { name: 'Miếng dán màn hình', path: '/mieng-dan-man-hinh', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/72/f4/72f4b3ee8f5c1b1a170d590b3a07256d.png' },
-        { name: 'Miếng dán Camera', path: '/mieng-dan-camera', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/33/77/33770e364079ac9dd3888190bd574b8d.png' },
-        { name: 'Túi đựng AirPods', path: '/tui-dung-airpods', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/24/66/2466de3fc4831f43afb0d69462130030.png' },
-        { name: 'AirTag, Vỏ bảo vệ', path: '/airtag-vo-bao-ve', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/27/e7/27e7538fb93c10e768cd0344ee8f8cd9.png' },
-        { name: 'Bút tablet', path: '/but-tablet', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/3f/d5/3fd5723ac6f01521bd3d768d8ebc8d1a.png' },
-        { name: 'Dây đồng hồ', path: '/day-dong-ho', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/57/0a/570af01ac292e21788f3604443e9dacb.png' },
-      ]
-    },
-    {
-      title: 'Thiết bị âm thanh',
-      items: [
-        { name: 'Tai nghe Bluetooth', path: '/tai-nghe-bluetooth', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/7c/09/7c09cbc92ef23816aa7d857ba8e0e194.png' },
-        { name: 'Tai nghe dây', path: '/tai-nghe-day', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/12/1c/121cd7cb1fc1750893b3f41436b12c85.png' },
-        { name: 'Tai nghe chụp tai', path: '/tai-nghe-chup-tai', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/cf/9e/cf9e0eecbfc3e326f1c89f13b1ffe320.png' },
-        { name: 'Tai nghe thể thao', path: '/tai-nghe-the-thao', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/38/f7/38f7bf684502b5aa0c7949f6d38a6a55.png' },
-        { name: 'Loa', path: '/loa', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/76/6b/766be9586a3a82491ba8106b7e558605.png' },
-        { name: 'Micro', path: '/micro', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/ef/8f/ef8f2cca70f8de64c42e885b7038ba57.png' },
-      ]
-    },
-    {
-      title: 'Camera / Flycam / Gimbal',
-      items: [
-        { name: 'Camera trong nhà', path: '/camera-trong-nha', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/33/b9/33b9d8aeac5d4f67d759abaa5f60661e.png' },
-        { name: 'Camera ngoài trời', path: '/camera-ngoai-troi', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/9e/e9/9ee9ae20f38eff97221f040a735752ce.png' },
-        { name: 'Flycam', path: '/flycam', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/b7/bc/b7bceecb5bd6f63aeee395d33d7bbcd4.png' },
-        { name: 'Camera hành trình', path: '/camera-hanh-trinh', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/f4/2a/f42aa8a01e29d247b177a997c808c990.png' },
-        { name: 'Gimbal', path: '/gimbal', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/5a/a6/5aa6b91c9b77a1fb2ae9fe951485b2e4.png' },
-        { name: 'Máy chiếu', path: '/may-chieu', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/52/5e/525e9344cd12cc2ac93344be9125895a.png' },
-      ]
-    },
-    {
-      title: 'Phụ kiện laptop',
-      items: [
-        { name: 'Hub, cáp chuyển đổi', path: '/hub-cap-chuyen-doi', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/e1/2d/e12deafa7615646e9cafc5bbd0667da8.png' },
-        { name: 'Chuột máy tính', path: '/chuot-may-tinh', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/53/a6/53a6599a6fc414025b42c5435928008f.png' },
-        { name: 'Bàn phím', path: '/ban-phim', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/7a/d3/7ad3598d5e291815bc6c7f98bb73d078.png' },
-        { name: 'Router - Thiết bị mạng', path: '/router-thiet-bi-mang', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/6a/89/6a8967067fa273d7fd89b7bfa002f4ad.png' },
-        { name: 'Balo, túi chống sốc', path: '/balo-tui-chong-soc', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/33/8b/338bb7d3763dee703562a108b497fc2f.png' },
-        { name: 'Phần mềm', path: '/phan-mem', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/bb/07/bb07512d2429a1b38cedd20b750b734c.png' },
-      ]
-    },
-    {
-      title: 'Thương hiệu hàng đầu',
-      items: [
-        { name: 'Apple', path: '/thuong-hieu/apple', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/6a/6a/6a6a116227ceaf2f407f5573f44069ec.png' },
-        { name: 'Samsung', path: '/thuong-hieu/samsung', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/ea/1d/ea1d0470faaea58604610926a4f45fcb.png' },
-        { name: 'Imou', path: '/thuong-hieu/imou', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/ee/a1/eea14df76a63a0f6b9f3267143856602.png' },
-        { name: 'Baseus', path: '/thuong-hieu/baseus', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/0a/bd/0abddded6e3650bcd1859c511fcc2747.png' },
-        { name: 'JBL', path: '/thuong-hieu/jbl', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/be/88/be887406c072668c452a41be86574976.png' },
-        { name: 'Anker', path: '/thuong-hieu/anker', image: 'https://cdnv2.tgdd.vn/mwg-static/common/Common/67/bd/67bd9cf55ca10673bf3df7605e295bb4.png' },
-      ]
-    },
-  ];
 
   useEffect(() => {
     // Handle scroll for header shadow
@@ -179,6 +109,32 @@ const Header: React.FC = () => {
       setShowSuggestions(false);
     }
   }, [searchQuery]);
+
+  // Fetch cart items count
+  useEffect(() => {
+    const fetchCartItemsCount = async () => {
+      if (isAuthenticated) {
+        try {
+          const cartResponse = await cartService.getCart();
+          if (cartResponse && cartResponse.cart) {
+            // Count the total number of items (not just unique items)
+            const totalItems = cartResponse.cart.cartItems.reduce(
+              (sum: number, item: any) => sum + item.quantity,
+              0
+            );
+            setCartItemCount(totalItems);
+          }
+        } catch (error) {
+          console.error('Error fetching cart items:', error);
+          setCartItemCount(0);
+        }
+      } else {
+        setCartItemCount(0);
+      }
+    };
+
+    fetchCartItemsCount();
+  }, [isAuthenticated]);
 
   const handleSearchInputFocus = () => {
     if (searchQuery.length > 0) {
@@ -386,29 +342,79 @@ const Header: React.FC = () => {
 
                   {/* User dropdown menu */}
                   {showUserDropdown && (
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50 animate-fadeDown">
-                      <div className="px-4 py-2 border-b">
-                        <p className="font-medium text-gray-800">{user?.fullName}</p>
-                        <p className="text-xs text-gray-500">{user?.phone}</p>
-                      </div>
-                      <Link to="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setShowUserDropdown(false)}>
-                        Tài khoản của tôi
-                      </Link>
-                      <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setShowUserDropdown(false)}>
-                        Đơn hàng của tôi
-                      </Link>
-                      <Link to="/notifications" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setShowUserDropdown(false)}>
-                        Thông báo
-                      </Link>
-                      <button
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 border-t"
-                        onClick={handleLogout}
-                      >
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl py-2 z-50 animate-fadeDown border border-gray-100 overflow-hidden">
+                      {/* User header with avatar */}
+                      <div className="px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-50">
                         <div className="flex items-center">
-                          <LogOut size={14} className="mr-2" />
-                          Đăng xuất
+                          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full w-10 h-10 flex items-center justify-center text-white font-medium shadow-sm">
+                            {user?.fullName?.charAt(0).toUpperCase() || 'U'}
+                          </div>
+                          <div className="ml-3">
+                            <p className="font-semibold text-gray-800">{user?.fullName}</p>
+                            <p className="text-xs text-gray-500">{user?.phone}</p>
+                          </div>
                         </div>
-                      </button>
+                      </div>
+
+                      {/* Menu items */}
+                      <div className="px-2 py-2">
+                        <Link
+                          to="/account"
+                          className="flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => setShowUserDropdown(false)}
+                        >
+                          <div className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-full mr-3 text-blue-600">
+                            <User size={15} />
+                          </div>
+                          <span>Tài khoản của tôi</span>
+                        </Link>
+
+                        <Link
+                          to="/orders"
+                          className="flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => setShowUserDropdown(false)}
+                        >
+                          <div className="w-8 h-8 flex items-center justify-center bg-amber-100 rounded-full mr-3 text-amber-600">
+                            <ShoppingBag size={15} />
+                          </div>
+                          <span>Đơn hàng của tôi</span>
+                        </Link>
+
+                        <Link
+                          to="/wishlist"
+                          className="flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => setShowUserDropdown(false)}
+                        >
+                          <div className="w-8 h-8 flex items-center justify-center bg-red-100 rounded-full mr-3 text-red-600">
+                            <Heart size={15} />
+                          </div>
+                          <span>Sản phẩm yêu thích</span>
+                        </Link>
+
+                        <Link
+                          to="/notifications"
+                          className="flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => setShowUserDropdown(false)}
+                        >
+                          <div className="w-8 h-8 flex items-center justify-center bg-purple-100 rounded-full mr-3 text-purple-600">
+                            <Bell size={15} />
+                          </div>
+                          <span>Thông báo</span>
+                        </Link>
+                      </div>
+
+                      {/* Logout button */}
+                      <div className="mt-1 px-2 pt-2 border-t border-gray-100">
+                        <button
+                          className="flex w-full items-center px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          onClick={handleLogout}
+                        >
+                          <div className="w-8 h-8 flex items-center justify-center bg-red-100 rounded-full mr-3">
+                            <LogOut size={15} />
+                          </div>
+                          <span className="font-medium">Đăng xuất</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -424,19 +430,15 @@ const Header: React.FC = () => {
                 </Link>
               )}
 
-              {/* Notification */}
-              <Link to="/notifications" className="hidden md:flex relative hover:opacity-80">
-                <div className="bg-white/20 rounded-full p-2 hover:bg-white/30 transition-all">
-                  <Bell size={18} className="text-white" />
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">2</span>
-                </div>
-              </Link>
-
               {/* Cart */}
               <Link to="/cart" className="flex items-center text-white hover:opacity-80 group relative">
-                <div className="bg-white/20 rounded-full p-2 mr-1 md:mr-2 group-hover:bg-white/30 transition-all">
+                <div className="bg-white/20 rounded-full p-2 mr-1 md:mr-2 group-hover:bg-white/30 transition-all relative">
                   <ShoppingCart size={18} className="text-white" />
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 border border-white/30 shadow-sm">
+                      {cartItemCount > 99 ? '99+' : cartItemCount}
+                    </span>
+                  )}
                 </div>
                 <span className="hidden md:inline text-sm">Giỏ hàng</span>
               </Link>
@@ -693,12 +695,16 @@ const Header: React.FC = () => {
               </div>
             </div>
 
-            {/* Bottom actions */}
-            <div className="p-4 border-t">
+            {/* Bottom actions */}            <div className="p-4 border-t">
               <Link to="/notifications" className="flex items-center p-3 hover:bg-gray-100 rounded-lg" onClick={() => setIsMobileMenuOpen(false)}>
                 <Bell size={18} className="mr-3 text-blue-600" />
                 <span className="text-sm">Thông báo</span>
                 <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">2</span>
+              </Link>
+
+              <Link to="/wishlist" className="flex items-center p-3 hover:bg-gray-100 rounded-lg" onClick={() => setIsMobileMenuOpen(false)}>
+                <Heart size={18} className="mr-3 text-blue-600" />
+                <span className="text-sm">Danh sách yêu thích</span>
               </Link>
 
               {isAuthenticated && (

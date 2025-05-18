@@ -23,20 +23,30 @@ const AddressSelection: React.FC<{
         } else {
             setShowAnimation(false);
         }
-    }, [isOpen]);
-
-    // Filter items based on search query
+    }, [isOpen]);    
+    
+    // Filter items based on search query and selections
     const filteredProvinces = searchQuery
         ? provinces.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
         : provinces;
 
-    const filteredDistricts = searchQuery
-        ? districts.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    // Filter districts based on selected province and search query
+    const districtsForProvince = selectedProvince 
+        ? districts.filter(d => d.provinceId === selectedProvince.id) 
         : districts;
+    
+    const filteredDistricts = searchQuery
+        ? districtsForProvince.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : districtsForProvince;
 
-    const filteredWards = searchQuery
-        ? wards.filter(w => w.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    // Filter wards based on selected district and search query
+    const wardsForDistrict = selectedDistrict 
+        ? wards.filter(w => w.districtId === selectedDistrict.id) 
         : wards;
+    
+    const filteredWards = searchQuery
+        ? wardsForDistrict.filter(w => w.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : wardsForDistrict;
 
     const handleProvinceSelect = (province: Province) => {
         setSelectedProvince(province);
@@ -217,8 +227,7 @@ const AddressSelection: React.FC<{
                                         <span className={selectedDistrict?.id === district.id ? 'font-medium text-blue-600' : ''}>
                                             {district.name}
                                         </span>
-                                    </button>
-                                ))
+                                    </button>                                ))
                             ) : (
                                 <div className="col-span-2 p-6 text-center text-gray-500">
                                     {searchQuery ? 'Không tìm thấy quận/huyện nào phù hợp' : 'Không có quận/huyện nào cho tỉnh/thành phố đã chọn'}
