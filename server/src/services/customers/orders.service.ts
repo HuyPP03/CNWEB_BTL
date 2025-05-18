@@ -298,7 +298,7 @@ export const getOrders = async (filters: any, transaction?: Transaction) => {
 	}
 
 	// Điều kiện lọc theo trạng thái đơn hàng
-	if (filters.status) {
+	if (filters.status || filters.status !== 'draft') {
 		where.status = filters.status;
 	}
 
@@ -328,12 +328,7 @@ export const getOrders = async (filters: any, transaction?: Transaction) => {
 	// Truy vấn đơn hàng
 	const [rows, count] = await Promise.all([
 		db.orders.findAll({
-			where: {
-				...where,
-				status: {
-					[Op.not]: 'draft',
-				},
-			},
+			where,
 			include,
 			order: [['createdAt', 'DESC']],
 			limit: filters.limit,
@@ -341,12 +336,7 @@ export const getOrders = async (filters: any, transaction?: Transaction) => {
 			transaction,
 		}),
 		db.orders.count({
-			where: {
-				...where,
-				status: {
-					[Op.not]: 'draft',
-				},
-			},
+			where,
 			transaction,
 		}),
 	]);
