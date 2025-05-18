@@ -9,5 +9,12 @@ export default defineConfig({
     port: 3000,
     open: true,
     host: true,
+    proxy: {
+      '/api': {
+        target: 'https://web-backend-npbc.onrender.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
 });
