@@ -80,6 +80,7 @@ export default function EditProductVariant() {
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
     const [stock, setStock] = useState("");
+    const [discountPrice, setDiscountPrice] = useState("");
     const [images, setImages] = useState<File[]>([]);
     const [oldImages, setOldImages] = useState<{ id: number; imageUrl: string }[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -99,6 +100,7 @@ export default function EditProductVariant() {
                 setName(variant.name);
                 setPrice(variant.price);
                 setStock(String(variant.stock));
+                setDiscountPrice(variant.discountPrice || "");
                 setOldImages(variant.productImages || []);
                 
                 // Set attributes from variantAttributes
@@ -187,6 +189,7 @@ export default function EditProductVariant() {
             formData.append("name", name);
             formData.append("price", price);
             formData.append("stock", stock);
+            formData.append("discountPrice", discountPrice);
             
             // Chỉ thêm attributes khi có thay đổi
             Object.entries(attributes).forEach(([typeId, value], idx) => {
@@ -245,6 +248,22 @@ export default function EditProductVariant() {
                         {price && (
                             <div className="text-sm text-gray-500 mt-1">
                                 {formatCurrency(price)}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <label className="block font-semibold mb-2 text-lg">Giá giảm</label>
+                        <input
+                            type="number"
+                            placeholder="Nhập giá giảm"
+                            value={discountPrice}
+                            onChange={e => setDiscountPrice(e.target.value)}
+                            className="w-full p-3 border rounded text-lg"
+                            min={0}
+                        />
+                        {discountPrice && (
+                            <div className="text-sm text-gray-500 mt-1">
+                                {formatCurrency(discountPrice)}
                             </div>
                         )}
                     </div>
