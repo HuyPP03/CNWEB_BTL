@@ -13,6 +13,7 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				references: { model: 'Admins', key: 'id' },
 				onDelete: 'RESTRICT',
+				onUpdate: 'CASCADE',
 			},
 			action: { allowNull: false, type: Sequelize.STRING(100) },
 			entityType: { type: Sequelize.STRING(50) },

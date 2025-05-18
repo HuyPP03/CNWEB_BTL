@@ -12,12 +12,12 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				allowNull: true,
 				references: { model: 'Customers', key: 'id' },
-				onDelete: 'CASCADE',
+				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
 			},
 			name: {
 				allowNull: false,
 				type: Sequelize.STRING(100),
-				unique: true,
 			},
 			description: { type: Sequelize.TEXT },
 			createdAt: {

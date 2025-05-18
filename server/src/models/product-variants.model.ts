@@ -11,7 +11,9 @@ export class ProductVariants extends Model<
 	InferCreationAttributes<ProductVariants>
 > {
 	declare id: CreationOptional<number>;
+	declare name: string;
 	declare productId: number;
+	declare slug: string;
 	declare sku: string;
 	declare price: number;
 	declare discountPrice: CreationOptional<number>;
@@ -26,7 +28,13 @@ export class ProductVariants extends Model<
 					primaryKey: true,
 					autoIncrement: true,
 				},
+				name: { type: DataTypes.STRING(255), allowNull: false },
 				productId: { type: DataTypes.INTEGER, allowNull: false },
+				slug: {
+					type: DataTypes.STRING(255),
+					allowNull: false,
+					unique: true,
+				},
 				sku: {
 					type: DataTypes.STRING(50),
 					allowNull: false,

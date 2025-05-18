@@ -7,16 +7,25 @@ interface loginInterface {
 
 interface registerInterface {
 	email: string;
+	fullName: string;
+	password: string;
+	phone: string;
+	address?: string;
 }
 
 interface verifyInterface {
 	token: string;
-	password: string;
+	email: string;
 }
 
 interface forgotPasswordInterface {
+	email: string;
+}
+
+interface resetPasswordInterface {
 	token: string;
-	password: string;
+	email: string;
+	newPassword: string;
 }
 
 export const loginSchema: JSONSchemaType<loginInterface> = {
@@ -33,8 +42,12 @@ export const registerSchema: JSONSchemaType<registerInterface> = {
 	type: 'object',
 	properties: {
 		email: { type: 'string', nullable: false, format: 'email' },
+		fullName: { type: 'string', nullable: false },
+		password: { type: 'string', nullable: false, minLength: 6 },
+		phone: { type: 'string', nullable: false },
+		address: { type: 'string', nullable: true },
 	},
-	required: ['email'],
+	required: ['email', 'fullName', 'password', 'phone'],
 	additionalProperties: false,
 };
 
@@ -42,19 +55,28 @@ export const verifySchema: JSONSchemaType<verifyInterface> = {
 	type: 'object',
 	properties: {
 		token: { type: 'string', nullable: false },
-		password: { type: 'string', nullable: false },
+		email: { type: 'string', nullable: false, format: 'email' },
 	},
-	required: ['token', 'password'],
+	required: ['token', 'email'],
 	additionalProperties: false,
 };
 
 export const forgotPasswordSchema: JSONSchemaType<forgotPasswordInterface> = {
 	type: 'object',
 	properties: {
-		token: { type: 'string', nullable: false },
-		password: { type: 'string', nullable: false },
+		email: { type: 'string', nullable: false, format: 'email' },
 	},
-	required: ['token', 'password'],
+	required: ['email'],
 	additionalProperties: false,
 };
 
+export const resetPasswordSchema: JSONSchemaType<resetPasswordInterface> = {
+	type: 'object',
+	properties: {
+		token: { type: 'string', nullable: false },
+		email: { type: 'string', nullable: false, format: 'email' },
+		newPassword: { type: 'string', nullable: false, minLength: 6 },
+	},
+	required: ['token', 'email', 'newPassword'],
+	additionalProperties: false,
+};

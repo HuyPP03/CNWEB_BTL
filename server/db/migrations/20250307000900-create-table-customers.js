@@ -13,6 +13,7 @@ module.exports = {
 			phone: { type: Sequelize.STRING(20), unique: true },
 			passwordHash: { type: Sequelize.STRING(255) },
 			address: { type: Sequelize.TEXT },
+			isActive: { type: Sequelize.BOOLEAN, defaultValue: false },
 			createdAt: {
 				allowNull: false,
 				type: Sequelize.DATE,

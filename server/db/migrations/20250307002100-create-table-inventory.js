@@ -13,12 +13,14 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				references: { model: 'Warehouses', key: 'id' },
 				onDelete: 'RESTRICT',
+				onUpdate: 'CASCADE',
 			},
 			variantId: {
 				allowNull: false,
 				type: Sequelize.INTEGER,
 				references: { model: 'ProductVariants', key: 'id' },
 				onDelete: 'CASCADE',
+				onUpdate: 'CASCADE',
 			},
 			quantity: { type: Sequelize.INTEGER, defaultValue: 0 },
 			createdAt: {
@@ -31,11 +33,6 @@ module.exports = {
 				type: Sequelize.DATE,
 				defaultValue: Sequelize.fn('CURRENT_TIMESTAMP'),
 			},
-		});
-		await queryInterface.addConstraint('Inventory', {
-			fields: ['warehouseId', 'variantId'],
-			type: 'unique',
-			name: 'inventory_warehouse_variant_unique',
 		});
 	},
 	async down(queryInterface) {

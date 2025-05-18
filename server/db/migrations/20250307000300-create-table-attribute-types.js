@@ -8,10 +8,22 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
+			categoryId: {
+				type: Sequelize.INTEGER,
+				references: { model: 'Categories', key: 'id' },
+				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
+			},
+			parentId: {
+				type: Sequelize.INTEGER,
+				allowNull: true,
+				references: { model: 'AttributeTypes', key: 'id' },
+				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
+			},
 			name: {
 				allowNull: false,
 				type: Sequelize.STRING(100),
-				unique: true,
 			},
 			description: { type: Sequelize.TEXT },
 			createdAt: {

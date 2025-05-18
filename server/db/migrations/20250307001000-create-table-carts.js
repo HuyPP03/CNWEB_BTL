@@ -13,6 +13,7 @@ module.exports = {
 				allowNull: true,
 				references: { model: 'Customers', key: 'id' },
 				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
 			},
 			sessionId: { type: Sequelize.STRING(255) },
 			createdAt: {

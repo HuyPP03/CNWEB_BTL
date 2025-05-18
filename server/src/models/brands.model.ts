@@ -14,6 +14,7 @@ export class Brands extends Model<
 	declare name: string;
 	declare logoUrl: CreationOptional<string>;
 	declare description: CreationOptional<string>;
+	declare categoryId: CreationOptional<number> | null;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 	static initClass = (sequelize: Sequelize) => {
@@ -33,6 +34,7 @@ export class Brands extends Model<
 				description: DataTypes.TEXT,
 				createdAt: DataTypes.DATE,
 				updatedAt: DataTypes.DATE,
+				categoryId: DataTypes.INTEGER,
 			},
 			{
 				sequelize,
