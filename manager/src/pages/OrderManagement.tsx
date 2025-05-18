@@ -89,10 +89,6 @@ const OrderManagement = () => {
         navigate(`/qldonhang/detail/${id}`);
     };
 
-    const handleEdit = (id: number) => {
-        navigate(`/qldonhang/edit/${id}`);
-    };
-
     const paginate = (pageNumber: number) => setFilters({ ...filters, page: pageNumber });
 
     const totalPages = Math.ceil(total / filters.limit);
@@ -160,7 +156,7 @@ const OrderManagement = () => {
     return (
         <div className="p-2">
             <h1 className="text-xl font-bold mb-4">Quản lý đơn hàng</h1>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
                 <div>
                     <label className="block text-sm font-medium mb-1" htmlFor="id">ID đơn hàng</label>
                     <input
@@ -221,7 +217,6 @@ const OrderManagement = () => {
                         columns={["id", "customerId", "totalAmount", "status", "createdAt"]}
                         data={formatData(orders)}
                         onDetail={handleDetail}
-                        onEdit={handleEdit}
                     />
                 )}
             </div>

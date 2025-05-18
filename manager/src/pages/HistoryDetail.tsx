@@ -76,25 +76,34 @@ const HistoryDetail = () => {
       {/* Overlay xem chi tiết log */}
       {previewDetail && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 transition-all duration-300"
           onClick={() => setPreviewDetail(null)}
+          style={{ animation: 'fadeIn 0.2s' }}
         >
           <div
-            className="bg-white rounded-lg shadow-lg p-8 max-w-2xl max-h-[80vh] overflow-auto relative"
+            className="bg-white rounded-2xl shadow-2xl p-10 max-w-2xl max-h-[80vh] overflow-auto w-full relative animate-popup"
             onClick={e => e.stopPropagation()}
           >
-            <h2 className="text-xl font-bold mb-4">Chi tiết thao tác</h2>
-            <pre className="bg-gray-100 p-4 rounded text-sm overflow-x-auto">
-              {JSON.stringify(JSON.parse(previewDetail), null, 2)}
-            </pre>
             <button
-              className="absolute top-2 right-4 text-2xl text-gray-600 hover:text-black"
+              className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-red-500 transition-colors duration-200"
               onClick={() => setPreviewDetail(null)}
               title="Đóng"
             >
               ×
             </button>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-green-500 text-2xl">📝</span>
+              <h2 className="text-2xl font-bold text-gray-800">Chi tiết thao tác</h2>
+            </div>
+            <pre className="bg-gray-50 p-4 rounded text-sm overflow-x-auto border text-gray-700">
+              {JSON.stringify(JSON.parse(previewDetail), null, 2)}
+            </pre>
           </div>
+          <style>{`
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            .animate-popup { animation: popupScale 0.2s; }
+            @keyframes popupScale { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+          `}</style>
         </div>
       )}
     </div>
