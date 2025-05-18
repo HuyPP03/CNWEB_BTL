@@ -143,10 +143,13 @@ export class PaymentController {
 	): Promise<void> {
 		try {
 			const vnpParams = req.query;
+
 			const isValid = PaymentService.verifyPayment(
 				PaymentGateway.VNPAY,
 				vnpParams,
 			);
+
+			console.log('VNPay callback is valid:', isValid);
 
 			if (isValid) {
 				// Xử lý thanh toán thành công tại đây (cập nhật DB, ...)
