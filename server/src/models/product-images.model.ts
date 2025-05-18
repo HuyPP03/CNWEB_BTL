@@ -13,6 +13,7 @@ export class ProductImages extends Model<
 	declare id: CreationOptional<number>;
 	declare variantId: CreationOptional<number>;
 	declare productId: number;
+	declare publicId: string;
 	declare imageUrl: string;
 	declare isPrimary: CreationOptional<boolean>;
 	declare createdAt: CreationOptional<Date>;
@@ -26,7 +27,11 @@ export class ProductImages extends Model<
 					autoIncrement: true,
 				},
 				variantId: DataTypes.INTEGER,
-				productId: { type: DataTypes.INTEGER, allowNull: false },
+				productId: { type: DataTypes.INTEGER },
+				publicId: {
+					type: DataTypes.STRING(255),
+					allowNull: false,
+				},
 				imageUrl: { type: DataTypes.STRING(255), allowNull: false },
 				isPrimary: { type: DataTypes.BOOLEAN, defaultValue: false },
 				createdAt: DataTypes.DATE,

@@ -4,6 +4,7 @@ import env from '../../env';
 // Import tất cả các model
 import { Categories } from '../models/categories.model';
 import { Brands } from '../models/brands.model';
+import { BrandCategories } from '../models/brand-categories.model';
 import { AttributeTypes } from '../models/attribute-types.model';
 import { AttributeValues } from '../models/attribute-values.model';
 import { Products } from '../models/products.model';
@@ -60,6 +61,7 @@ const connectToDatabase = async () => {
 // Khởi tạo tất cả các model
 Categories.initClass(sequelize);
 Brands.initClass(sequelize);
+BrandCategories.initClass(sequelize);
 AttributeTypes.initClass(sequelize);
 AttributeValues.initClass(sequelize);
 Products.initClass(sequelize);
@@ -89,9 +91,16 @@ Shipping.initClass(sequelize);
 Categories.belongsTo(Categories, { as: 'parent', foreignKey: 'parentId' });
 Categories.hasMany(Categories, { as: 'subCategories', foreignKey: 'parentId' });
 
+// 2. Brands - Categories (mỗi thương hiệu thuộc nhiều danh mục)
+Brands.belongsToMany(Categories, { through: BrandCategories });
+Categories.belongsToMany(Brands, { through: BrandCategories });
+
 // 2. Products - Categories (mỗi sản phẩm thuộc một danh mục)
 Products.belongsTo(Categories, { foreignKey: 'categoryId' });
 Categories.hasMany(Products, { foreignKey: 'categoryId' });
+
+AttributeTypes.belongsTo(Categories, { foreignKey: 'categoryId' });
+Categories.hasMany(AttributeTypes, { foreignKey: 'categoryId' });
 
 // 3. Products - Brands (mỗi sản phẩm thuộc một thương hiệu)
 Products.belongsTo(Brands, { foreignKey: 'brandId' });
@@ -102,6 +111,14 @@ ProductVariants.belongsTo(Products, { foreignKey: 'productId' });
 Products.hasMany(ProductVariants, { foreignKey: 'productId' });
 
 // 5. AttributeValues - AttributeTypes (mỗi giá trị thuộc tính thuộc một loại thuộc tính)
+AttributeTypes.belongsTo(AttributeTypes, {
+	as: 'parent',
+	foreignKey: 'parentId',
+});
+AttributeTypes.hasMany(AttributeTypes, {
+	as: 'subAttributes',
+	foreignKey: 'parentId',
+});
 AttributeValues.belongsTo(AttributeTypes, { foreignKey: 'attributeTypeId' });
 AttributeTypes.hasMany(AttributeValues, { foreignKey: 'attributeTypeId' });
 
@@ -113,9 +130,20 @@ VariantAttributes.belongsTo(AttributeValues, {
 ProductVariants.hasMany(VariantAttributes, { foreignKey: 'variantId' });
 AttributeValues.hasMany(VariantAttributes, { foreignKey: 'attributeValueId' });
 
+VariantAttributes.belongsTo(AttributeTypes, { foreignKey: 'attributeTypeId' });
+VariantAttributes.belongsTo(AttributeValues, {
+	foreignKey: 'attributeValueId',
+});
+
+AttributeTypes.hasMany(VariantAttributes, { foreignKey: 'attributeTypeId' });
+AttributeValues.hasMany(VariantAttributes, { foreignKey: 'attributeValueId' });
+
 // 7. ProductImages - Products (mỗi ảnh thuộc một sản phẩm)
 ProductImages.belongsTo(Products, { foreignKey: 'productId' });
 Products.hasMany(ProductImages, { foreignKey: 'productId' });
+
+ProductImages.belongsTo(ProductVariants, { foreignKey: 'variantId' });
+ProductVariants.hasMany(ProductImages, { foreignKey: 'variantId' });
 
 // 8. Carts - Customers (mỗi giỏ hàng có thể thuộc một khách hàng)
 Carts.belongsTo(Customers, { foreignKey: 'customerId' });
@@ -184,6 +212,7 @@ export const db = {
 	sequelize: sequelize,
 	categories: Categories,
 	brands: Brands,
+	brandCategories: BrandCategories,
 	attributeTypes: AttributeTypes,
 	attributeValues: AttributeValues,
 	products: Products,

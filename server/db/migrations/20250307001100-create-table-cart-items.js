@@ -19,6 +19,7 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				references: { model: 'ProductVariants', key: 'id' },
 				onDelete: 'RESTRICT',
+				onUpdate: 'CASCADE',
 			},
 			quantity: { allowNull: false, type: Sequelize.INTEGER },
 			createdAt: {

@@ -13,6 +13,7 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				references: { model: 'Orders', key: 'id' },
 				onDelete: 'CASCADE',
+				onUpdate: 'CASCADE',
 			},
 			shippingProvider: { allowNull: false, type: Sequelize.STRING(100) },
 			trackingNumber: { type: Sequelize.STRING(100) },

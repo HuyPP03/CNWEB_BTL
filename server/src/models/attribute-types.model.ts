@@ -11,6 +11,8 @@ export class AttributeTypes extends Model<
 	InferCreationAttributes<AttributeTypes>
 > {
 	declare id: CreationOptional<number>;
+	declare categoryId: CreationOptional<number>;
+	declare parentId: CreationOptional<number>;
 	declare name: string;
 	declare description: CreationOptional<string>;
 	declare createdAt: CreationOptional<Date>;
@@ -22,6 +24,12 @@ export class AttributeTypes extends Model<
 					type: DataTypes.INTEGER,
 					primaryKey: true,
 					autoIncrement: true,
+				},
+				categoryId: {
+					type: DataTypes.INTEGER,
+				},
+				parentId: {
+					type: DataTypes.INTEGER,
 				},
 				name: {
 					type: DataTypes.STRING(100),

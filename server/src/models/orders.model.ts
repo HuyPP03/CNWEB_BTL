@@ -15,10 +15,13 @@ export class Orders extends Model<
 	declare warehouseId: CreationOptional<number>;
 	declare totalAmount: number;
 	declare status: CreationOptional<
-		'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+		| 'draft'
+		| 'pending'
+		| 'processing'
+		| 'shipped'
+		| 'delivered'
+		| 'cancelled'
 	>;
-	declare shippingAddress: string;
-	declare paymentMethod: CreationOptional<string>;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 	static initClass = (sequelize: Sequelize) => {
@@ -37,16 +40,15 @@ export class Orders extends Model<
 				},
 				status: {
 					type: DataTypes.ENUM(
+						'draft',
 						'pending',
 						'processing',
 						'shipped',
 						'delivered',
 						'cancelled',
 					),
-					defaultValue: 'pending',
+					defaultValue: 'draft',
 				},
-				shippingAddress: { type: DataTypes.TEXT, allowNull: false },
-				paymentMethod: DataTypes.STRING(50),
 				createdAt: DataTypes.DATE,
 				updatedAt: DataTypes.DATE,
 			},

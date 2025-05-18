@@ -13,6 +13,7 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				references: { model: 'Orders', key: 'id' },
 				onDelete: 'CASCADE',
+				onUpdate: 'CASCADE',
 			},
 			amount: { allowNull: false, type: Sequelize.DECIMAL(15, 2) },
 			paymentMethod: { allowNull: false, type: Sequelize.STRING(50) },

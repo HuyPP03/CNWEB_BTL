@@ -13,12 +13,14 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				references: { model: 'Customers', key: 'id' },
 				onDelete: 'RESTRICT',
+				onUpdate: 'CASCADE',
 			},
 			warehouseId: {
 				type: Sequelize.INTEGER,
 				allowNull: true,
 				references: { model: 'Warehouses', key: 'id' },
 				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
 			},
 			totalAmount: { allowNull: false, type: Sequelize.DECIMAL(15, 2) },
 			status: {

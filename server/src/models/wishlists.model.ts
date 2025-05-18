@@ -12,7 +12,8 @@ export class Wishlists extends Model<
 > {
 	declare id: CreationOptional<number>;
 	declare customerId: number;
-	declare productId: number;
+	declare productId: CreationOptional<number>;
+	declare variantId: CreationOptional<number>;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 	static initClass = (sequelize: Sequelize) => {
@@ -24,7 +25,8 @@ export class Wishlists extends Model<
 					autoIncrement: true,
 				},
 				customerId: { type: DataTypes.INTEGER, allowNull: false },
-				productId: { type: DataTypes.INTEGER, allowNull: false },
+				productId: { type: DataTypes.INTEGER },
+				variantId: { type: DataTypes.INTEGER },
 				createdAt: DataTypes.DATE,
 				updatedAt: DataTypes.DATE,
 			},
