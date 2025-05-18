@@ -66,46 +66,19 @@ export const updateProduct = async (
 			transaction,
 		);
 
-		// Xử lý ảnh
-		const keepImageIds: number[] = req.body.keepImageIds || [];
-		const primaryImageId: number | null = req.body.primaryImageId || null;
-
-		// 1. Xoá các ảnh không được giữ lại
-		const existingImages = await productImageService.getProductImages(
-			(updatedProduct as any)?.id,
-			transaction,
-		);
-		const imagesToDelete = existingImages.filter(
-			(img) => !keepImageIds.includes(img.id),
-		);
-
-		for (const img of imagesToDelete) {
-			await productImageService.deleteProductImage(img.id);
-		}
-
-		// 2. Tải ảnh mới nếu có
-		if (req.files && Array.isArray(req.files)) {
-			await productImageService.createProductImages(
-				req.files,
-				(updatedProduct as any)?.id,
-				undefined,
-				transaction,
-			);
-		}
-
-		// 3. Cập nhật ảnh chính nếu có
-		if (primaryImageId) {
-			await productImageService.setPrimaryImage(
-				(updatedProduct as any)?.id,
-				primaryImageId,
-				transaction,
-			);
-		}
+		const files = req.files as Express.Multer.File[];
 
 		if (!updatedProduct) {
 			await transaction.rollback();
 			return res.status(404).json({ message: 'Product not found' });
 		}
+
+		await productImageService.createProductImages(
+			files,
+			updatedProduct.id,
+			undefined,
+			transaction,
+		);
 
 		// Ghi adminlog
 		await adminLogService.CreateAdminLog(

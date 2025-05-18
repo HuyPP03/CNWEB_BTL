@@ -33,10 +33,17 @@ export const createOrderFromCart = async (
 			transaction,
 		});
 
-		const variantPriceMap = new Map<number, number>();
+		const variantMap = new Map<
+			number,
+			{ price: number; discount: number }
+		>();
 		const variantStockMap = new Map<number, number>();
+
 		variants.forEach((v) => {
-			variantPriceMap.set(v.id, Number(v.price));
+			variantMap.set(v.id, {
+				price: Number(v.price),
+				discount: Number(v.discountPrice) || 0, // fallback nếu discount không có
+			});
 			variantStockMap.set(v.id, Number(v.stock));
 		});
 
@@ -51,8 +58,15 @@ export const createOrderFromCart = async (
 		}
 
 		const totalAmount = cartItems.reduce((sum, item) => {
-			const price = variantPriceMap.get(item.variantId) || 0;
-			return sum + price * item.quantity;
+			const variant = variantMap.get(item.variantId) || {
+				price: 0,
+				discount: 0,
+			};
+			const effectivePrice = Math.max(
+				0,
+				variant.price - variant.discount,
+			);
+			return sum + effectivePrice * item.quantity;
 		}, 0);
 
 		const orderData = {
@@ -63,12 +77,23 @@ export const createOrderFromCart = async (
 		};
 		const newOrder = await db.orders.create(orderData, { transaction });
 
-		const orderItemsData = cartItems.map((item) => ({
-			orderId: newOrder.id,
-			variantId: item.variantId,
-			quantity: item.quantity,
-			priceAtTime: variantPriceMap.get(item.variantId) || 0,
-		}));
+		const orderItemsData = cartItems.map((item) => {
+			const variant = variantMap.get(item.variantId) || {
+				price: 0,
+				discount: 0,
+			};
+			const effectivePrice = Math.max(
+				0,
+				variant.price - variant.discount,
+			);
+			return {
+				orderId: newOrder.id,
+				variantId: item.variantId,
+				quantity: item.quantity,
+				priceAtTime: effectivePrice,
+			};
+		});
+
 		await ordersItemService.createOrderItem(orderItemsData, transaction);
 
 		// Trừ tồn kho
@@ -104,6 +129,15 @@ export const confirmOrder = async (
 	orderData: any,
 	transaction?: Transaction,
 ) => {
+	const order = await db.orders.findByPk(id, { transaction });
+
+	if (!order) throw new Error('Không tìm thấy đơn hàng');
+	if (order.status !== 'draft') {
+		throw new Error(
+			`Bạn không thể xác nhận đơn hàng này vì trạng thái của nó là ${order.status}`,
+		);
+	}
+
 	const shippingData = {
 		orderId: id,
 		name: orderData.name,
@@ -114,8 +148,6 @@ export const confirmOrder = async (
 	};
 
 	await db.shipping.create(shippingData, { transaction });
-
-	const order = await db.orders.findByPk(id, { transaction });
 
 	const paymentData = {
 		orderId: id,
