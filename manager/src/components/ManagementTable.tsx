@@ -22,21 +22,18 @@ const ManagementTable: React.FC<ManagementTableProps> = ({
   const handleDetail = (id: number) => {
     if (onDetail) {
       onDetail(id);
-      console.log("Chi tiết mục có ID:", id);
     }
   };
 
   const handleEdit = (id: number) => {
     if (onEdit) {
       onEdit(id);
-      console.log("Sửa mục có ID:", id);
     }
   };
 
   const handleDelete = (id: number) => {
     if (onDelete) {
       onDelete(id);
-      console.log("Xóa mục có ID:", id);
     }
   };
 
