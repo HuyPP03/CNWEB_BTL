@@ -39,7 +39,7 @@ export const login = async (
 		res.cookie('refreshToken', refreshToken, {
 			httpOnly: true,
 			secure: env.app.isProduction,
-			sameSite: 'strict',
+			sameSite: env.app.isProduction ? 'none' : 'strict',
 			maxAge: TimeUtil.parseTimeToMs(env.app.refreshTokenExpiry),
 			path,
 		});
@@ -80,7 +80,7 @@ export const refreshToken = async (
 			res.cookie('refreshToken', refreshToken, {
 				httpOnly: true,
 				secure: env.app.isProduction,
-				sameSite: 'strict',
+				sameSite: env.app.isProduction ? 'none' : 'strict',
 				maxAge: TimeUtil.parseTimeToMs(env.app.refreshTokenExpiry),
 				path,
 			});
@@ -580,7 +580,7 @@ export const googleCallback = (
 				res.cookie('refreshToken', refreshToken, {
 					httpOnly: true,
 					secure: env.app.isProduction,
-					sameSite: 'strict',
+					sameSite: env.app.isProduction ? 'none' : 'strict',
 					maxAge: TimeUtil.parseTimeToMs(env.app.refreshTokenExpiry),
 					path,
 				});
