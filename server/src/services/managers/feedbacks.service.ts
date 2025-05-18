@@ -3,7 +3,9 @@ import { Transaction } from 'sequelize';
 
 export const getAllFeedbacks = async (transaction?: Transaction) => {
 	return await db.feedbacks.findAll({
-		include: [{ model: db.customers }],
+		include: [
+			{ model: db.customers, attributes: { exclude: ['passwordHash'] } },
+		],
 		transaction,
 	});
 };
@@ -15,7 +17,7 @@ export const createFeedback = async (
 ) => {
 	const feedback = {
 		...data,
-		customerId,
+		userId: customerId,
 	};
 	return await db.feedbacks.create(feedback, { transaction });
 };
