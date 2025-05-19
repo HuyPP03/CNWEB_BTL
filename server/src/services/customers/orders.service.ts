@@ -311,7 +311,11 @@ export const getOrders = async (filters: any, transaction?: Transaction) => {
 		where.createdAt = {
 			[Op.between]: [
 				new Date(filters.startDate),
-				new Date(filters.endDate),
+				new Date(
+					new Date(filters.endDate).setDate(
+						new Date(filters.endDate).getDate() + 1,
+					),
+				),
 			],
 		};
 	} else if (filters.startDate) {
@@ -320,7 +324,11 @@ export const getOrders = async (filters: any, transaction?: Transaction) => {
 		};
 	} else if (filters.endDate) {
 		where.createdAt = {
-			[Op.lte]: new Date(filters.endDate),
+			[Op.lte]: new Date(
+				new Date(filters.endDate).setDate(
+					new Date(filters.endDate).getDate() + 1,
+				),
+			),
 		};
 	}
 

@@ -31,15 +31,26 @@ export const getAdminLogs = async (filters: any, transaction?: Transaction) => {
 	}
 	if (filters.fromDate && filters.toDate) {
 		where.createdAt = {
-			[Op.between]: [filters.fromDate, filters.toDate],
+			[Op.between]: [
+				new Date(filters.fromDate),
+				new Date(
+					new Date(filters.toDate).setDate(
+						new Date(filters.toDate).getDate() + 1,
+					),
+				),
+			],
 		};
 	} else if (filters.fromDate) {
 		where.createdAt = {
-			[Op.gte]: filters.fromDate,
+			[Op.gte]: new Date(filters.fromDate),
 		};
 	} else if (filters.toDate) {
 		where.createdAt = {
-			[Op.lte]: filters.toDate,
+			[Op.lte]: new Date(
+				new Date(filters.toDate).setDate(
+					new Date(filters.toDate).getDate() + 1,
+				),
+			),
 		};
 	}
 
