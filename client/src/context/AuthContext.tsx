@@ -20,6 +20,8 @@ interface AuthContextType {
   loginWithGoogle: () => void;
   handleGoogleCallback: (accessToken: string) => Promise<boolean>;
   logout: () => void;
+  forgotPassword: (email: string) => Promise<boolean>;
+  resetPassword: (email: string, token: string, newPassword: string) => Promise<boolean>;
   error: string | null;
   clearError: () => void;
 }
@@ -43,6 +45,8 @@ const AuthContext = createContext<AuthContextType>({
   loginWithGoogle: () => { },
   handleGoogleCallback: async () => false,
   logout: () => { },
+  forgotPassword: async () => false,
+  resetPassword: async () => false,
   error: null,
   clearError: () => { },
 });
@@ -212,9 +216,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     setUser(null);
-  };
-  const clearError = () => {
+  }; const clearError = () => {
     setError(null);
+  };
+
+  // Forgot password functionality
+  const forgotPassword = async (email: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await authService.forgotPassword(email);
+      return true;
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+
+      // Set user-friendly error messages
+      if (error.message === 'Network Error') {
+        setError('Lỗi kết nối. Vui lòng kiểm tra kết nối internet và thử lại sau.');
+      } else if (error.response?.status === 404) {
+        // Don't reveal if email exists or not for security
+        // Just return true as if it worked
+        return true;
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError('Có lỗi xảy ra. Vui lòng thử lại sau.');
+      }
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Reset password functionality
+  const resetPassword = async (email: string, token: string, newPassword: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await authService.resetPassword(email, token, newPassword);
+      return true;
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+
+      // Set user-friendly error messages
+      if (error.message === 'Network Error') {
+        setError('Lỗi kết nối. Vui lòng kiểm tra kết nối internet và thử lại sau.');
+      } else if (error.response?.status === 400) {
+        setError('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.');
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError('Có lỗi xảy ra khi đặt lại mật khẩu. Vui lòng thử lại.');
+      }
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Google authentication methods
@@ -299,7 +358,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
-
   return (
     <AuthContext.Provider
       value={{
@@ -311,6 +369,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle,
         handleGoogleCallback,
         logout,
+        forgotPassword,
+        resetPassword,
         error,
         clearError,
       }}
