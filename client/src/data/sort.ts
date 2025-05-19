@@ -1,0 +1,1 @@
+export const sortOptions = ['Nổi bật', 'Bán chạy', 'Giảm giá', 'Mới', 'Giá'];

@@ -2,35 +2,40 @@ import express, { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
+import cors from 'cors';
 import env from '../../env';
 import { handleError } from '../exceptions/error.exeption';
 import { router as apiRoute } from '../routers';
+import cookieParser from 'cookie-parser';
+import passport from 'passport';
+import { initPassport } from './passport.loader';
 
 export default (app: express.Application) => {
+	// Cấu hình CORS
+	const corsOptions = {
+		origin: (
+			requestOrigin: string | undefined,
+			callback: (err: Error | null, allow?: boolean) => void,
+		) => {
+			if (env.app.isProduction) {
+				if (!requestOrigin || env.app.cors.includes(requestOrigin)) {
+					callback(null, true);
+				} else {
+					callback(new Error('Not allowed by CORS'));
+				}
+			} else {
+				callback(null, true);
+			}
+		},
+		methods: 'GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE',
+		allowedHeaders:
+			'Content-Type,Origin,X-Requested-With,Accept,Authorization,access-token,X-Access-Token',
+		credentials: true,
+		preflightContinue: false,
+		optionsSuccessStatus: 200,
+	};
 
-	app.use((req, res, next) => {
-		const origin = req.headers.origin || '';
-
-		if (env.app.cors.includes(origin)) {
-			res.setHeader('Access-Control-Allow-Origin', origin);
-		}
-		res.header(
-			'Access-Control-Allow-Methods',
-			'GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE',
-		);
-		res.header(
-			'Access-Control-Allow-Headers',
-			`Content-Type, Origin, X-Requested-With, Accept, Authorization, access-token, X-Access-Token`,
-		);
-		res.header('Access-Control-Allow-Credentials', 'true');
-		res.header('preflightContinue', 'false');
-
-		if (req.method === 'OPTIONS') {
-			res.send(200);
-		} else {
-			next();
-		}
-	});
+	app.use(cors(corsOptions));
 
 	app.use(
 		morgan('dev', {
@@ -60,8 +65,17 @@ export default (app: express.Application) => {
 		helmet(),
 		express.json({ limit: '5mb' }),
 		express.urlencoded({ extended: true }),
+		// express.static(path.join(process.cwd(), 'uploads'), staticOptions),
+	);
+
+	app.use(
+		'/uploads',
 		express.static(path.join(process.cwd(), 'uploads'), staticOptions),
 	);
+	app.use(cookieParser());
+
+	initPassport();
+	app.use(passport.initialize());
 
 	app.use('/api', apiRoute);
 
