@@ -43,6 +43,7 @@ export default function AddProductVariant() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [hasExistingVariants, setHasExistingVariants] = useState(false);
 
     // Lấy categoryId của sản phẩm
     const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -52,6 +53,11 @@ export default function AddProductVariant() {
             try {
                 const res = await api.get(`/products?id=${productId}`);
                 setCategoryId(res.data.data[0]?.categoryId);
+
+                // Kiểm tra xem sản phẩm đã có biến thể chưa
+                const variantsRes = await api.get(`/product-variant?productId=${productId}`);
+                const variants = variantsRes.data.data;
+                setHasExistingVariants(variants && variants.length > 0);
             } catch {
                 setError("Không tìm thấy sản phẩm");
             }
@@ -98,25 +104,6 @@ export default function AddProductVariant() {
         }
     }, [images]);
 
-    // Lấy thuộc tính từ biến thể đầu tiên (nếu có)
-    useEffect(() => {
-        if (!productId) return;
-        const fetchFirstVariant = async () => {
-            try {
-                const res = await api.get(`/product-variant?productId=${productId}`);
-                const firstVariant = res.data.data && res.data.data[0];
-                if (firstVariant && firstVariant.variantAttributes) {
-                    const attributeMap: { [key: number]: string } = {};
-                    firstVariant.variantAttributes.forEach((attr: any) => {
-                        attributeMap[attr.attributeTypeId] = attr.attributeValue.value;
-                    });
-                    setAttributes(attributeMap);
-                }
-            } catch {}
-        };
-        fetchFirstVariant();
-    }, [productId]);
-
     const handleAttributeChange = (typeId: number, value: string) => {
         setAttributes(prev => ({ ...prev, [typeId]: value }));
     };
@@ -127,6 +114,31 @@ export default function AddProductVariant() {
 
     const handleRemoveImage = (idx: number) => {
         setImages(prev => prev.filter((_, i) => i !== idx));
+    };
+
+    const handleClearAttributes = () => {
+        setAttributes({});
+    };
+
+    const handleAutoFillAttributes = async () => {
+        if (!productId) return;
+        try {
+            const res = await api.get(`/product-variant?productId=${productId}`);
+            const variants = res.data.data;
+            if (variants && variants.length > 0) {
+                // Tìm biến thể đầu tiên có variantAttributes
+                const firstVariantWithAttributes = variants.find((v: any) => v.variantAttributes && v.variantAttributes.length > 0);
+                if (firstVariantWithAttributes) {
+                    const attributeMap: { [key: number]: string } = {};
+                    firstVariantWithAttributes.variantAttributes.forEach((attr: any) => {
+                        attributeMap[attr.attributeTypeId] = attr.attributeValue.value;
+                    });
+                    setAttributes(attributeMap);
+                }
+            }
+        } catch (err) {
+            setError("Không thể lấy thông tin biến thể đầu tiên");
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -233,7 +245,27 @@ export default function AddProductVariant() {
                     onRemoveImage={handleRemoveImage}
                 />
                 <div>
-                    <label className="block font-semibold mb-2 text-lg">Thuộc tính</label>
+                    <div className="flex justify-between items-center mb-4">
+                        <label className="block font-semibold text-lg">Thuộc tính</label>
+                        <div className="flex gap-2">
+                            {hasExistingVariants && (
+                                <button
+                                    type="button"
+                                    onClick={handleAutoFillAttributes}
+                                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 text-sm cursor-pointer"
+                                >
+                                    Điền từ biến thể đầu tiên
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={handleClearAttributes}
+                                className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 text-sm cursor-pointer"
+                            >
+                                Xóa tất cả thuộc tính
+                            </button>
+                        </div>
+                    </div>
                     <div className="space-y-6">
                         {attributeTypes.map(parent => (
                             <div key={parent.id} className="border rounded-lg p-4 bg-gray-50">

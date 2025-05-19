@@ -76,7 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const response = await api.get("/auth/managers/refresh-token");
           const { accessToken } = response.data.data;
           localStorage.setItem("accessToken", accessToken);
-          console.log("refreshthanhcong");
 
           await fetchUserInfo();
         } catch (err) {
