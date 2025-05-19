@@ -3,6 +3,7 @@ import { Transaction } from 'sequelize';
 
 export const getAllFeedbacks = async (transaction?: Transaction) => {
 	return await db.feedbacks.findAll({
+		order: [['createdAt', 'DESC']],
 		include: [
 			{ model: db.customers, attributes: { exclude: ['passwordHash'] } },
 		],
