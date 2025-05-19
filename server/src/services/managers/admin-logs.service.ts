@@ -58,6 +58,7 @@ export const getAdminLogs = async (filters: any, transaction?: Transaction) => {
 	const [rows, count] = await Promise.all([
 		db.adminLogs.findAll({
 			where,
+			order: [['createdAt', 'DESC']],
 			include: [
 				{
 					model: db.admins,

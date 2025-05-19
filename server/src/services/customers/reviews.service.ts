@@ -24,6 +24,7 @@ export const createReview = async (
 
 export const getAllReviews = async (transaction?: Transaction) => {
 	return await db.reviews.findAll({
+		order: [['createdAt', 'DESC']],
 		include: [{ model: db.products }],
 		transaction,
 	});
@@ -35,6 +36,7 @@ export const getReviewsByProduct = async (
 ) => {
 	return await db.reviews.findAll({
 		where: { productId },
+		order: [['createdAt', 'DESC']],
 		include: [{ model: db.products }],
 		transaction,
 	});

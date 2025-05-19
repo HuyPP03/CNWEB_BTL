@@ -7,6 +7,7 @@ export const getAllWishlists = async (
 ) => {
 	return await db.wishlists.findAll({
 		where: { customerId },
+		order: [['createdAt', 'DESC']],
 		include: [{ model: db.products }],
 		transaction,
 	});

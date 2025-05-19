@@ -30,7 +30,9 @@ export const getProducts = async (
 			(parseInt(page as string) - 1) * parseInt(limit as string);
 		const pageLimit = parseInt(limit as string);
 
-		const order = direct ? [['basePrice', direct]] : [];
+		const order = direct
+			? [['basePrice', direct]]
+			: [['createdAt', 'DESC']];
 
 		const filters = {
 			id: id ? Number(id) : undefined,
