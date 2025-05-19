@@ -7,7 +7,14 @@ export const getVariants = async (filters: any, transaction?: Transaction) => {
 	const include: any[] = [
 		{
 			model: db.variantAttributes,
-			include: [{ model: db.attributeValues }],
+			include: [
+				{
+					model: db.attributeTypes,
+				},
+				{
+					model: db.attributeValues,
+				},
+			],
 		},
 		{ model: db.productImages },
 		{ model: db.products },
