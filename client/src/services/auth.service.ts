@@ -82,9 +82,7 @@ const authService = {
 
             throw error;
         }
-    },
-
-    verifyToken: async (token: string, email: string): Promise<void> => {
+    },    verifyToken: async (token: string, email: string): Promise<void> => {
         await apiClient.post<{ statusCode: number, message: string, data: null }>('/auth/verify', {
             token,
             email
@@ -94,6 +92,36 @@ const authService = {
     refreshToken: async (): Promise<{ accessToken: string }> => {
         const response = await apiClient.post<{ statusCode: number, message: string, data: string }>('/auth/customers/refresh-token', {});
         return { accessToken: response.data };
+    },
+    
+    // Forgot password - request password reset
+    forgotPassword: async (email: string): Promise<void> => {
+        try {
+            console.log('Calling forgot password API with:', { email });
+            const response = await apiClient.post<{ statusCode: number, message: string, data: null }>('/auth/customers/forgot-password', {
+                email
+            });
+            console.log('Forgot password request successful:', response);
+        } catch (error) {
+            console.error('Forgot password API error:', error);
+            throw error;
+        }
+    },
+
+    // Reset password with token
+    resetPassword: async (email: string, token: string, newPassword: string): Promise<void> => {
+        try {
+            console.log('Calling reset password API with:', { email, token: token.substring(0, 15) + '...' });
+            const response = await apiClient.post<{ statusCode: number, message: string, data: null }>('/auth/customers/reset-password', {
+                email,
+                token,
+                newPassword
+            });
+            console.log('Reset password successful:', response);
+        } catch (error) {
+            console.error('Reset password API error:', error);
+            throw error;
+        }
     },
 
 }

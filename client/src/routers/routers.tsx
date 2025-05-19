@@ -5,6 +5,8 @@ import CategoryPage from "../pages/CategoryPage";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import GoogleCallback from "../pages/auth/GoogleCallback";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import ResetPassword from "../pages/auth/ResetPassword";
 import OrdersPage from "../pages/OrdersPage";
 import OrderDetailPage from "../pages/OrderDetailPage";
 import PrivateRoute from "./PrivateRoute";
@@ -20,10 +22,11 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-
       {/* Auth routes */}
       <Route path="/auth/login" element={<Login />} />
       <Route path="/auth/register" element={<Register />} />
+      <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/login/success" element={<GoogleCallback />} />
 
       {/* Protected routes - require authentication */}      <Route element={<PrivateRoute />}>

@@ -127,8 +127,9 @@ function Home() {
       {renderProductSection('ĐIỆN THOẠI NỔI BẬT', '/smartphone', smartphones, loading)}
 
       {/* Laptop Section */}
-      {renderProductSection('LAPTOP NỔI BẬT', '/laptop', laptops, loading)}      {/* News and Tips - Enhanced with semantic HTML */}
-      <section aria-label="Tech News" className="container mx-auto px-4 mb-6">
+      {renderProductSection('LAPTOP NỔI BẬT', '/laptop', laptops, loading)}
+      {/* News and Tips - Enhanced with semantic HTML */}
+      {/* <section aria-label="Tech News" className="container mx-auto px-4 mb-6">
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">TIN TỨC CÔNG NGHỆ</h2>
@@ -160,7 +161,7 @@ function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }
