@@ -60,7 +60,6 @@ export const getVariants = async (filters: any, transaction?: Transaction) => {
 	const [rows, count] = await Promise.all([
 		db.productVariants.findAll({
 			where,
-			order: [['createdAt', 'DESC']],
 			include,
 			limit: filters.limit,
 			offset: filters.offset,
