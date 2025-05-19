@@ -135,14 +135,23 @@ export const updateVariant = async (
 
 		const attributes = parseAttributes(req.body);
 
-		for (const attribute of attributes) {
-			await variantService.updateAttribute(
-				parseInt(req.params.id),
-				attribute.attributeTypeId,
-				attribute.value,
-				transaction,
-			);
-		}
+		await variantService.updateAttribute(
+			parseInt(req.params.id),
+			attributes,
+			transaction,
+		);
+
+		const resV = await db.productVariants.findByPk(updatedVariant.id, {
+			include: [
+				{
+					model: db.variantAttributes,
+					include: [{ model: db.attributeValues }],
+				},
+				{ model: db.productImages },
+				{ model: db.products },
+			],
+			transaction,
+		});
 
 		// Ghi adminlog
 		await adminLogService.CreateAdminLog(
@@ -155,7 +164,7 @@ export const updateVariant = async (
 		);
 
 		await transaction.commit();
-		return res.status(200).json(new ResOk().formatResponse(updatedVariant));
+		return res.status(200).json(new ResOk().formatResponse(resV));
 	} catch (error) {
 		await transaction.rollback();
 		next(error);

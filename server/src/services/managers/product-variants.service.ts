@@ -154,48 +154,82 @@ export const addVariantAttributes = async (
 // Sửa thuộc tính cho biến thể sản phẩm
 export const updateAttribute = async (
 	id: number,
-	attributeTypeId: number,
-	value: string,
+	attributes: VariantAttributeInput[],
 	transaction?: Transaction,
 ) => {
 	// 1. Tìm variantAttribute cần cập nhật
-	const attr = await db.variantAttributes.findOne({
-		where: {
-			variantId: id,
-			attributeTypeId: attributeTypeId,
-		},
-		include: [{ model: db.attributeValues }],
+	const existingAttributes = await db.variantAttributes.findAll({
+		where: { variantId: id },
 		transaction,
 	});
-	if (!attr) {
-		throw new Error(`variant with id ${id} not found`);
-	}
-	// 2. Tìm attributeValue theo attributeTypeId và value
-	let attributeValue = await db.attributeValues.findOne({
-		where: {
+
+	const existingAttributeTypeIds = existingAttributes.map(
+		(attr) => attr.attributeTypeId,
+	);
+
+	// 2. Lọc ra các attributeTypeId chưa có
+	const missingAttributes = attributes.filter(
+		(attr) => !existingAttributeTypeIds.includes(attr.attributeTypeId),
+	);
+
+	// if (missingAttributes.length === 0) return;
+
+	// 3. Kiểm tra value nào đã tồn tại, value nào chưa
+	const valuesToCheck = missingAttributes.map(
+		({ attributeTypeId, value }) => ({
 			attributeTypeId,
 			value,
+		}),
+	);
+
+	const existingValues = await db.attributeValues.findAll({
+		where: {
+			[Op.or]: valuesToCheck,
 		},
 		transaction,
 	});
+	const existingValueMap = new Map(
+		existingValues.map((v) => [`${v.attributeTypeId}-${v.value}`, v]),
+	);
 
-	// 3. Nếu chưa có thì tạo mới
-	if (!attributeValue) {
-		const [created] = await attributeValueService.createValue(
-			[{ attributeTypeId, value }],
-			transaction,
-		);
-		attributeValue = created;
+	const toCreateValues: { attributeTypeId: number; value: string }[] = [];
+
+	for (const attr of missingAttributes) {
+		const key = `${attr.attributeTypeId}-${attr.value}`;
+		if (!existingValueMap.has(key)) {
+			toCreateValues.push({
+				attributeTypeId: attr.attributeTypeId,
+				value: attr.value,
+			});
+		}
 	}
 
-	// 4. Cập nhật variantAttribute với attributeValueId mới
-	await attr.update(
-		{
-			attributeValueId: attributeValue.id,
-			name: value,
-		},
-		{ transaction },
-	);
+	// 4. Tạo các attributeValue chưa có
+	const createdValues = toCreateValues.length
+		? await attributeValueService.createValue(toCreateValues, transaction)
+		: [];
+
+	// 5. Kết hợp lại map giá trị
+	for (const created of createdValues) {
+		const key = `${created.attributeTypeId}-${created.value}`;
+		existingValueMap.set(key, created);
+	}
+
+	// 6. Tạo variantAttributes mới cho những attributeTypeId chưa có
+	const variantAttributesToCreate = missingAttributes.map((attr) => {
+		const key = `${attr.attributeTypeId}-${attr.value}`;
+		const attributeValue = existingValueMap.get(key);
+
+		return {
+			variantId: id,
+			attributeTypeId: attr.attributeTypeId,
+			attributeValueId: (attributeValue as any).id,
+			name: attr.value,
+		};
+	});
+	await db.variantAttributes.bulkCreate(variantAttributesToCreate, {
+		transaction,
+	});
 };
 
 // Xóa thuộc tính cho biến thể sản phẩm
